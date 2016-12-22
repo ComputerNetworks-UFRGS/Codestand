@@ -18,11 +18,11 @@
 	#id_protocol { width: 300px; }
 	#s2id_id_doc { width: 400px; margin-bottom: 10px; }
 	#id_additional_information { width: 300px; }
-    #div_contact { margin-left: 80px; margin-bottom: -40px" }  
-    #id_contact { width: 300px; margin-right: 10px; margin-left: 5px; }
+    #id_contact { width: 200px; margin-left: 10px; margin-right: 10px; } 
+    #div_contact { margin-left: 125px; margin-bottom: -40px" }   
     #id_type { margin-left: 10px; margin-right: 10px; }  
-	#id_link { width: 300px; margin-right: 10px; margin-left: 5px; }
-	#id_name { width: 200px; margin-right: 10px; margin-left: 5px; }
+	#id_link { width: 300px; margin-right: 10px; margin-left: 5px;}
+	#id_name { width: 200px; margin-right: 10px; margin-left: 5px;}
   </style>
 {% endblock %}
 
@@ -166,7 +166,7 @@
 
 								<br />
                                     
-                                <div>
+                                <div style="margin-top: -15px">
                                 {% if contacts %}
                                     <h4><strong>Contacts</strong></h4>
                                     {% for c in contacts %}
@@ -191,7 +191,7 @@
 
                                 <div>                                    
                                     
-								<div>
+								<div style="margin-top: -30px">
 									{% if tags %}
 		            					<h4><strong>Tags</strong></h4>
 		            					{% for tag in tags %}

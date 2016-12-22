@@ -19,7 +19,7 @@
 	#s2id_id_doc { width: 400px; margin-bottom: 10px; }
 	#id_additional_information { width: 300px; }
     #id_contact { width: 200px; margin-left: 10px; margin-right: 10px; } 
-    #div_contact { margin-left: 80px; margin-bottom: -40px" }   
+    #div_contact { margin-left: 125px; margin-bottom: -40px" }   
     #id_type { margin-left: 10px; margin-right: 10px; }  
 	#id_link { width: 300px; margin-right: 10px; margin-left: 5px; }
 	#id_name { width: 200px; margin-right: 10px; margin-left: 5px;}
@@ -38,10 +38,10 @@
 
             <!-- Breadcrumb -->
             <div class="bread-crumb pull-right">
-                <a href="{% url "ietf.codestand.views.index" %}"><i class="fa fa-home"></i> Home</a>
+                <a href="{% url 'ietf.codestand.views.index' %}"><i class="fa fa-home"></i> Home</a>
                 <!-- Divider -->
                 <span class="divider">/</span>
-                <a href="{% url "ietf.codestand.matches.views.show_list" %}" class="bread-current">Projects</a>
+                <a href="{% url 'ietf.codestand.matches.views.show_list' %}" class="bread-current">Projects</a>
                 <span class="divider">/</span>
                 <a href="#" class="bread-current">New</a>
             </div>
@@ -191,7 +191,7 @@
 
                                     <div>
 
-									<div>
+									<div style="margin-top: -50px">
 										{% if tags %}
 			            					<h4><strong>Tags</strong></h4>
 			            					{% for tag in tags %}

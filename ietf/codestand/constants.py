@@ -2,8 +2,8 @@
 # Version Constants
 # ----------------------------------------------------------------
 
-VERSION = "1.2.1"
-RELEASE_DATE = "2016-07-26"
+VERSION = "2.0.0"
+RELEASE_DATE = "2016-12-22"
 
 # ----------------------------------------------------------------
 # Session Constants
@@ -86,7 +86,6 @@ ATT_WORKING_GROUP = 'working_group'
 ATT_AREA = 'area'
 
 MAIL_TYPES = [
-    # core events
     ("Twitter", "Twitter"),
     ("Facebook", "Facebook"),
     ("Jabber", "Jabber"),
