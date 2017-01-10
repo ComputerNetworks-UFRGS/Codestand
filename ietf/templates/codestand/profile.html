@@ -40,41 +40,48 @@
         <div class="matter">
             <div class="container">
                 <div class="col-sm-6" style="width: 50%; float:left">
-                    <h2>{{ username }}</h2>
+                    <h2>{{ coder.name }}</h2>
                     <ul>
-                        <li>Email:
-                            <a href="mailto:matheusprola@hotmail.com">matheusprola@hotmail.com</a>
+                        {% for mail in email%}
+                        <li>Contact:
+                            <a href="mailto:{{ mail }}">{{ mail }}</a>
                         </li>
+                        {% endfor %}
+                        {% if coder.affiliation %}
                         <li>Affiliation: {{ coder.affiliation }}</li>
+                        {% endif %}
+                        {% if coder.address %}
+                        <li>Address: {{ coder.address }}</li>
+                        {% endif %}
                     </ul>
-
-                    <!--<h3>Contacts</h3>-->
-                    <!--<ul>-->
-                    <!--</ul>-->
 
                 </div>
 
                 <div class="col-sm-6 pull-right" style="width: 50%; float:right">
-
-                    <h3>Projects ({{ projects|length }})</h3>
                     
-                    {% for proj in projects %}
-                    <div>
-                        <ul>
-                            <li><a href="{% url 'ietf.codestand.requests.views.show' proj.id %}">{{ proj.title }}</a></li>
-                        </ul>
-                    </div>
-                    {% endfor %}
-
-                    <h3>Code Requests ({{ codings|length }})</h3>
-
-                    {% for proj, coding in codings %}
-                    <div>
-                        <ul>
-                            <li><a href="{% url 'show' proj.id coding.id %}">{{ coding.title }}</a> </li>
-                        </ul>
-                    </div>
-                    {% endfor %}
+                    {% if projects %}
+                        <h3>Projects ({{ projects|length }})</h3>
+                        
+                        {% for proj in projects %}
+                        <div>
+                            <ul>
+                                <li><a href="{% url 'ietf.codestand.requests.views.show' proj.id %}">{{ proj.title }}</a></li>
+                            </ul>
+                        </div>
+                        {% endfor %}
+                    {% endif %}
+                    
+                    {% if codings %}
+                        <h3>Code Requests ({{ codings|length }})</h3>
+    
+                        {% for proj, coding in codings %}
+                        <div>
+                            <ul>
+                                <li><a href="{% url 'show' proj.id coding.id %}">{{ coding.title }}</a> </li>
+                            </ul>
+                        </div>
+                        {% endfor %}
+                    {% endif %}
                 </div>
                 <div style="clear:both;"></div>
             </div>

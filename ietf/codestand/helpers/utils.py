@@ -2,11 +2,13 @@ from ietf.codestand import constants
 from django.shortcuts import render
 from ietf.person.models import Person, Alias
 from ietf.codestand.matches.models import ProjectContainer, CodingProject
+from django.conf import settings
 
 
 # ----------------------------------------------------------------
 # Helper Functions
 # ----------------------------------------------------------------
+
 def is_user_allowed(user, permission):
     """ Check if the user has permission
         :param permission:
@@ -28,11 +30,13 @@ def get_user(request):
     else:
         return request.session[constants.USER]
 
+
 def get_menu_arguments(request, keys):
     user = get_user(request)
 
     # Always setted
     keys['from'] = request.GET.get('from', None)
+    keys['codestand_debug'] = settings.CODESTAND_DEBUG
     keys['codestand_version'] = constants.VERSION
     keys['codestand_revision_date'] = constants.RELEASE_DATE
 
@@ -93,13 +97,8 @@ def render_page(request, template, keys=None):
     # if the template has changed then update actual and previous templates
     if constants.ACTUAL_TEMPLATE in request.session:
         actual_template = request.session[constants.ACTUAL_TEMPLATE]
-        previous_template = ''
-        if constants.PREVIOUS_TEMPLATE in request.session:
-            previous_template = request.session[constants.PREVIOUS_TEMPLATE]
         if actual_template != request.path:
-            # TODO: Melhorar isto, mas no search existe referencia circular
-            if not ('search' in previous_template and 'show_list' in actual_template):
-                request.session[constants.PREVIOUS_TEMPLATE] = actual_template
+            request.session[constants.PREVIOUS_TEMPLATE] = actual_template
 
     request.session[constants.ACTUAL_TEMPLATE] = request.path
 

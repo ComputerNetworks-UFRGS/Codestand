@@ -194,7 +194,7 @@ def search(request, is_my_list="False"):
 
     search_type = request.GET.get("submit")
     if search_type:
-
+        
         # get query field
         query = ''
         if request.GET.get(search_type):
@@ -247,8 +247,6 @@ def search(request, is_my_list="False"):
                     if query.lower() in doc[0].lower():
                         proj_ids.append(project_container.id)
                         break
-                        # ids += ProjectContainer.objects.filter(docs__document__group__parent__name__icontains=query).values_list(
-                        #    'id', flat=True)
 
         if search_in_all or request.GET.get(constants.STRING_WORKINGGROUP):
             for project_container in ProjectContainer.objects.all():
@@ -687,8 +685,7 @@ def remove_contact(request, ck, contact_name):
         us = get_user(request)
         user = us
 
-        # Project must have been created by the current user and
-        # User must have permission to add new CodeRequest
+        # Project must have been created by the current user
         if coding.coder != user.id:
             raise Http404
 
@@ -724,7 +721,7 @@ def remove_tag(request, ck, tag_name):
         us = get_user(request)
         user = us
 
-        # Coding must have been created by the current user and
+        # Coding must have been created by the current user
         if coding.coder != user.id:
             raise Http404
 
@@ -760,7 +757,7 @@ def remove_document(request, pk, doc_name):
         us = get_user(request)
         user = us
 
-        # Project must have been created by the current user and
+        # Project must have been created by the current user
         if project_container.owner != user.id:
             raise Http404
 

@@ -129,7 +129,7 @@
 		                    <br />
 
 		                    <h4><strong>Resources</strong></h4>
-		                    Mentor: <a href="#">{{ mentor.name }}</a><br />
+		                    Mentor: <a href="{% url 'ietf.codestand.accounts.views.profile' mentor.id %}">{{ mentor.name }}</a><br />
 
 		                    {% for m in projectcontainer.contacts.all %}
 		                    	{{ m.type }}: <a href="#">

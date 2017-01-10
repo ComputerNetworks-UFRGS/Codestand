@@ -110,6 +110,8 @@ CODESTAND_PREFIX = ""
 # (eg. codestand-dev - STATIC_URL="/static/") 
 STATIC_URL = CODESTAND_PREFIX + "/../"
 
+CODESTAND_DEBUG = True
+
 IS_CODESTAND_APP = True
 
 # Application that must be installed by Codestand
@@ -120,5 +122,5 @@ CODESTAND_APPS = (
     'ietf.codestand.requests'
 )
 
-# if DEBUG:
+# if CODESTAND_DEBUG:
 #     CODESTAND_APPS += ('debug_toolbar',)

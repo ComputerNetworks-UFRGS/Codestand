@@ -65,6 +65,7 @@ WIDGET_MY_REQUESTS = 'codestand/widgets/my_requests.html'
 # ----------------------------------------------------------------
 # Localized String
 # ----------------------------------------------------------------
+
 STRING_TITLE = 'title'
 STRING_DESCRIPTION = 'description'
 STRING_PROTOCOL = 'protocol'
@@ -80,6 +81,10 @@ STRING_SAVE = 'button_save'
 STRING_POPULARITY = 'popularity'
 STRING_TWITTER = 'twitter'
 STRING_NONE = 'None'
+
+# ----------------------------------------------------------------
+# Other values
+# ----------------------------------------------------------------
 
 ATT_CREATION_DATE = '-creation_date'
 ATT_WORKING_GROUP = 'working_group'

@@ -214,7 +214,7 @@ def search(request, type_list="all"):
 
         if search_in_all or request.GET.get(constants.STRING_AREA):
             docs = []
-            for project_container in ProjectContainer.object.exclude(is_deleted=True).all():
+            for project_container in ProjectContainer.objects.exclude(is_deleted=True).all():
                 if not project_container.docs or project_container.docs == '':
                     continue
                 keys = filter(None, project_container.docs.split(';'))
@@ -263,7 +263,6 @@ def show(request, pk):
 
     areas = []
     working_groups = []
-    docs = []
 
     user = get_user(request)
     mentor = None

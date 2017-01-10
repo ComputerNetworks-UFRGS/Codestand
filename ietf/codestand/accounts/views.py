@@ -3,7 +3,7 @@ from django.db.models import Count
 from django.http import HttpResponseRedirect, Http404
 from ietf.codestand.matches.models import CodingProject, ProjectContainer
 from ietf.codestand.helpers.utils import (render_page, get_user)
-from ietf.person.models import Person
+from ietf.person.models import Person, Email
 from django.conf import settings
 
 
@@ -23,6 +23,7 @@ def profile(request, user=None):
         else:
             user = current_user.id
     coder = Person.objects.using('datatracker').get(id=user)
+    email = Email.objects.using('datatracker').filter(person_id=user)
     projects = ProjectContainer.objects.exclude(code_request__isnull=True).exclude(is_deleted=True).filter(owner=user)
     codings = CodingProject.objects.filter(coder=user)
     all_projects = ProjectContainer.objects.all()
@@ -34,6 +35,7 @@ def profile(request, user=None):
                 selected_codings.append((proj, code))
     return render_page(request, constants.TEMPLATE_PROFILE, {
         'coder': coder,
+        'email': email,
         'projects': projects,
         'codings': selected_codings,
     })
