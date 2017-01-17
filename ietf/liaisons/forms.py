@@ -46,13 +46,6 @@ with the IAB).
 def liaison_manager_sdos(person):
     return Group.objects.filter(type="sdo", state="active", role__person=person, role__name="liaiman").distinct()
 
-def flatten_choices(choices):
-    '''Returns a flat choice list given one with option groups defined'''
-    flat = []
-    for optgroup,options in choices:
-        flat.extend(options)
-    return flat
-    
 def get_internal_choices(user):
     '''Returns the set of internal IETF groups the user has permissions for, as a list
     of choices suitable for use in a select widget.  If user == None, all active internal
@@ -82,8 +75,7 @@ def get_groups_for_person(person):
         queries = [Q(role__person=person,role__name='chair',acronym='ietf'),
                    Q(role__person=person,role__name__in=('chair','execdir'),acronym='iab'),
                    Q(role__person=person,role__name='ad',type='area',state='active'),
-                   Q(role__person=person,role__name__in=('chair','secretary'),type='wg',state='active'),
-                   Q(parent__role__person=person,parent__role__name='ad',type='wg',state='active')]
+                   Q(role__person=person,role__name__in=('chair','secretary'),type='wg',state='active')]
     return Group.objects.filter(reduce(operator.or_,queries)).order_by('acronym').distinct()
 
 def liaison_form_factory(request, type=None, **kwargs):
@@ -117,9 +109,6 @@ def validate_emails(value):
 # -------------------------------------------------
 # Form Classes
 # -------------------------------------------------
-class AddCommentForm(forms.Form):
-    comment = forms.CharField(required=True, widget=forms.Textarea)
-    private = forms.BooleanField(label="Private comment", required=False,help_text="If this box is checked the comment will not appear in the statement's public history view.")
 
 class RadioRenderer(RadioFieldRenderer):
     def render(self):
@@ -130,7 +119,6 @@ class RadioRenderer(RadioFieldRenderer):
 
 
 class SearchLiaisonForm(forms.Form):
-    '''Expects initial keyword argument queryset which then gets filtered based on form data'''
     text = forms.CharField(required=False)
     scope = forms.ChoiceField(choices=(("all", "All text fields"), ("title", "Title field")), required=False, initial='title', widget=forms.RadioSelect(renderer=RadioRenderer))
     source = forms.CharField(required=False)
@@ -138,42 +126,24 @@ class SearchLiaisonForm(forms.Form):
     start_date = DatepickerDateField(date_format="yyyy-mm-dd", picker_settings={"autoclose": "1" }, label='Start date', required=False)
     end_date = DatepickerDateField(date_format="yyyy-mm-dd", picker_settings={"autoclose": "1" }, label='End date', required=False)
 
-    def __init__(self, *args, **kwargs):
-        self.queryset = kwargs.pop('queryset')
-        super(SearchLiaisonForm, self).__init__(*args, **kwargs)
-
     def get_results(self):
-        results = self.queryset
+        results = LiaisonStatement.objects.filter(state__slug='posted')
         if self.is_bound:
             query = self.cleaned_data.get('text')
             if query:
-                q = (Q(title__icontains=query) |
-                    Q(from_contact__address__icontains=query) |
-                    Q(to_contacts__icontains=query) |
-                    Q(other_identifiers__icontains=query) |
-                    Q(body__icontains=query) |
-                    Q(attachments__title__icontains=query,liaisonstatementattachment__removed=False) |
-                    Q(technical_contacts__icontains=query) | 
-                    Q(action_holder_contacts__icontains=query) |
-                    Q(cc_contacts=query) |
-                    Q(response_contacts__icontains=query))
+                q = (Q(title__icontains=query) | Q(other_identifiers__icontains=query) | Q(body__icontains=query) |
+                         Q(attachments__title__icontains=query,liaisonstatementattachment__removed=False) |
+                         Q(technical_contacts__icontains=query) | Q(action_holder_contacts__icontains=query) |
+                         Q(cc_contacts=query) | Q(response_contacts__icontains=query))
                 results = results.filter(q)
 
             source = self.cleaned_data.get('source')
             if source:
-                source_list = source.split(',')
-                if len(source_list) > 1:
-                    results = results.filter(Q(from_groups__acronym__in=source_list))
-                else:
-                    results = results.filter(Q(from_groups__name__icontains=source) | Q(from_groups__acronym__iexact=source))
+                results = results.filter(Q(from_groups__name__icontains=source) | Q(from_groups__acronym__iexact=source))
 
             destination = self.cleaned_data.get('destination')
             if destination:
-                destination_list = destination.split(',')
-                if len(destination_list) > 1:
-                    results = results.filter(Q(to_groups__acronym__in=destination_list))
-                else:
-                    results = results.filter(Q(to_groups__name__icontains=destination) | Q(to_groups__acronym__iexact=destination))
+                results = results.filter(Q(to_groups__name__icontains=destination) | Q(to_groups__acronym__iexact=destination))
 
             start_date = self.cleaned_data.get('start_date')
             end_date = self.cleaned_data.get('end_date')
@@ -204,13 +174,10 @@ class CustomModelMultipleChoiceField(forms.ModelMultipleChoiceField):
 
 
 class LiaisonModelForm(BetterModelForm):
-    '''Specify fields which require a custom widget or that are not part of the model.
-    NOTE: from_groups and to_groups are marked as not required because select2 has
-    a problem with validating
-    '''
-    from_groups = forms.ModelMultipleChoiceField(queryset=Group.objects.all(),label=u'Groups',required=False)
+    '''Specify fields which require a custom widget or that are not part of the model'''
+    from_groups = forms.ModelMultipleChoiceField(queryset=Group.objects.all(),label=u'Groups')
     from_contact = forms.EmailField()
-    to_groups = forms.ModelMultipleChoiceField(queryset=Group.objects,label=u'Groups',required=False)
+    to_groups = forms.ModelMultipleChoiceField(queryset=Group.objects,label=u'Groups')
     deadline = DatepickerDateField(date_format="yyyy-mm-dd", picker_settings={"autoclose": "1" }, label='Deadline', required=True)
     related_to = SearchableLiaisonStatementsField(label=u'Related Liaison Statement', required=False)
     submitted_date = DatepickerDateField(date_format="yyyy-mm-dd", picker_settings={"autoclose": "1" }, label='Submission date', required=True, initial=datetime.date.today())
@@ -236,15 +203,13 @@ class LiaisonModelForm(BetterModelForm):
     def __init__(self, user, *args, **kwargs):
         super(LiaisonModelForm, self).__init__(*args, **kwargs)
         self.user = user
-        self.edit = False
         self.person = get_person_for_user(user)
         self.is_new = not self.instance.pk
 
         self.fields["from_groups"].widget.attrs["placeholder"] = "Type in name to search for group"
         self.fields["to_groups"].widget.attrs["placeholder"] = "Type in name to search for group"
         self.fields["to_contacts"].label = 'Contacts'
-        self.fields["other_identifiers"].widget.attrs["rows"] = 2
-        
+
         # add email validators
         for field in ['from_contact','to_contacts','technical_contacts','action_holder_contacts','cc_contacts']:
             if field in self.fields:
@@ -253,18 +218,6 @@ class LiaisonModelForm(BetterModelForm):
         self.set_from_fields()
         self.set_to_fields()
 
-    def clean_from_groups(self):
-        from_groups = self.cleaned_data.get('from_groups')
-        if not from_groups:
-            raise forms.ValidationError('You must specify a From Group')
-        return from_groups
-        
-    def clean_to_groups(self):
-        to_groups = self.cleaned_data.get('to_groups')
-        if not to_groups:
-            raise forms.ValidationError('You must specify a To Group')
-        return to_groups
-        
     def clean_from_contact(self):
         contact = self.cleaned_data.get('from_contact')
         try:
@@ -322,7 +275,6 @@ class LiaisonModelForm(BetterModelForm):
 
         self.save_related_liaisons()
         self.save_attachments()
-        self.save_tags()
 
         return self.instance
 
@@ -378,11 +330,6 @@ class LiaisonModelForm(BetterModelForm):
         for related in self.instance.source_of_set.all():
             if related.target not in new_related:
                 related.delete()
-
-    def save_tags(self):
-        '''Create tags as needed'''
-        if self.instance.deadline and not self.instance.tags.filter(slug='taken'):
-            self.instance.tags.add('required')
 
     def set_from_fields(self):
         assert NotImplemented
@@ -461,14 +408,7 @@ class OutgoingLiaisonForm(LiaisonModelForm):
     def set_from_fields(self):
         '''Set from_groups and from_contact options and initial value based on user
         accessing the form'''
-        choices = get_internal_choices(self.user)
-        self.fields['from_groups'].choices = choices
-        
-        # set initial value if only one entry 
-        flat_choices = flatten_choices(choices)
-        if len(flat_choices) == 1:
-            self.fields['from_groups'].initial = [flat_choices[0][0]]
-        
+        self.fields['from_groups'].choices = get_internal_choices(self.user)
         if has_role(self.user, "Secretariat"):
             return
 
@@ -522,9 +462,9 @@ class EditLiaisonForm(LiaisonModelForm):
             self.fields['from_groups'].choices = get_internal_choices(self.user)
         else:
             if has_role(self.user, "Secretariat"):
-                queryset = Group.objects.filter(type="sdo").order_by('name')
+                queryset = Group.objects.filter(type="sdo", state="active").order_by('name')
             else:
-                queryset = Group.objects.filter(type="sdo", role__person=self.person, role__name__in=("liaiman", "auth")).distinct().order_by('name')
+                queryset = Group.objects.filter(type="sdo", state="active", role__person=self.person, role__name__in=("liaiman", "auth")).distinct().order_by('name')
                 self.fields['from_contact'].widget.attrs['readonly'] = True
             self.fields['from_groups'].queryset = queryset
 
@@ -535,10 +475,10 @@ class EditLiaisonForm(LiaisonModelForm):
         if self.instance.is_outgoing():
             # if the user is a Liaison Manager and nothing more, reduce to set to his SDOs
             if has_role(self.user, "Liaison Manager") and not self.person.role_set.filter(name__in=('ad','chair'),group__state='active'):
-                queryset = Group.objects.filter(type="sdo", role__person=self.person, role__name="liaiman").distinct().order_by('name')
+                queryset = Group.objects.filter(type="sdo", state="active", role__person=self.person, role__name="liaiman").distinct().order_by('name')
             else:
                 # get all outgoing entities
-                queryset = Group.objects.filter(type="sdo").order_by('name')
+                queryset = Group.objects.filter(type="sdo", state="active").order_by('name')
             self.fields['to_groups'].queryset = queryset
         else:
             self.fields['to_groups'].choices = get_internal_choices(None)

@@ -1,4 +1,3 @@
-# -*- shell-mode -*-
 # This file is a docker (https://www.docker.com/what-docker) recipe, which can be used to build
 # a docker image which is ready to run a datatracker in development mode.
 #
@@ -33,6 +32,7 @@ ENV DEBIAN_FRONTEND=noninteractive
 
 # Install needed packages
 RUN apt-get update && apt-get install -qy \
+	apt-utils \
 	ca-certificates \
 	gawk \
 	less \
@@ -41,20 +41,14 @@ RUN apt-get update && apt-get install -qy \
 	libxml2-dev \
 	libxslt-dev \
 	mysql-server \
-	openssh-client \
 	procps \
 	pv \
 	python \
 	python-dev \
-	python-m2crypto \
 	subversion/wheezy-backports \
-	sudo \
 	wget \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/*
-
-# Set up root password
-RUN echo "root:root" | chpasswd
 
 # MySQL
 VOLUME /var/lib/mysql
@@ -62,24 +56,36 @@ VOLUME /var/lib/mysql
 # Pip
 ENV PYTHONWARNINGS="ignore:a true SSLContext object"
 WORKDIR /usr/src
-RUN wget -q https://bootstrap.pypa.io/get-pip.py && python get-pip.py && rm get-pip.py
+RUN wget -q https://bootstrap.pypa.io/get-pip.py
+RUN python get-pip.py
+RUN pip --version
 RUN pip install virtualenv
 
 # idnits and dependencies
-RUN wget -q -P /usr/local/bin/ https://tools.ietf.org/tools/idnits/idnits && chmod +x /usr/local/bin/idnits
+RUN wget -q -P /usr/local/bin/ https://tools.ietf.org/tools/idnits/idnits
+RUN chmod +x /usr/local/bin/idnits
 
-ENV DDIR="/usr/local/share/datatracker"
-RUN mkdir -p $DDIR
-WORKDIR $DDIR
+# A default user
+RUN useradd -m -s /bin/bash -u 500 django
+USER django
+WORKDIR /home/django
 
-COPY requirements.txt ./
-RUN pip install -r requirements.txt
+# Check out trunk, in order to verify setup by running tests
+RUN mkdir -p ~/src
+WORKDIR /home/django/src
+RUN svn co https://svn.tools.ietf.org/svn/tools/ietfdb/trunk trunk
 
-COPY settings_local.py ./
-COPY setprompt ./
+# Set up a virtualenv, install requirements, run tests
+WORKDIR /home/django/src/trunk
+RUN virtualenv .
+RUN . bin/activate; pip install -r requirements.txt
+COPY settings_local.py ./settings_local.py
+RUN . bin/activate; ietf/manage.py test --settings=settings_sqlitetest
+
+USER root
+WORKDIR /
 
 COPY docker-init.sh /docker-init.sh
-RUN chmod +x /docker-init.sh
 ENTRYPOINT ["/docker-init.sh"]
 
 CMD	/bin/bash

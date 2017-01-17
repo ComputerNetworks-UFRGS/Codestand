@@ -3,11 +3,7 @@
 {% load origin %}
 {% load staticfiles %}
 {% load ietf_filters %}
-{% load future staticfiles %}
-
-{% block pagehead %}
-<link rel="stylesheet" href="{% static "jquery.tablesorter/css/theme.bootstrap.min.css" %}">
-{% endblock %}
+{% load future %}
 
 {% block title %}IPR disclosures{% endblock %}
 
@@ -27,7 +23,7 @@
         Total number of IPR disclosures found: <b>{{ iprs|length }}</b>.
       </p>
 
-      <table class="table table-condensed table-striped tablesorter">
+      <table class="table table-condensed table-striped">
         <thead><th>Date</th><th>ID</th><th>Statement</th></thead>
 
         {% block iprlist %}
@@ -54,8 +50,7 @@
 	          {% block intro_suffix %}{% endblock %}
                 </th>
               </tr>
-            </tbody>
-            <tbody>
+
               <tr>
                 <td class="text-nowrap">{{ ipr.time|date:"Y-m-d" }}</td>
                 <td>{{ ipr.id }}</td>
@@ -87,6 +82,5 @@
 {% endblock %}
 
 {% block js %}
-  <script src="{% static "jquery.tablesorter/js/jquery.tablesorter.combined.min.js" %}"></script>
   <script type="text/javascript" src="{% static 'ietf/js/ipr-search.js' %}"></script>
 {% endblock %}

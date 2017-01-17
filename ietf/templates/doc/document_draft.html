@@ -7,13 +7,10 @@
 {% block pagehead %}
   <link rel="alternate" type="application/atom+xml" title="Document changes" href="/feed/document-changes/{{ name }}/">
   <meta name="description" content="{{ doc.title }} {% if doc.get_state_slug == "rfc" %}(RFC {{ rfc_number }}{% if published %}, {{ published.time|date:"F Y" }}{% endif %}{% if obsoleted_by %}; obsoleted by {{ obsoleted_by|join:", " }}{% endif %}){% else %}(Internet-Draft, {{ doc.time|date:"Y" }}){% endif %}">
-  <script src="{% static 'd3/d3.min.js' %}"></script>
-  <script src="{% static 'jquery/jquery.min.js' %}"></script>
-  <script src="{% static 'ietf/js/document_timeline.js' %}"></script>
 {% endblock %}
 
 {% block morecss %}
-.inline	{ display: inline; }
+  .inline	{ display: inline; }
 {% endblock %}
 
 {% block title %}
@@ -29,7 +26,6 @@
   {{ top|safe }}
 
   {% include "doc/revisions_list.html" %}
-  <div id="timeline"></div>
 
   <table class="table table-condensed">
     <thead id="message-row">
@@ -38,7 +34,7 @@
 	  <th colspan="4" class="alert-warning">The information below is for an old version of the document</th>
 	  {% else %}
 	  <th colspan="4"></th>
-	  {% endif %}
+	  {% endif %}  
        </tr>
     </thead>
 
@@ -229,7 +225,7 @@
 	{% endif %}
       </tr>
 
-      {% if consensus and not stream_state_type_slug == "draft-stream-ietf" %}
+      {% if consensus %}
 	<tr>
 	  <th></th>
 	  <th>Consensus</th>
@@ -303,21 +299,6 @@
 	  {{ iesg_state_summary|default:"I-D Exists" }}
 	</td>
       </tr>
-
-      {% if consensus and stream_state_type_slug == "draft-stream-ietf" %}
-	<tr>
-	  <th></th>
-	  <th>Consensus</th>
-	  <td class="edit">
-	    {% if can_edit or can_edit_stream_info %}
-	      <a class="btn btn-default btn-xs" href="{% url "doc_edit_consensus" name=doc.name %}">Edit</a>
-	    {% endif %}
-	  </td>
-	  <td>
-	    <span title="Whether the document is the result of a community consensus process as defined in RFC 5741">{{ consensus }}</span>
-	  </td>
-	</tr>
-      {% endif %}
 
       <tr>
         <th></th>
@@ -511,4 +492,5 @@
       </div>
     </div>
   {% endif %}
+
 {% endblock %}

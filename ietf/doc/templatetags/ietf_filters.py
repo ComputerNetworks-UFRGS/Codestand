@@ -537,7 +537,7 @@ def pos_to_label(text):
         'Abstain':      'warning',
         'Discuss':      'danger',
         'Block':        'danger',
-        'Recuse':       'primary',
+        'Recuse':       'default',
     }.get(str(text), 'blank')
 
 @register.filter

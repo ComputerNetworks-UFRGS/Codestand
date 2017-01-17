@@ -2,11 +2,7 @@
 {# Copyright The IETF Trust 2015, All Rights Reserved #}
 {% load origin %}
 {% load ietf_filters %}
-{% load future staticfiles %}
-
-{% block pagehead %}
-<link rel="stylesheet" href="{% static "jquery.tablesorter/css/theme.bootstrap.min.css" %}">
-{% endblock %}
+{% load future %}
 
 {% block title %}Email expansions for {{ doc.name }}-{{ doc.rev }}{% endblock %}
 
@@ -15,21 +11,13 @@
   {{ top|safe }}
 
   {% if aliases %}
-  <h2>Email aliases</h2>
-
-  <table class="table table-condensed table-striped tablesorter">
-    <thead>
-      <tr>
-        <th>Alias</th>
-        <th>Expansion</th>
-      </tr>
-    </thead>
+  <h2>Email Aliases</h2>
+  
+  <table class="table table-condensed table-striped ietf">
     <tbody>
       {% for alias in aliases %}
         <tr>
-          <td>
-            <a href="mailto:{{ doc.name }}{{ alias.alias_type|default:''}}@{{ietf_domain}}">
-            {{ doc.name }}{{ alias.alias_type|default:''}}@{{ietf_domain}}</a></td>
+          <td>{{ doc.name }}{{ alias.alias_type|default:''}}@{{ietf_domain}}</td>
           <td>{{ alias.expansion }}</td>
         </tr>
       {% endfor %}
@@ -37,12 +25,12 @@
   </table>
   {% endif %}
 
-  <h2>Recipient expansions</h2>
+  <h2>Recipient Expansions</h2>
 
-  <table class="table table-condensed table-striped tablesorter">
+  <table class="table table-condensed table-striped ietf">
     <thead>
       <tr>
-        <th>Mail trigger</th>
+        <th>Mail Trigger</th>
         <th>To</th>
         <th>Cc</th>
       </tr>
@@ -59,7 +47,3 @@
     </tbody>
   </table>
 {% endblock content %}
-
-{% block js %}
-<script src="{% static "jquery.tablesorter/js/jquery.tablesorter.combined.min.js" %}"></script>
-{% endblock %}

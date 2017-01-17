@@ -1,14 +1,8 @@
 {% extends "base.html" %}
 {# Copyright The IETF Trust 2015, All Rights Reserved #}
 {% load origin %}
-{% load staticfiles %}
-{% load ietf_filters %}
 
-{% block pagehead %}
-  <script src="{% static 'd3/d3.min.js' %}"></script>
-  <script src="{% static 'jquery/jquery.min.js' %}"></script>
-  <script src="{% static 'ietf/js/document_timeline.js' %}"></script>
-{% endblock %}
+{% load ietf_filters %}
 
 {% block title %}{{ doc.title }}{% endblock %}
 
@@ -17,20 +11,18 @@
   {{ top|safe }}
 
   {% include "doc/revisions_list.html" %}
-  <div id="timeline"></div>
 
   <table class="table table-condensed">
     <thead id="message-row">
        <tr>
 	  {% if doc.rev != latest_rev %}
-	  <th colspan="3" class="alert-warning">The information below is for an old version of the document</th>
+	  <th colspan="4" class="alert-warning">&nbsp;The information below is for an old version of the document</th>
 	  {% else %}
-	  <th colspan="3"></th>
+	  <th colspan="4">&nbsp;</th>
 	  {% endif %}  
        </tr>
     </thead>
 
-    <tbody class="meta">
     <tr>
       <th>{% if doc.meeting_related %}Meeting{% endif %} {{ doc.type.name }}</th>
       <td class="edit"></td>
@@ -90,7 +82,7 @@
 
     {% if presentations or can_manage_material %}
       <tr>
-        <th>On agenda</th>
+        <th>On Agenda</th>
         <td class="edit">
           {% if not snapshot and can_manage_material %}
             {% doc_edit_button "material_presentations" name=doc.name %}
@@ -112,7 +104,6 @@
       <td class="edit"></td>
       <td>{{ doc.time|date:"Y-m-d" }}</td>
     </tr>
-  </tbody>
   </table>
 
   <p class="buttonlist">
@@ -132,4 +123,5 @@
       <p class="download-instead"><a href="{{ other_types.0.1 }}">Download as {{ other_types.0.0.upper }}</a></p>
     {% endif %}
   {% endif %}
+
 {% endblock %}

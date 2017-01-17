@@ -6,10 +6,7 @@ from django.core.urlresolvers import reverse as urlreverse
 from django.db.models import Q
 from django.test import Client
 
-import debug                             # pyflakes:ignore
-
 from ietf.group.models import Role, Group
-from ietf.group.utils import get_group_role_emails, get_child_group_role_emails, get_group_ad_emails
 from ietf.utils.test_data import make_test_data
 from ietf.utils.test_utils import login_testing_unauthorized, TestCase, unicontent
 
@@ -17,7 +14,8 @@ if   getattr(settings,'SKIP_DOT_TO_PDF', False):
     skip_dot_to_pdf = True
     skip_message = "settings.SKIP_DOT_TO_PDF = %s" % skip_dot_to_pdf
 elif (  os.path.exists(settings.DOT_BINARY) and
-        os.path.exists(settings.UNFLATTEN_BINARY)):
+        os.path.exists(settings.UNFLATTEN_BINARY) and
+        os.path.exists(settings.PS2PDF_BINARY)):
     skip_dot_to_pdf = False
     skip_message = ""
 else:
@@ -59,14 +57,14 @@ class StreamTests(TestCase):
 
 
 @skipIf(skip_dot_to_pdf, skip_message)
-class GroupDocDependencyGraphTests(TestCase):
+class GroupTests(TestCase):
 
     def test_group_document_dependency_dotfile(self):
         make_test_data()
         for group in Group.objects.filter(Q(type="wg") | Q(type="rg")):
-            client = Client(Accept='text/plain')
-            for url in [ urlreverse("ietf.group.info.dependencies",kwargs=dict(acronym=group.acronym,output_type="dot")),
-                         urlreverse("ietf.group.info.dependencies",kwargs=dict(acronym=group.acronym,group_type=group.type_id,output_type="dot")),
+            client = Client(Accept='application/pdf')
+            for url in [ urlreverse("ietf.group.info.dependencies_dot",kwargs=dict(acronym=group.acronym)),
+                         urlreverse("ietf.group.info.dependencies_dot",kwargs=dict(acronym=group.acronym,group_type=group.type_id)),
                        ]:
                 r = client.get(url)
                 self.assertTrue(r.status_code == 200, "Failed to receive "
@@ -78,56 +76,12 @@ class GroupDocDependencyGraphTests(TestCase):
         make_test_data()
         for group in Group.objects.filter(Q(type="wg") | Q(type="rg")):
             client = Client(Accept='application/pdf')
-            for url in [ urlreverse("ietf.group.info.dependencies",kwargs=dict(acronym=group.acronym,output_type="pdf")),
-                         urlreverse("ietf.group.info.dependencies",kwargs=dict(acronym=group.acronym,group_type=group.type_id,output_type="pdf")),
+            for url in [ urlreverse("ietf.group.info.dependencies_pdf",kwargs=dict(acronym=group.acronym)),
+                         urlreverse("ietf.group.info.dependencies_pdf",kwargs=dict(acronym=group.acronym,group_type=group.type_id)),
                        ]:
                 r = client.get(url)
                 self.assertTrue(r.status_code == 200, "Failed to receive "
                     "a pdf dependency graph for group: %s"%group.acronym)
                 self.assertGreater(len(r.content), 0, "Pdf dependency graph for group "
                     "%s has no content"%group.acronym)
-
-    def test_group_document_dependency_svgfile(self):
-        make_test_data()
-        for group in Group.objects.filter(Q(type="wg") | Q(type="rg")):
-            client = Client(Accept='image/svg+xml')
-            for url in [ urlreverse("ietf.group.info.dependencies",kwargs=dict(acronym=group.acronym,output_type="svg")),
-                         urlreverse("ietf.group.info.dependencies",kwargs=dict(acronym=group.acronym,group_type=group.type_id,output_type="svg")),
-                       ]:
-                r = client.get(url)
-                self.assertTrue(r.status_code == 200, "Failed to receive "
-                    "a svg dependency graph for group: %s"%group.acronym)
-                self.assertGreater(len(r.content), 0, "svg dependency graph for group "
-                    "%s has no content"%group.acronym)
             
-
-class GroupRoleEmailTests(TestCase):
-
-    def test_group_role_emails(self):
-        make_test_data()
-        wgs = Group.objects.filter(type='wg')
-        for wg in wgs:
-            chair_emails = get_group_role_emails(wg, ['chair'])
-            secr_emails  = get_group_role_emails(wg, ['secr'])
-            self.assertIn("chairman", list(chair_emails)[0])
-            self.assertIn("secretary", list(secr_emails)[0])
-            both_emails  = get_group_role_emails(wg, ['chair', 'secr'])
-            self.assertEqual(secr_emails | chair_emails, both_emails)
-
-    def test_child_group_role_emails(self):
-        make_test_data()
-        areas = Group.objects.filter(type='area')
-        for area in areas:
-            emails = get_child_group_role_emails(area, ['chair', 'secr'])
-            self.assertGreater(len(emails), 0)
-            for item in emails:
-                self.assertIn('@', item)
-
-    def test_group_ad_emails(self):
-        make_test_data()
-        wgs = Group.objects.filter(type='wg')
-        for wg in wgs:
-            emails = get_group_ad_emails(wg)
-            self.assertGreater(len(emails), 0)
-            for item in emails:
-                self.assertIn('@', item)

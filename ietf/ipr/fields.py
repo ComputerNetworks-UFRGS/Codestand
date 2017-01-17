@@ -7,8 +7,7 @@ from django.core.urlresolvers import reverse as urlreverse
 from ietf.ipr.models import IprDisclosureBase
 
 def select2_id_ipr_title_json(value):
-    # return json.dumps([{ "id": o.pk, "text": escape(u"%s <%s>" % (o.title, o.time.date().isoformat())) } for o in value])
-    return json.dumps([{ "id": o.pk, "text": "Matheus :)" } for o in value])
+    return json.dumps([{ "id": o.pk, "text": escape(u"%s <%s>" % (o.title, o.time.date().isoformat())) } for o in value])
 
 class SearchableIprDisclosuresField(forms.CharField):
     """Server-based multi-select field for choosing documents using
@@ -42,10 +41,6 @@ class SearchableIprDisclosuresField(forms.CharField):
             value = ""
         if isinstance(value, basestring):
             pks = self.parse_select2_value(value)
-            # if the user posted a non integer value we need to remove it
-            for key in pks:
-                if not key.isdigit():
-                    pks.remove(key)
             value = self.model.objects.filter(pk__in=pks)
         if isinstance(value, self.model):
             value = [value]
@@ -61,9 +56,6 @@ class SearchableIprDisclosuresField(forms.CharField):
     def clean(self, value):
         value = super(SearchableIprDisclosuresField, self).clean(value)
         pks = self.parse_select2_value(value)
-
-        if not all([ key.isdigit() for key in pks ]):
-            raise forms.ValidationError(u'You must enter IPR ID(s) as integers')
 
         objs = self.model.objects.filter(pk__in=pks)
 

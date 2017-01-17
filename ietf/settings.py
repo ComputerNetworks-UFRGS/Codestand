@@ -47,6 +47,9 @@ ALLOWED_HOSTS = [".ietf.org", ".ietf.org.", "209.208.19.216", "4.31.198.44", ]
 
 # Server name of the tools server
 TOOLS_SERVER = 'tools.' + IETF_DOMAIN
+TOOLS_SERVER_URL = 'https://' + TOOLS_SERVER
+TOOLS_ID_PDF_URL = TOOLS_SERVER_URL + '/pdf/'
+TOOLS_ID_HTML_URL = TOOLS_SERVER_URL + '/html/'
 
 # Override this in the settings_local.py file:
 SERVER_EMAIL = 'Django Server <django-project@' + TOOLS_SERVER + '>'
@@ -97,6 +100,9 @@ USE_I18N = False
 USE_TZ = False
 
 MEDIA_URL = 'https://www.ietf.org/'
+IETF_ID_URL = MEDIA_URL + 'id/'
+IETF_ID_ARCHIVE_URL = MEDIA_URL + 'archive/id/'
+
 
 # Absolute path to the directory static files should be collected to.
 # Example: "/var/www/example.com/static/"
@@ -106,12 +112,12 @@ MEDIA_URL = 'https://www.ietf.org/'
 SERVE_CDN_FILES_LOCALLY_IN_DEV_MODE = True
 
 # URL to use when referring to static files located in STATIC_ROOT.
-#if SERVER_MODE != 'production' and SERVE_CDN_FILES_LOCALLY_IN_DEV_MODE:
-STATIC_URL = "/static/"
-STATIC_ROOT = os.path.abspath(BASE_DIR + "/../static/")
-#else:
-#    STATIC_URL = "https://www.ietf.org/lib/dt/%s/"%__version__
-#    STATIC_ROOT = "/a/www/www6s/lib/dt/%s/"%__version__
+if SERVER_MODE != 'production' and SERVE_CDN_FILES_LOCALLY_IN_DEV_MODE:
+    STATIC_URL = "/static/"
+    STATIC_ROOT = os.path.abspath(BASE_DIR + "/../static/")
+else:
+    STATIC_URL = "https://www.ietf.org/lib/dt/%s/"%__version__
+    STATIC_ROOT = "/a/www/www6s/lib/dt/%s/"%__version__
 
 # Destination for components handled by djangobower
 COMPONENT_ROOT = BASE_DIR + "/externals/static/"
@@ -131,7 +137,7 @@ AUTHENTICATION_BACKENDS = ( 'django.contrib.auth.backends.ModelBackend', )
 
 #DATABASE_ROUTERS = ["ietf.legacy_router.LegacyRouter"]
 
-# -------------------------------sh -----------------------------------------
+# ------------------------------------------------------------------------
 # Django/Python Logging Framework Modifications
 
 # enable HTML error emails
@@ -199,7 +205,6 @@ MIDDLEWARE_CLASSES = (
     'ietf.middleware.RedirectTrailingPeriod',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
     'ietf.middleware.UnicodeNfkcNormalization',
-    # 'debug_toolbar.middleware.DebugToolbarMiddleware', #
 )
 
 ROOT_URLCONF = 'ietf.urls'
@@ -559,15 +564,15 @@ DRAFT_ALIAS_DOMAIN = IETF_DOMAIN
 GROUP_ALIAS_DOMAIN = IETF_DOMAIN
 
 # Path to the email alias lists.  Used by ietf.utils.aliases
-DRAFT_ALIASES_PATH = "/a/postfix/draft-aliases"
-DRAFT_VIRTUAL_PATH = "/a/postfix/draft-virtual"
+DRAFT_ALIASES_PATH = os.path.abspath(BASE_DIR + "/../test/data/draft-aliases")
+DRAFT_VIRTUAL_PATH = os.path.abspath(BASE_DIR + "/../test/data/draft-virtual")
 
 # Set debug apps in DEV_APPS settings_local
 DEV_APPS = ()
 DRAFT_VIRTUAL_DOMAIN = "virtual.ietf.org"
 
-GROUP_ALIASES_PATH = "/a/postfix/group-aliases"
-GROUP_VIRTUAL_PATH = "/a/postfix/group-virtual"
+GROUP_ALIASES_PATH = os.path.abspath(BASE_DIR + "/../test/data/group-aliases")
+GROUP_VIRTUAL_PATH = os.path.abspath(BASE_DIR + "/../test/data/group-virtual")
 GROUP_VIRTUAL_DOMAIN = "virtual.ietf.org"
 
 POSTCONFIRM_PATH   = "/a/postconfirm/test-wrapper"

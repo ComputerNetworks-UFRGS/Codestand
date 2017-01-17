@@ -6,7 +6,6 @@ progdir=${0%/*}
 if [ "$progdir" = "$program" ]; then progdir="."; fi
 if [ "$progdir" = "." ]; then progdir="$PWD"; fi
 parent=$(dirname $progdir)
-if [ "$parent" = "." ]; then parent="$PWD"; fi
 
 # ----------------------------------------------------------------------
 function usage() {
@@ -53,7 +52,7 @@ EOF
 
 # ----------------------------------------------------------------------
 function die() {
-    echo -e "\n$program: error: $*" >&2
+    echo -e "\n$program: error: $*" > /dev/stderr
     exit 1
 }
 
@@ -74,17 +73,10 @@ trap 'echo "$program($LINENO): Command failed with error code $? ([$$] $0 $*)"; 
 # Option parsing
 
 # Options
-shortopts=dhi:m:Mp:r:t:vVu:
-longopts=download-data,help,ietfdb-url=,mysqldata=,no-mysqldir,port=,docker-repo=,tag=,verbose,version,user=,
+shortopts=dhi:vVu:m:
+longopts=download-data,help,ietfdb-url=,verbose,version,user=,mysqldata=,
 
 # Default values
-MYSQLDIR=$parent/data/mysql
-FILEDIR=$parent/../data/
-PORT=8000
-REPO="ietf/datatracker-environment"
-TAG=$(basename $(svn info $parent | grep ^URL | awk '{print $2}'))
-URL=https://www.ietf.org/lib/dt/sprint/ietf_utf8.bin.tar.bz2
-WHO=$(whoami)
 
 if   [ "$(uname)" = "Linux" ]; then
     args=$(getopt -o "$shortopts" --long "$longopts" -n '$program' -- $SV "$@")
@@ -103,13 +95,9 @@ while true ; do
     case "$1" in
 	-d| --download-data) DOWNLOAD=1;;	# Download and set up the database files
 	-h| --help)	usage; exit;;		# Show this help, then exit
-	-f| --filedir)	FILEDIR=$2; shift;;	# Set the desired location of drafts, charters etc.
-	-i| --ietfdb-url)	URL=$2; shift;;	# Use an alternative database tarball URL
-	-m| --mysqldir)	MYSQLDIR=$2; shift;;	# Set the desired location of MySQL's database files
-	-p| --port)	PORT=$2; shift;;	# Bind the container's port 8000 to external port PORT
-	-r| --docker-repo)	REPO=$2; shift;;	# Use the given docker repository, instead of the default
-	-t| --tag)	TAG=$2; shift;;		# Use this docker image tag, instead of the svn branch name
-	-u| --user)	WHO=$2; shift;;		# Run the container as the specified user
+	-i| --ietfdb-url) URL=$2; shift;;	# Use an alternative database tarball URL
+	-m| --mysqldir)	MYSQLDIR=$2; shift;;	# Set the desired location for MySQL's database files
+	-u| --user)	WHO=$2; shift;;		# Run container as someone else than $USER
 	-v| --verbose)	VERBOSE=1;;		# Be more talkative
 	-V| --version)	version; exit;;		# Show program version, then exit
 	--)		shift; break;;
@@ -121,96 +109,32 @@ done
 # ----------------------------------------------------------------------
 # The program itself
 
-if [ "$(uname)" != "Linux" ]; then
-    if   [ -n "$(type -p boot2docker)" ]; then
-	machine=$(type -p boot2docker)
-	up=up
-	env=shellinit
-    elif [ -n "$(type -p docker-machine)" ]; then
-	machine=$(type -p docker-machine)
-	up=start
-	env="env default"
-    else
-	die "Could not find boot2docker or docker-machine -- you need to set one of those before running this script."
-    fi
-else
-    die "Didn't expect to run this script on Linux -- are you inside docker?"
-fi
-
-
-if [ $($machine status) != "running" ]; then
-    echo "The docker VM doesn't seem to be running; will attempt to start it by doing '\$ $machine $up':"
-    $machine $up || die "Failed taking up the Docker VM"
-fi
-
-if [ -f "$machine" ]; then
-    if [ $($machine status | tr "A-Z" "a-z") = "running" ]; then
-	tmpfile=$(mktemp docker.run.XXXXXXXX)
-	if $machine $env 2>/dev/null | grep  DOCKER_ > $tmpfile; then
-	    mv $tmpfile ~/.docker-info
-	elif printenv | grep  DOCKER_ > $tmpfile; then
-	    mv $tmpfile ~/.docker-info
-	else
-	    rm $tmpfile
-	    die "Failed setting the appropriate DOCKER_* environment variables."
-	fi
-	. ~/.docker-info
-    else
-	rm -f ~/.docker-info
-    fi
-fi
-
-
-echo ""
-echo "Starting a docker container for '$TAG'."
-
-docker ps | grep -q $REPO:$TAG && die \
+docker ps | grep -q levkowetz/datatracker:latest && die \
 "It seems that another docker container is already running the
-image '$REPO:$TAG'.  Continuing here can cause various problems,
-such as changes from within the container being saved from different
-containers to the same image, overwriting earlier changes, and
-multiple containers trying to use the same database files.  Better
-to bail out here.  Quitting."
+image 'levkowetz/datatracker:latest' -- but only one MySQL instance can bind
+to the database files at a time.  Quitting."
+
+[ -n "$WHO" ]		|| WHO=$(whoami)
+[ -n "$MYSQLDIR" ]	|| MYSQLDIR=$parent/data/mysql
+[ -n "$URL"]		|| URL=https://www.ietf.org/lib/dt/sprint/ietf_utf8.bin.tar.bz2
 
 if [ -n "$DOWNLOAD" ]; then
     (
 	cd $(dirname $MYSQLDIR)
-	wget -N $URL && tar xjf ietf_utf8.bin.tar.bz2 && chmod -R g+rX mysql
+	wget -N $URL && tar xjf ietf_utf8.bin.tar.bz2 && chmod -R go+rwX mysql
     )
     [ -d "$MYSQLDIR" ] || die "The download seems to have failed; still no $MYSQLDIR.  Giving up."
 else
     [ -d "$MYSQLDIR" ] || die "Expected $MYSQLDIR to exist, but it\ndidn't.  Use '$program -d' to download and unpack the database."
 fi
 
-if ! docker images $REPO | grep -q $TAG; then
-    echo "Fetching docker image '$REPO:$TAG'"
-    if ! docker pull $REPO:$TAG; then
-	docker pull $REPO:latest || die "Failed to pull down the '$REPO:latest' docker image"
-	id=$(docker images $REPO | grep latest  | awk '{print $3}')
-	echo "Tagging $REPO:latest as $REPO:$TAG for use as environment for this branch."
-	docker tag $id $REPO:$TAG
-    fi
-fi
+docker run -ti -p 8000:8000 -v $HOME:/home/$WHO -v $MYSQLDIR:/var/lib/mysql -e USER=$WHO -e DATADIR=${parent#$HOME/}/data levkowetz/datatracker:latest
 
-if [ -z "$MYSQLDIR" ]; then
-    docker run -ti -p $PORT:8000 -v $HOME:/home/$WHO                            \
-	-e USER=$WHO -e DATADIR=${parent#$HOME/}/data -e CWD=${PWD#$HOME/}	\
-	-e TAG=$TAG -e FILEDIR=${FILEDIR#$HOME}	\
-	$REPO:$TAG "$@"
-else
-    docker run -ti -p $PORT:8000 -v $HOME:/home/$WHO -v $MYSQLDIR:/var/lib/mysql\
-	-e USER=$WHO -e DATADIR=${parent#$HOME/}/data -e CWD=${PWD#$HOME/}	\
-	-e TAG=$TAG -e FILEDIR=${FILEDIR#$HOME}	\
-	$REPO:$TAG "$@"
-fi
-
-echo ""
 echo "Committing changes in the container to an image:"
 latest=$(docker ps -lq)
-docker commit $latest $REPO:$TAG
+docker commit $latest levkowetz/datatracker:latest
 
-echo ""
 echo "Cleaning up containers and images"
 docker rm $latest
-docker images -f dangling=true -q | xargs docker rmi -f
+docker rmi -f $(docker images -f dangling=true -q)
 

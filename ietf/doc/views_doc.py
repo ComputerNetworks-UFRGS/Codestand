@@ -49,7 +49,7 @@ from ietf.doc.models import ( Document, DocAlias, DocHistory, DocEvent, BallotDo
 from ietf.doc.utils import ( add_links_in_new_revision_events, augment_events_with_revision,
     can_adopt_draft, get_chartering_type, get_document_content, get_tags_for_stream_id,
     needed_ballot_positions, nice_consensus, prettify_std_name, update_telechat, has_same_ballot,
-    get_initial_notify, make_notify_changed_event, crawl_history)
+    get_initial_notify, make_notify_changed_event )
 from ietf.community.models import CommunityList
 from ietf.group.models import Role
 from ietf.group.utils import can_manage_group_type, can_manage_materials
@@ -216,7 +216,7 @@ def document_main(request, name, rev=None):
             possible_types = ["pdf", "xml", "ps"]
             found_types = ["txt"] + [t for t in possible_types if os.path.exists(base_path + t)]
 
-            if not snapshot and doc.get_state_slug() == "active":
+            if doc.get_state_slug() == "active":
                 base = settings.IETF_ID_URL
             else:
                 base = settings.IETF_ID_ARCHIVE_URL
@@ -232,9 +232,6 @@ def document_main(request, name, rev=None):
 
             # latest revision
             latest_revision = doc.latest_event(NewRevisionDocEvent, type="new_revision")
-
-        # bibtex
-        file_urls.append(("bibtex", "bibtex"))
 
         # ballot
         ballot_summary = None
@@ -572,20 +569,6 @@ def document_main(request, name, rev=None):
     raise Http404
 
 
-def check_doc_email_aliases():
-    pattern = re.compile('^expand-(.*?)(\..*?)?@.*? +(.*)$')
-    good_count = 0
-    tot_count = 0
-    with open(settings.DRAFT_VIRTUAL_PATH,"r") as virtual_file:
-        for line in virtual_file.readlines():
-            m = pattern.match(line)
-            tot_count += 1
-            if m:
-                good_count += 1
-            if good_count > 50 and tot_count < 3*good_count:
-                return True
-    return False
-
 def get_doc_email_aliases(name):
     if name:
         pattern = re.compile('^expand-(%s)(\..*?)?@.*? +(.*)$'%name)
@@ -598,6 +581,7 @@ def get_doc_email_aliases(name):
             if m:
                 aliases.append({'doc_name':m.group(1),'alias_type':m.group(2),'expansion':m.group(3)})
     return aliases
+
 
 def document_email(request,name):
     doc = get_object_or_404(Document, docalias__name=name)
@@ -680,32 +664,6 @@ def document_history(request, name):
                                    can_add_comment=can_add_comment,
                                    ),
                               context_instance=RequestContext(request))
-
-
-def document_bibtex(request, name, rev=None):
-    doc = get_object_or_404(Document, docalias__name=name)
-
-    latest_revision = doc.latest_event(NewRevisionDocEvent, type="new_revision")
-    replaced_by = [d.name for d in doc.related_that("replaces")]
-    published = doc.latest_event(type="published_rfc")
-    rfc = latest_revision.doc if latest_revision and latest_revision.doc.get_state_slug() == "rfc" else None
-
-    if rev != None and rev != doc.rev:
-        # find the entry in the history
-        for h in doc.history_set.order_by("-time"):
-            if rev == h.rev:
-                doc = h
-                break
-
-    return render_to_response("doc/document_bibtex.bib",
-                              dict(doc=doc,
-                                   replaced_by=replaced_by,
-                                   published=published,
-                                   rfc=rfc,
-                                   latest_revision=latest_revision),
-                              content_type="text/plain; charset=utf-8",
-                              context_instance=RequestContext(request))
-
 
 def document_writeup(request, name):
     doc = get_object_or_404(Document, docalias__name=name)
@@ -891,7 +849,7 @@ def ballot_popup(request, name, ballot_id):
                               context_instance=RequestContext(request))
 
 
-def document_json(request, name, rev=None):
+def document_json(request, name):
     doc = get_object_or_404(Document, docalias__name=name)
 
     def extract_name(s):
@@ -924,9 +882,6 @@ def document_json(request, name, rev=None):
     data["shepherd"] = doc.shepherd.formatted_email() if doc.shepherd else None
     data["ad"] = doc.ad.role_email("ad").formatted_email() if doc.ad else None
 
-    latest_revision = doc.latest_event(NewRevisionDocEvent, type="new_revision")
-    data["rev_history"] = crawl_history(latest_revision.doc if latest_revision else doc)
-
     if doc.type_id == "draft":
         data["iesg_state"] = extract_name(doc.get_state("draft-iesg"))
         data["rfceditor_state"] = extract_name(doc.get_state("draft-rfceditor"))
@@ -938,7 +893,7 @@ def document_json(request, name, rev=None):
             data["consensus"] = e.consensus if e else None
         data["stream"] = extract_name(doc.stream)
 
-    return HttpResponse(json.dumps(data, indent=2), content_type='application/json')
+    return HttpResponse(json.dumps(data, indent=2), content_type='text/plain')
 
 class AddCommentForm(forms.Form):
     comment = forms.CharField(required=True, widget=forms.Textarea)

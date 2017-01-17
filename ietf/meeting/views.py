@@ -32,7 +32,7 @@ from ietf.meeting.helpers import build_all_agenda_slices, get_wg_name_list
 from ietf.meeting.helpers import get_all_assignments_from_schedule
 from ietf.meeting.helpers import get_modified_from_assignments
 from ietf.meeting.helpers import get_wg_list, find_ads_for_meeting
-from ietf.meeting.helpers import get_meeting, get_schedule, agenda_permissions, get_meetings
+from ietf.meeting.helpers import get_meeting, get_schedule, agenda_permissions, meeting_updated, get_meetings
 from ietf.meeting.helpers import preprocess_assignments_for_agenda, read_agenda_file
 from ietf.meeting.helpers import convert_draft_to_pdf
 from ietf.utils.pipe import pipe
@@ -368,20 +368,19 @@ def agenda(request, num=None, name=None, base=None, ext=None):
 
     # We do not have the appropriate data in the datatracker for IETF 64 and earlier.
     # So that we're not producing misleading pages...
-    
-    meeting = meetings.first()
-    if not meetings.exists() or (meeting.number.isdigit() and meeting.number <= 64 and not meeting.agenda.assignments.exists()):
+    if not meetings.exists() or not meetings.first().agenda.assignments.exists():
         if ext == '.html':
             return HttpResponseRedirect( 'https://www.ietf.org/proceedings/%s' % num )
         else:
             raise Http404
 
+    meeting = meetings.first()
     schedule = get_schedule(meeting, name)
     if schedule == None:
         base = base.replace("-utc", "")
         return render(request, "meeting/no-"+base+ext, {'meeting':meeting }, content_type=mimetype[ext])
 
-    updated = meeting.updated()
+    updated = meeting_updated(meeting)
     filtered_assignments = schedule.assignments.exclude(timeslot__type__in=['lead','offagenda'])
     filtered_assignments = preprocess_assignments_for_agenda(filtered_assignments, meeting)
 
@@ -529,7 +528,7 @@ def agenda_by_type_ics(request,num=None,type=None):
     assignments = schedule.assignments.order_by('session__type__slug','timeslot__time')
     if type:
         assignments = assignments.filter(session__type__slug=type)
-    updated = meeting.updated()
+    updated = meeting_updated(meeting)
     return render(request,"meeting/agenda.ics",{"schedule":schedule,"updated":updated,"assignments":assignments},content_type="text/calendar")
 
 def session_agenda(request, num, session):
@@ -772,7 +771,7 @@ def room_view(request, num=None):
 def ical_agenda(request, num=None, name=None, ext=None):
     meeting = get_meeting(num)
     schedule = get_schedule(meeting, name)
-    updated = meeting.updated()
+    updated = meeting_updated(meeting)
 
     if schedule is None:
         raise Http404

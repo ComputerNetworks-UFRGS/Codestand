@@ -1,6 +1,7 @@
 # Copyright The IETF Trust 2007, All Rights Reserved
 
 import datetime
+import pytz
 import os
 import re
 from tempfile import mkstemp
@@ -146,6 +147,14 @@ def get_schedule_by_name(meeting, owner, name):
         return meeting.schedule_set.filter(owner = owner, name = name).first()
     else:
         return meeting.schedule_set.filter(name = name).first()
+
+def meeting_updated(meeting):
+    meeting_time = datetime.datetime(*(meeting.date.timetuple()[:7]))
+    ts = max(meeting.timeslot_set.aggregate(Max('modified'))["modified__max"] or meeting_time,
+             meeting.session_set.aggregate(Max('modified'))["modified__max"] or meeting_time)
+    tz = pytz.timezone(settings.PRODUCTION_TIMEZONE)
+    ts = tz.localize(ts)
+    return ts
 
 def preprocess_assignments_for_agenda(assignments_queryset, meeting):
     # prefetch some stuff to prevent a myriad of small, inefficient queries

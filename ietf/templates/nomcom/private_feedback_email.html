@@ -8,9 +8,14 @@
 
 {% block nomcom_content %}
   {% origin %}
+  {% if message %}
+    <div class="alert alert-{{ message.0 }}">{{ message.1 }}</div>
+  {% endif %}
 
-  {% if form %}
-    <form id="paste-email-feedback-form" method="post">
+  {% if nomcom|has_publickey %}
+    {% bootstrap_messages %}
+
+    <form id="questionnnaireform" method="post">
       {% csrf_token %}
       {% bootstrap_form form %}
       {% buttons %}

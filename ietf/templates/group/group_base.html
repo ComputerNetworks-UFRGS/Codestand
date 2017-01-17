@@ -2,11 +2,7 @@
 {# Copyright The IETF Trust 2015, All Rights Reserved #}
 {% load origin %}
 
-{% load ietf_filters staticfiles %}
-
-{% block pagehead %}
-<link rel="stylesheet" href="{% static "jquery.tablesorter/css/theme.bootstrap.min.css" %}">
-{% endblock %}
+{% load ietf_filters %}
 
 {% block title %}{{ group.name }} ({{ group.acronym }}) - {% block group_subtitle %}{% endblock %}{% endblock %}
 
@@ -42,7 +38,3 @@
   {% endblock group_content %}
 
 {% endblock content %}
-
-{% block js %}
-<script src="{% static "jquery.tablesorter/js/jquery.tablesorter.combined.min.js" %}"></script>
-{% endblock %}

@@ -1,11 +1,7 @@
 {% extends "base.html" %}
 
 {% load future %}
-{% load ietf_filters staticfiles %}
-
-{% block pagehead %}
-<link rel="stylesheet" href="{% static "jquery.tablesorter/css/theme.bootstrap.min.css" %}">
-{% endblock %}
+{% load ietf_filters %}
 
 {% block title %}History for Liaison Statement - {{ liaison.title }}{% endblock %}
 
@@ -14,13 +10,16 @@
 
   {% include "liaisons/detail_tabs.html" %}
 
+  {% comment %}
   {% if user|has_role:"Area Director,Secretariat,IANA,RFC Editor" %}
     <p class="buttonlist">
-      <a class="btn btn-default" href="{% url "ietf.liaisons.views.add_comment" object_id=liaison.id %}" title="Add comment to history">Add comment</a>
+      <a class="btn btn-default" href="{% url "ipr_add_comment" id=ipr.id %}" title="Add comment to history">Add comment</a>
+      <a class="btn btn-default" href="{% url "ipr_add_email" id=ipr.id %}" title="Add email to history">Add email</a>
     </p>
   {% endif %}
+  {% endcomment %}
 
-  <table class="table table-condensed table-striped history tablesorter">
+  <table class="table table-condensed table-striped history">
     <thead>
       <tr>
         <th>Date</th>
@@ -46,7 +45,3 @@
     </tbody>
   </table>
 {% endblock content %}
-
-{% block js %}
-<script src="{% static "jquery.tablesorter/js/jquery.tablesorter.combined.min.js" %}"></script>
-{% endblock %}

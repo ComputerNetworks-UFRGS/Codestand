@@ -40,8 +40,6 @@ import time
 import itertools
 import json
 
-import debug               # pyflakes:ignore
-
 
 from django import forms
 from django.conf import settings
@@ -57,7 +55,6 @@ from ietf.doc.utils import update_telechat, augment_events_with_revision
 from ietf.group.models import GroupMilestone
 from ietf.iesg.agenda import agenda_data, agenda_sections, fill_in_agenda_docs, get_agenda_date
 from ietf.iesg.models import TelechatDate
-from ietf.iesg.utils import telechat_page_count
 from ietf.ietfauth.utils import has_role, role_required, user_is_person
 from ietf.person.models import Person
 from ietf.doc.views_search import fill_in_search_attributes
@@ -95,7 +92,6 @@ def agenda_json(request, date=None):
     res = {
         "telechat-date": str(data["date"]),
         "as-of": str(datetime.datetime.utcnow()),
-        "page-counts": telechat_page_count(get_agenda_date(date))._asdict(),
         "sections": {},
         }
 

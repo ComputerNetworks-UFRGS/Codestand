@@ -2,11 +2,7 @@
 {# Copyright The IETF Trust 2015, All Rights Reserved #}
 {% load origin %}{% origin %}
 
-{% load ietf_filters staticfiles %}
-
-{% block pagehead %}
-<link rel="stylesheet" href="{% static "jquery.tablesorter/css/theme.bootstrap.min.css" %}">
-{% endblock %}
+{% load ietf_filters %}
 
 {% block search_header %}Draft search results{% endblock %}
 
@@ -14,7 +10,7 @@
   <p class="alert alert-info">Total number of IPR disclosures found: <b>{{ iprs|length }}</b>.</p>
 
   {% if iprs %}
-    <table class="table table-condensed table-striped tablesorter">
+    <table class="table table-condensed table-striped">
       <thead>
         <tr>
           <th>Date</th>
@@ -39,7 +35,7 @@
 
   <p class="alert alert-info">Total number of documents searched: <b>{{ docs|length}}</b>.</p>
 
-  <table class="table table-condensed table-striped tablesorter">
+  <table class="table table-condensed table-striped">
     <thead>
       <tr>
 	<th>Date</th>
@@ -48,15 +44,14 @@
       </tr>
     </thead>
 
-      {% for doc in docs %}
     <tbody>
+      {% for doc in docs %}
         <tr>
           <th class="warning" colspan="3">
             Results for {{ doc.name|rfcspace|lstrip:"0"|rfcnospace }} ("{{ doc.document.title }}"){% if not forloop.first %}{% if doc.related %}, that was {{ doc.relation|lower }} {{ doc.related.source|rfcspace|lstrip:"0"|rfcnospace  }} ("{{ doc.related.source.title }}"){% endif %}{% endif %}:
           </th>
         </tr>
-    </tbody>
-    <tbody>
+
         {% with doc.iprdocrel_set.all as doc_iprs %}
           {% if doc_iprs %}
             {% for ipr in doc_iprs %}
@@ -81,12 +76,8 @@
             </tr>
           {% endif %}
         {% endwith %}
-    </tbody>
       {% endfor %}
+    </tbody>
   </table>
 
-{% endblock %}
-
-{% block js %}
-<script src="{% static "jquery.tablesorter/js/jquery.tablesorter.combined.min.js" %}"></script>
 {% endblock %}

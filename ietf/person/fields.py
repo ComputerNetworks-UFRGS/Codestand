@@ -1,7 +1,5 @@
 import json
 
-from collections import Counter
-
 from django.utils.html import escape
 from django import forms
 from django.core.urlresolvers import reverse as urlreverse
@@ -14,19 +12,7 @@ def select2_id_name_json(objs):
     def format_email(e):
         return escape(u"%s <%s>" % (e.person.name, e.address))
     def format_person(p):
-        if p.name_count > 1:
-            return escape('%s (%s)' % (p.name,p.email().address))
-        else:
-            return escape(p.name)
-
-    if objs and isinstance(objs[0], Email):
-        formatter = format_email
-    else:
-        formatter = format_person
-        c = Counter([p.name for p in objs])
-        for p in objs:
-           p.name_count = c[p.name]
-        
+        return escape(p.name)
 
     formatter = format_email if objs and isinstance(objs[0], Email) else format_person
 
@@ -77,7 +63,9 @@ class SearchablePersonsField(forms.CharField):
                 value = self.model.objects.filter(pk__in=pks).select_related("person")
         if isinstance(value, self.model):
             value = [value]
+
         self.widget.attrs["data-pre"] = select2_id_name_json(value)
+
         # doing this in the constructor is difficult because the URL
         # patterns may not have been fully constructed there yet
         self.widget.attrs["data-ajax-url"] = urlreverse("ajax_select2_search_person_email", kwargs={ "model_name": self.model.__name__.lower() })

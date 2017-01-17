@@ -130,7 +130,7 @@ class Command(BaseCommand):
             for bower_json in ['bower.json', '.bower.json']:
                 bower_json_path = os.path.join(src_root, bower_json)
                 if os.path.exists(bower_json_path):
-                    main_list = self.get_bower_main_list(bower_json_path, override)
+                    main_list = self.get_bower_main_list(bower_json_path, override) + ['bower.json']
                     version   = self.get_bower_version(bower_json_path)
 
                     dst_root = os.path.join(self.component_root, directory)
@@ -142,12 +142,6 @@ class Command(BaseCommand):
                         src_pattern = os.path.join(src_root, pattern)
                         # main_list elements can be fileglob patterns
                         for src_path in glob.glob(src_pattern):
-                            # See if we have a minified alternative
-                            path, ext = os.path.splitext(src_path)
-                            min_path = path+".min"+ext
-                            if os.path.exists(min_path):
-                                src_path = min_path
-
                             if not os.path.exists(src_path):
                                 print("Could not find source path: %s" % (src_path, ))
 
@@ -185,7 +179,7 @@ class Command(BaseCommand):
         self.with_version = options.get("with_version")
         self.keep_packages = options.get("keep_packages")
 
-        temp_dir = getattr(settings, 'BWR_APP_TMP_FOLDER', '.tmp')
+        temp_dir = getattr(settings, 'BWR_APP_TMP_FOLDER', 'tmp')
         temp_dir = os.path.abspath(temp_dir)
 
         # finders

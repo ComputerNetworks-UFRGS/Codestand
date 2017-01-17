@@ -1,10 +1,6 @@
 {% extends "base.html" %}
 {# Copyright The IETF Trust 2015, All Rights Reserved #}
-{% load origin staticfiles %}
-
-{% block pagehead %}
-<link rel="stylesheet" href="{% static "jquery.tablesorter/css/theme.bootstrap.min.css" %}">
-{% endblock %}
+{% load origin %}
 
 {% block title %} {{type.label|cut:"state"|cut:"state"}} states{% endblock %}
 
@@ -14,7 +10,7 @@
   <h1>{{type.label|cut:"state"|cut:"State"}} states</h1>
 
 
-  <table class="table table-condensed table-striped tablesorter">
+  <table class="table table-condensed table-striped">
     <thead>
       <tr>
         <th>State</th>
@@ -36,8 +32,4 @@
   </table>
 
 
-{% endblock %}
-
-{% block js %}
-<script src="{% static "jquery.tablesorter/js/jquery.tablesorter.combined.min.js" %}"></script>
 {% endblock %}

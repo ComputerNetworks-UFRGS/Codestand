@@ -1,19 +1,12 @@
 {% extends "base.html" %}
 {# Copyright The IETF Trust 2015, All Rights Reserved #}
-{% load origin staticfiles %}
+{% load origin %}
 
 {% load ballot_icon %}
 {% load ietf_filters %}
-{% load iesg_filters %}
 
 {% block pagehead %}
   <link rel="alternate" type="application/atom+xml" href="/feed/iesg-agenda/">
-  <link rel="stylesheet" href="{% static "jquery.tablesorter/css/theme.bootstrap.min.css" %}">
-  <style>
-    .tablesorter-bootstrap .bootstrap-icon-unsorted {
-	background-image:url(data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAsAAAAOCAMAAADOvxanAAAAVFBMVEUAAABCQkJZWVkZGRnJyckgICAZGRkZGRn8/PweHh4dHR0aGhoaGhpUVFQbGxvQ0NDc3NxMTExSUlIbGxvr6+s4ODhKSkogICAtLS00NDQzMzMnJydSEPrQAAAAGHRSTlMA1ssZRLgdAQbDyisqsZo8QdXUq0r9xPepSRwiAAAAX0lEQVQI13XHSQKAIAwEwQAKxn13Ev7/T2Pu9qmarJKPXIicI4PH4hxaKNrhm2S8bJK5h4YzKHrzJNtK6yYT/TdXzpS5zuYg4MSQYF6i4IHExdw1UVRi05HPrrvT53a+qyMFC9t04gcAAAAASUVORK5CYII=)
-    }
-  </style>
 {% endblock %}
 
 {% block title %}Documents on future IESG telechat agendas{% endblock %}
@@ -28,11 +21,7 @@
   {% endif %}
 
   {% for t in telechats %}
-    <h2>IESG telechat {{t.date}}
-    {% with t|telechat_page_count as pages %}
-    <small class="text-muted">{{pages}} page{{pages|pluralize}}</small>
-    {% endwith %}
-</h2>
+    <h2>IESG telechat {{t.date}}</h2>
     <p>
       <a class="btn btn-default" role="button" href="/iesg/agenda/">
         <span class="fa fa-list"></span>
@@ -53,10 +42,10 @@
       {% endif %}
 
       {% if "docs" in section and section.docs %}
-        <table class="table table-condensed table-striped tablesorter">
+        <table class="table table-condensed table-striped ietf">
           <thead>
             <tr>
-	      <th class="sorter-false"></th>
+	      <th></th>
 	      <th>Document</th>
 	      <th>Date</th>
 	      <th>Status</th>
@@ -81,7 +70,3 @@
   {% endif %}
 
 {% endblock content %}
-
-{% block js %}
-<script src="{% static "jquery.tablesorter/js/jquery.tablesorter.combined.min.js" %}"></script>
-{% endblock %}

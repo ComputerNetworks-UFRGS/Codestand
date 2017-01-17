@@ -1,10 +1,6 @@
 {% extends "base.html" %}
 {# Copyright The IETF Trust 2015, All Rights Reserved #}
-{% load origin staticfiles %}
-
-{% block pagehead %}
-<link rel="stylesheet" href="{% static "jquery.tablesorter/css/theme.bootstrap.min.css" %}">
-{% endblock %}
+{% load origin %}
 
 {% block title %}
   References to {{alias_name}}
@@ -29,7 +25,7 @@
     </div>
   {% endif %}
 
-  <table class="table table-condensed table-striped tablesorter">
+  <table class="table table-condensed table-striped">
     <thead>
       <tr>
         <th>Document</th>
@@ -68,8 +64,4 @@
       {% endfor %}
     </tbody>
   </table>
-{% endblock %}
-
-{% block js %}
-<script src="{% static "jquery.tablesorter/js/jquery.tablesorter.combined.min.js" %}"></script>
 {% endblock %}

@@ -8,7 +8,6 @@ from django.conf import settings
 from django.db.models.query import EmptyQuerySet
 from django.forms import ValidationError
 from django.utils.html import strip_tags, escape
-from django.core.urlresolvers import reverse as urlreverse
 
 from ietf.doc.models import Document, DocHistory, State
 from ietf.doc.models import DocAlias, RelatedDocument, BallotType, DocReminder
@@ -21,8 +20,6 @@ from ietf.utils import draft, markup_txt
 from ietf.utils.mail import send_mail
 from ietf.mailtrigger.utils import gather_address_lists
 
-import debug              # pyflakes:ignore
-
 #TODO FIXME - it would be better if this lived in ietf/doc/mails.py, but there's
 #        an import order issue to work out.
 def email_update_telechat(request, doc, text):
@@ -30,7 +27,7 @@ def email_update_telechat(request, doc, text):
 
     if not to:
         return
-
+    
     text = strip_tags(text)
     send_mail(request, to, None,
               "Telechat update notice: %s" % doc.file_tag(),
@@ -44,7 +41,7 @@ def get_state_types(doc):
 
     if not doc:
         return res
-
+    
     res.append(doc.type_id)
 
     if doc.type_id == "draft":
@@ -55,7 +52,7 @@ def get_state_types(doc):
         res.append("draft-iana-review")
         res.append("draft-iana-action")
         res.append("draft-rfceditor")
-
+        
     return res
 
 def get_tags_for_stream_id(stream_id):
@@ -147,7 +144,7 @@ def needed_ballot_positions(doc, active_positions):
             answer.append("Has enough positions to pass.")
 
     return " ".join(answer)
-
+    
 def create_ballot_if_not_open(doc, by, ballot_slug, time=None):
     if not doc.ballot_open(ballot_slug):
         if time:
@@ -362,7 +359,7 @@ def make_notify_changed_event(request, doc, by, new_notify, time=None):
 
 def update_telechat(request, doc, by, new_telechat_date, new_returning_item=None):
     from ietf.doc.models import TelechatDocEvent
-
+    
     on_agenda = bool(new_telechat_date)
 
     prev = doc.latest_event(TelechatDocEvent, type="scheduled_for_telechat")
@@ -381,7 +378,7 @@ def update_telechat(request, doc, by, new_telechat_date, new_returning_item=None
 
     # auto-set returning item _ONLY_ if the caller did not provide a value
     if (     new_returning_item != None
-         and on_agenda
+         and on_agenda 
          and prev_agenda
          and new_telechat_date != prev_telechat
          and prev_telechat < datetime.date.today()
@@ -395,7 +392,7 @@ def update_telechat(request, doc, by, new_telechat_date, new_returning_item=None
     e.doc = doc
     e.returning_item = returning
     e.telechat_date = new_telechat_date
-
+    
     if on_agenda != prev_agenda:
         if on_agenda:
             e.desc = "Placed on agenda for telechat - %s" % (new_telechat_date)
@@ -429,7 +426,7 @@ def rebuild_reference_relations(doc,filename=None):
        refs = draft.Draft(draft._gettext(filename), filename).get_refs()
     except IOError as e:
        return { 'errors': ["%s :%s" %  (e.strerror, filename)] }
-
+    
     doc.relateddocument_set.filter(relationship__slug__in=['refnorm','refinfo','refold','refunk']).delete()
 
     warnings = []
@@ -452,11 +449,11 @@ def rebuild_reference_relations(doc,filename=None):
 
     ret = {}
     if errors:
-        ret['errors']=errors
+        ret['errors']=errors 
     if warnings:
-        ret['warnings']=warnings
+        ret['warnings']=warnings 
     if unfound:
-        ret['unfound']=list(unfound)
+        ret['unfound']=list(unfound) 
 
     return ret
 
@@ -542,44 +539,3 @@ def uppercase_std_abbreviated_name(name):
         return name.upper()
     else:
         return name
-
-def crawl_history(doc):
-    # return document history data for inclusion in doc.json (used by timeline)
-    def get_ancestors(doc):
-        ancestors = []
-        if hasattr(doc, 'relateddocument_set'):
-            for rel in doc.relateddocument_set.filter(relationship__slug='replaces'):
-                if rel.target.document not in ancestors:
-                    ancestors.append(rel.target.document)
-                    ancestors.extend(get_ancestors(rel.target.document))
-            return ancestors
-
-    history = {}
-    docs = get_ancestors(doc)
-    if docs is not None:
-        docs.append(doc)
-        for d in docs:
-            for e in d.docevent_set.filter(type='new_revision').distinct():
-                if hasattr(e, 'newrevisiondocevent'):
-                    url = urlreverse("doc_view", kwargs=dict(name=d)) + e.newrevisiondocevent.rev + "/"
-                    history[url] = {
-                        'name': d.name,
-                        'rev': e.newrevisiondocevent.rev,
-                        'published': e.time.isoformat(),
-                        'url': url,
-                    }
-
-    if doc.type_id == "draft":
-        e = doc.latest_event(type='published_rfc')
-    else:
-        e = doc.latest_event(type='iesg_approved')
-    if e:
-        url = urlreverse("doc_view", kwargs=dict(name=e.doc))
-        history[url] = {
-            'name': e.doc.canonical_name(),
-            'rev': e.doc.canonical_name(),
-            'published': e.time.isoformat(),
-            'url': url
-        }
-    history = history.values()
-    return sorted(history, key=lambda x: x['published'])

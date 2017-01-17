@@ -125,18 +125,14 @@ def pipe(cmd, inp=None):
     return out
 
 def split_loginfo(line):
-    try:
-        parts = line.split()
-        rev = parts[0][1:]
-        who = parts[2]
-        date = parts[4]
-        time = parts[5]
-        tz   = parts[6]
-        when = tzparse.tzparse(" ".join(parts[4:7]), "%Y-%m-%d %H:%M:%S %Z")
-        when = when.astimezone(pytz.utc)
-    except ValueError as e:
-        sys.stderr.write("Bad log line format: %s\n  %s\n" % (line, e))
-
+    parts = line.split()
+    rev = parts[0][1:]
+    who = parts[2]
+    date = parts[4]
+    time = parts[5]
+    tz   = parts[6]
+    when = tzparse.tzparse(" ".join(parts[4:7]), "%Y-%m-%d %H:%M:%S %Z")
+    when = when.astimezone(pytz.utc)
     return rev, who, when
 
 # ----------------------------------------------------------------------
@@ -266,10 +262,7 @@ for entry in ready:
     cmd = 'svn log -v -r %s %s/%s/' % (rev, repo, branch)
     if opt_verbose > 1:
         note("Running '%s' ..." % cmd)
-    try:
-        loginfo = pipe(cmd).splitlines()
-    except OSError:
-        continue
+    loginfo = pipe(cmd).splitlines()
     try:
         rev, who, when = split_loginfo(loginfo[1])
     except IndexError:
@@ -291,7 +284,7 @@ for entry in ready:
     # 
     merge_path = os.path.join(*path.split(os.path.sep)[:4])
     if not (rev, repo, merge_path) in hold:
-        output_line = "%s  %-24s ^/%s@%s" % (when.strftime("%Y-%m-%d_%H:%MZ"), who+":", merge_path, rev)
+        output_line = "%s  %-24s %s@%s" % (when.strftime("%Y-%m-%d_%H:%MZ"), who+":", merge_path, rev)
         if unittest == 'passed':
             ready_commits[when] = output_line
         else:

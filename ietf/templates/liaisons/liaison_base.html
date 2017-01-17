@@ -5,8 +5,7 @@
 {% load staticfiles %}
 
 {% block pagehead %}
-  <link rel="stylesheet" href="{% static 'bootstrap-datepicker/css/bootstrap-datepicker3.min.css' %}">
-  <link rel="stylesheet" href="{% static "jquery.tablesorter/css/theme.bootstrap.min.css" %}">
+  <link rel="stylesheet" href="{% static 'bootstrap-datepicker/css/datepicker3.css' %}">
 {% endblock %}
 
 {% block title %}Liaison Statements - {{ selected_menu_entry|capfirst }}{% endblock %}
@@ -48,12 +47,9 @@
 
   {% endblock group_content %}
 
-  <p>Total Statements: {{ liaisons|length }}<p>
-  
 {% endblock content %}
 
 {% block js %}
-  <script src="{% static "jquery.tablesorter/js/jquery.tablesorter.combined.min.js" %}"></script>
-  <script src="{% static 'bootstrap-datepicker/js/bootstrap-datepicker.min.js' %}"></script>
+  <script src="{% static 'bootstrap-datepicker/js/bootstrap-datepicker.js' %}"></script>
   <script src="{% static 'ietf/js/liaisons.js' %}"></script>
 {% endblock %}

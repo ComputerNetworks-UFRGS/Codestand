@@ -2,11 +2,7 @@
 {# Copyright The IETF Trust 2015, All Rights Reserved #}
 {% load origin %}
 
-{% load ietf_filters staticfiles %}
-
-{% block pagehead %}
-<link rel="stylesheet" href="{% static "jquery.tablesorter/css/theme.bootstrap.min.css" %}">
-{% endblock %}
+{% load ietf_filters %}
 
 {% block bodyAttrs %}data-spy="scroll" data-target="#affix"{% endblock %}
 
@@ -39,7 +35,7 @@
           <!-- Plenaries -->
           {% if plenaries %}
             <h2 class="anchor-target" id="plenaries">Plenaries</h2>
-            <table class="table table-condensed table-striped tablesorter">
+            <table class="table table-condensed table-striped">
               <thead>
 	        <tr>
 	          <th>Group</th>
@@ -61,7 +57,7 @@
           {% regroup ietf|dictsort:"group.parent.acronym" by group.parent.name as areas %}
           {% for sessions in areas %}
             <h2 class="anchor-target" id="{{sessions.list.0.group.parent.acronym}}">{{sessions.list.0.group.parent.acronym|upper}} <small>{{ sessions.grouper }}</small></h2>
-            <table class="table table-condensed table-striped tablesorter">
+            <table class="table table-condensed table-striped">
               <thead>
 	        <tr>
 	          <th>Group</th>
@@ -85,7 +81,7 @@
           {% if training %}
             {% with "False" as show_agenda %}
               <h2 class="anchor-target" id="training">Training</h2>
-              <table class="table table-condensed table-striped tablesorter">
+              <table class="table table-condensed table-striped">
                 <thead>
 	          <tr>
 	            <th>Group</th>
@@ -109,7 +105,7 @@
           <!-- IAB Sessions -->
           {% if iab %}
             <h2 class="anchor-target" id="iab">IAB <small>Internet Architecture Board</small></h2>
-            <table class="table table-condensed table-striped tablesorter">
+            <table class="table table-condensed table-striped">
               <thead>
 	        <tr>
 	          <th>Group</th>
@@ -132,7 +128,7 @@
           <!-- IRTF Sessions -->
           {% if irtf %}
             <h2 class="anchor-target" id="irtf">IRTF <small>Internet Research Task Force</small></h2>
-            <table class="table table-condensed table-striped tablesorter">
+            <table class="table table-condensed table-striped">
               <thead>
 	        <tr>
 	          <th>Group</th>
@@ -178,8 +174,4 @@
       </ul>
     </div>
   </div>
-{% endblock %}
-
-{% block js %}
-<script src="{% static "jquery.tablesorter/js/jquery.tablesorter.combined.min.js" %}"></script>
 {% endblock %}

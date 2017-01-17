@@ -1,13 +1,9 @@
 {% extends "base.html" %}
 {# Copyright The IETF Trust 2015, All Rights Reserved #}
-{% load origin staticfiles %}
+{% load origin %}
 
 {% load ballot_icon %}
 {% load ietf_filters %}
-
-{% block pagehead %}
-<link rel="stylesheet" href="{% static "jquery.tablesorter/css/theme.bootstrap.min.css" %}">
-{% endblock %}
 
 {% block title %}IESG discuss positions{% endblock %}
 
@@ -29,7 +25,7 @@
     </p>
   {% endif %}
 
-  <table class="table table-condensed table-striped tablesorter">
+  <table class="table table-condensed table-striped">
     <thead>
       <tr>
         <th>Document</th>
@@ -68,7 +64,6 @@
 {% endblock %}
 
 {% block js %}
-  <script src="{% static "jquery.tablesorter/js/jquery.tablesorter.combined.min.js" %}"></script>
   <script>
     $(".discuss").click(function () {
         var x = $(this).find("input").val();
@@ -81,4 +76,3 @@
     });
   </script>
 {% endblock %}
-
