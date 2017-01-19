@@ -594,7 +594,7 @@ def delete(request, pk, template=None):
     
     if not template:
         template = request.session[constants.ACTUAL_TEMPLATE]
-        HttpResponseRedirect(template)
+        return HttpResponseRedirect(template)
     else:
         return HttpResponseRedirect('/codestand/requests/show_list/')
 
