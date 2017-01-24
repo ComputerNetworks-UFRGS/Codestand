@@ -4,12 +4,12 @@ import os
 from django.db import models
 from django.db.models.signals import post_delete
 from django.conf import settings
-from django.core.files.storage import FileSystemStorage
 from django.contrib.auth.models import User
 from django.template.loader import render_to_string
+from django.template.defaultfilters import linebreaks
 
 from ietf.nomcom.fields import EncryptedTextField
-from ietf.person.models import Email
+from ietf.person.models import Person,Email
 from ietf.group.models import Group
 from ietf.name.models import NomineePositionStateName, FeedbackTypeName
 from ietf.dbtemplate.models import DBTemplate
@@ -21,6 +21,8 @@ from ietf.nomcom.utils import (initialize_templates_for_group,
                                initialize_requirements_for_position,
                                delete_nomcom_templates)
 
+from ietf.utils.storage import NoLocationMigrationFileSystemStorage
+
 
 def upload_path_handler(instance, filename):
     return os.path.join(instance.group.acronym, 'public.cert')
@@ -30,14 +32,6 @@ class ReminderDates(models.Model):
     date = models.DateField()
     nomcom = models.ForeignKey('NomCom')
 
-
-class NoLocationMigrationFileSystemStorage(FileSystemStorage):
-
-    def deconstruct(obj):
-        path, args, kwargs = FileSystemStorage.deconstruct(obj)
-        kwargs["location"] = None
-        return (path, args, kwargs)
-    
 
 class NomCom(models.Model):
     public_key = models.FileField(storage=NoLocationMigrationFileSystemStorage(location=settings.NOMCOM_PUBLIC_KEYS_DIR),
@@ -65,6 +59,14 @@ class NomCom(models.Model):
         super(NomCom, self).save(*args, **kwargs)
         if created:
             initialize_templates_for_group(self)
+
+    def year(self):
+        year = getattr(self,'_cached_year',None)
+        if year is None:
+            if self.group and self.group.acronym.startswith('nomcom'):
+                year = int(self.group.acronym[6:])
+                self._cached_year = year
+        return year
 
 
 def delete_nomcom(sender, **kwargs):
@@ -102,6 +104,7 @@ class Nomination(models.Model):
 class Nominee(models.Model):
 
     email = models.ForeignKey(Email)
+    person = models.ForeignKey(Person, blank=True, null=True)
     nominee_position = models.ManyToManyField('Position', through='NomineePosition')
     duplicated = models.ForeignKey('Nominee', blank=True, null=True)
     nomcom = models.ForeignKey('NomCom')
@@ -115,6 +118,12 @@ class Nominee(models.Model):
     def __unicode__(self):
         if self.email.person and self.email.person.name:
             return u'%s <%s>' % (self.email.person.plain_name(), self.email.address)
+        else:
+            return self.email.address
+
+    def name(self):
+        if self.email.person and self.email.person.name:
+            return u'%s' % (self.email.person.plain_name(),)
         else:
             return self.email.address
 
@@ -150,12 +159,10 @@ class NomineePosition(models.Model):
 
 class Position(models.Model):
     nomcom = models.ForeignKey('NomCom')
-    name = models.CharField(verbose_name='Name', max_length=255)
-    description = models.TextField(verbose_name='Description')
+    name = models.CharField(verbose_name='Name', max_length=255, help_text='This short description will appear on the Nomination and Feedback pages. Be as descriptive as necessary. Past examples: "Transport AD", "IAB Member"')
     requirement = models.ForeignKey(DBTemplate, related_name='requirement', null=True, editable=False)
     questionnaire = models.ForeignKey(DBTemplate, related_name='questionnaire', null=True, editable=False)
     is_open = models.BooleanField(verbose_name='Is open', default=False)
-    incumbent = models.ForeignKey(Email, null=True, blank=True)
 
     objects = PositionManager()
 
@@ -180,7 +187,7 @@ class Position(models.Model):
 
     def get_templates(self):
         if hasattr(self, '_templates'):
-            return self._templates
+            return self._templates      # pylint: disable=access-member-before-definition
         from ietf.dbtemplate.models import DBTemplate
         self._templates = DBTemplate.objects.filter(group=self.nomcom.group).filter(path__contains='/%s/position/' % self.id).order_by('title')
         return self._templates
@@ -189,14 +196,17 @@ class Position(models.Model):
         return render_to_string(self.questionnaire.path, {'position': self})
 
     def get_requirement(self):
-        return render_to_string(self.requirement.path, {'position': self})
+        rendered = render_to_string(self.requirement.path, {'position': self})
+        if self.requirement.type_id=='plain':
+            rendered = linebreaks(rendered)
+        return rendered
 
 
 class Feedback(models.Model):
     nomcom = models.ForeignKey('NomCom')
     author = models.EmailField(verbose_name='Author', blank=True)
-    positions = models.ManyToManyField('Position', blank=True, null=True)
-    nominees = models.ManyToManyField('Nominee', blank=True, null=True)
+    positions = models.ManyToManyField('Position', blank=True)
+    nominees = models.ManyToManyField('Nominee', blank=True)
     subject = models.TextField(verbose_name='Subject', blank=True)
     comments = EncryptedTextField(verbose_name='Comments')
     type = models.ForeignKey(FeedbackTypeName, blank=True, null=True)
@@ -211,4 +221,7 @@ class Feedback(models.Model):
     class Meta:
         ordering = ['time']
 
-
+class FeedbackLastSeen(models.Model):
+    reviewer = models.ForeignKey(Person)
+    nominee = models.ForeignKey(Nominee)
+    time = models.DateTimeField(auto_now=True)

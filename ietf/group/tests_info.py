@@ -4,6 +4,7 @@ import shutil
 import calendar
 import datetime
 import json
+import StringIO
 
 from pyquery import PyQuery
 from tempfile import NamedTemporaryFile
@@ -12,31 +13,48 @@ import debug                            # pyflakes:ignore
 from django.conf import settings
 from django.core.urlresolvers import reverse as urlreverse
 from django.core.urlresolvers import NoReverseMatch
+from django.contrib.auth.models import User
 
+from django.utils.html import escape
+from django.template.defaultfilters import urlize
+
+from ietf.community.models import CommunityList
+from ietf.community.utils import reset_name_contains_index_for_rule
 from ietf.doc.models import Document, DocAlias, DocEvent, State
-from ietf.group.models import Group, GroupEvent, GroupMilestone, GroupStateTransitions 
+from ietf.doc.utils_charter import charter_name_for_group
+from ietf.group.factories import GroupFactory, RoleFactory, GroupEventFactory
+from ietf.group.models import Group, GroupEvent, GroupMilestone, GroupStateTransitions, Role
 from ietf.group.utils import save_group_in_history
+from ietf.meeting.factories import SessionFactory
 from ietf.name.models import DocTagName, GroupStateName, GroupTypeName
 from ietf.person.models import Person, Email
-from ietf.utils.test_utils import TestCase, unicontent
 from ietf.utils.mail import outbox, empty_outbox
-from ietf.utils.test_data import make_test_data
-from ietf.utils.test_utils import login_testing_unauthorized
+from ietf.utils.test_data import make_test_data, create_person, make_review_data
+from ietf.utils.test_utils import login_testing_unauthorized, TestCase, unicontent, reload_db_objects
+
+def group_urlreverse_list(group, viewname):
+    return [
+        urlreverse(viewname, kwargs=dict(acronym=group.acronym)),
+        urlreverse(viewname, kwargs=dict(acronym=group.acronym, group_type=group.type_id)),
+    ]
+
 
 class GroupPagesTests(TestCase):
     def setUp(self):
         self.charter_dir = os.path.abspath("tmp-charter-dir")
         os.mkdir(self.charter_dir)
+        self.saved_charter_path = settings.CHARTER_PATH
         settings.CHARTER_PATH = self.charter_dir
 
     def tearDown(self):
+        settings.CHARTER_PATH = self.saved_charter_path
         shutil.rmtree(self.charter_dir)
 
     def test_active_groups(self):
         draft = make_test_data()
         group = draft.group
 
-        url = urlreverse('ietf.group.info.active_groups', kwargs=dict(group_type="wg"))
+        url = urlreverse('ietf.group.views.active_groups', kwargs=dict(group_type="wg"))
         r = self.client.get(url)
         self.assertEqual(r.status_code, 200)
         self.assertTrue(group.parent.name in unicontent(r))
@@ -44,32 +62,32 @@ class GroupPagesTests(TestCase):
         self.assertTrue(group.name in unicontent(r))
         self.assertTrue(group.ad_role().person.plain_name() in unicontent(r))
 
-        url = urlreverse('ietf.group.info.active_groups', kwargs=dict(group_type="rg"))
+        url = urlreverse('ietf.group.views.active_groups', kwargs=dict(group_type="rg"))
         r = self.client.get(url)
         self.assertEqual(r.status_code, 200)
-        self.assertTrue('Active Research Groups' in unicontent(r))
+        self.assertTrue('Active research groups' in unicontent(r))
 
-        url = urlreverse('ietf.group.info.active_groups', kwargs=dict(group_type="area"))
+        url = urlreverse('ietf.group.views.active_groups', kwargs=dict(group_type="area"))
         r = self.client.get(url)
         self.assertEqual(r.status_code, 200)
         self.assertTrue("Far Future (farfut)" in unicontent(r))
 
-        url = urlreverse('ietf.group.info.active_groups', kwargs=dict(group_type="ag"))
+        url = urlreverse('ietf.group.views.active_groups', kwargs=dict(group_type="ag"))
         r = self.client.get(url)
         self.assertEqual(r.status_code, 200)
-        self.assertTrue("Active Area Groups" in unicontent(r))
+        self.assertTrue("Active area groups" in unicontent(r))
 
-        url = urlreverse('ietf.group.info.active_groups', kwargs=dict(group_type="dir"))
+        url = urlreverse('ietf.group.views.active_groups', kwargs=dict(group_type="dir"))
         r = self.client.get(url)
         self.assertEqual(r.status_code, 200)
-        self.assertTrue("Active Directorates" in unicontent(r))
+        self.assertTrue("Active directorates" in unicontent(r))
 
-        url = urlreverse('ietf.group.info.active_groups', kwargs=dict(group_type="team"))
+        url = urlreverse('ietf.group.views.active_groups', kwargs=dict(group_type="team"))
         r = self.client.get(url)
         self.assertEqual(r.status_code, 200)
-        self.assertTrue("Active Teams" in unicontent(r))
+        self.assertTrue("Active teams" in unicontent(r))
 
-        url = urlreverse('ietf.group.info.active_groups', kwargs=dict())
+        url = urlreverse('ietf.group.views.active_groups', kwargs=dict())
         r = self.client.get(url)
         self.assertEqual(r.status_code, 200)
         self.assertTrue("Directorate" in unicontent(r))
@@ -77,7 +95,24 @@ class GroupPagesTests(TestCase):
 
         for slug in GroupTypeName.objects.exclude(slug__in=['wg','rg','ag','area','dir','team']).values_list('slug',flat=True):
             with self.assertRaises(NoReverseMatch):
-                url=urlreverse('ietf.group.info.active_groups', kwargs=dict(group_type=slug))
+                url=urlreverse('ietf.group.views.active_groups', kwargs=dict(group_type=slug))
+
+    def test_group_home(self):
+        draft = make_test_data()
+        group = draft.group
+
+        url_list = group_urlreverse_list(group, 'ietf.group.views.group_home')
+        next_list = group_urlreverse_list(group, 'ietf.group.views.group_documents')
+        for url, next in [ (url_list[i], next_list[i]) for i in range(len(url_list)) ]:
+            r = self.client.get(url)
+            self.assertRedirects(r, next)
+            r = self.client.get(next)
+            self.assertTrue(group.acronym in unicontent(r))
+            self.assertTrue(group.name in unicontent(r))
+            for word in ['Documents', 'Date', 'Status', 'IPR', 'AD', 'Shepherd']:
+                self.assertTrue(word in unicontent(r))
+            self.assertTrue(draft.name in unicontent(r))
+            self.assertTrue(draft.title in unicontent(r))
 
     def test_wg_summaries(self):
         draft = make_test_data()
@@ -88,7 +123,7 @@ class GroupPagesTests(TestCase):
         with open(os.path.join(self.charter_dir, "%s-%s.txt" % (group.charter.canonical_name(), group.charter.rev)), "w") as f:
             f.write("This is a charter.")
 
-        url = urlreverse('ietf.group.info.wg_summary_area', kwargs=dict(group_type="wg"))
+        url = urlreverse('ietf.group.views.wg_summary_area', kwargs=dict(group_type="wg"))
         r = self.client.get(url)
         self.assertEqual(r.status_code, 200)
         self.assertTrue(group.parent.name in unicontent(r))
@@ -96,14 +131,14 @@ class GroupPagesTests(TestCase):
         self.assertTrue(group.name in unicontent(r))
         self.assertTrue(chair.address in unicontent(r))
 
-        url = urlreverse('ietf.group.info.wg_summary_acronym', kwargs=dict(group_type="wg"))
+        url = urlreverse('ietf.group.views.wg_summary_acronym', kwargs=dict(group_type="wg"))
         r = self.client.get(url)
         self.assertEqual(r.status_code, 200)
         self.assertTrue(group.acronym in unicontent(r))
         self.assertTrue(group.name in unicontent(r))
         self.assertTrue(chair.address in unicontent(r))
         
-        url = urlreverse('ietf.group.info.wg_charters', kwargs=dict(group_type="wg"))
+        url = urlreverse('ietf.group.views.wg_charters', kwargs=dict(group_type="wg"))
         r = self.client.get(url)
         self.assertEqual(r.status_code, 200)
         self.assertTrue(group.acronym in unicontent(r))
@@ -112,7 +147,7 @@ class GroupPagesTests(TestCase):
         self.assertTrue(chair.address in unicontent(r))
         self.assertTrue("This is a charter." in unicontent(r))
 
-        url = urlreverse('ietf.group.info.wg_charters_by_acronym', kwargs=dict(group_type="wg"))
+        url = urlreverse('ietf.group.views.wg_charters_by_acronym', kwargs=dict(group_type="wg"))
         r = self.client.get(url)
         self.assertEqual(r.status_code, 200)
         self.assertTrue(group.acronym in unicontent(r))
@@ -126,7 +161,7 @@ class GroupPagesTests(TestCase):
         group = draft.group
         group.charter.set_state(State.objects.get(used=True, type="charter", slug="intrev"))
 
-        url = urlreverse('ietf.group.info.chartering_groups')
+        url = urlreverse('ietf.group.views.chartering_groups')
         r = self.client.get(url)
         self.assertEqual(r.status_code, 200)
         q = PyQuery(r.content)
@@ -138,7 +173,7 @@ class GroupPagesTests(TestCase):
         group.state = GroupStateName.objects.get(used=True, slug="conclude")
         group.save()
 
-        url = urlreverse('ietf.group.info.concluded_groups')
+        url = urlreverse('ietf.group.views.concluded_groups')
         r = self.client.get(url)
         self.assertEqual(r.status_code, 200)
         q = PyQuery(r.content)
@@ -150,7 +185,7 @@ class GroupPagesTests(TestCase):
         group.state_id = "bof"
         group.save()
 
-        url = urlreverse('ietf.group.info.bofs', kwargs=dict(group_type="wg"))
+        url = urlreverse('ietf.group.views.bofs', kwargs=dict(group_type="wg"))
         r = self.client.get(url)
         self.assertEqual(r.status_code, 200)
         q = PyQuery(r.content)
@@ -184,27 +219,30 @@ class GroupPagesTests(TestCase):
             name=draft2.name,
             )
 
-        url = urlreverse('ietf.group.info.group_documents', kwargs=dict(group_type=group.type_id, acronym=group.acronym))
-        r = self.client.get(url)
-        self.assertEqual(r.status_code, 200)
-        self.assertTrue(draft.name in unicontent(r))
-        self.assertTrue(group.name in unicontent(r))
-        self.assertTrue(group.acronym in unicontent(r))
+        clist = CommunityList.objects.get(group=group)
+        related_docs_rule = clist.searchrule_set.get(rule_type='name_contains')
+        reset_name_contains_index_for_rule(related_docs_rule)
 
-        self.assertTrue(draft2.name in unicontent(r))
+        for url in group_urlreverse_list(group, 'ietf.group.views.group_documents'):
+            r = self.client.get(url)
+            self.assertEqual(r.status_code, 200)
+            self.assertTrue(draft.name in unicontent(r))
+            self.assertTrue(group.name in unicontent(r))
+            self.assertTrue(group.acronym in unicontent(r))
+            self.assertTrue(draft2.name in unicontent(r))
 
         # Make sure that a logged in user is presented with an opportunity to add results to their community list
         self.client.login(username="secretary", password="secretary+password")
         r = self.client.get(url)
         q = PyQuery(r.content)
-        self.assertTrue(any([draft2.name in x.attrib['href'] for x in q('table td a.community-list-add-remove-doc')]))
+        self.assertTrue(any([draft2.name in x.attrib['href'] for x in q('table td a.track-untrack-doc')]))
 
         # test the txt version too while we're at it
-        url = urlreverse('ietf.group.info.group_documents_txt', kwargs=dict(group_type=group.type_id, acronym=group.acronym))
-        r = self.client.get(url)
-        self.assertEqual(r.status_code, 200)
-        self.assertTrue(draft.name in unicontent(r))
-        self.assertTrue(draft2.name in unicontent(r))
+        for url in group_urlreverse_list(group, 'ietf.group.views.group_documents_txt'):
+            r = self.client.get(url)
+            self.assertEqual(r.status_code, 200)
+            self.assertTrue(draft.name in unicontent(r))
+            self.assertTrue(draft2.name in unicontent(r))
 
     def test_group_charter(self):
         draft = make_test_data()
@@ -220,10 +258,7 @@ class GroupPagesTests(TestCase):
             due=datetime.date.today() + datetime.timedelta(days=100))
         milestone.docs.add(draft)
 
-        for url in [group.about_url(),
-                    urlreverse('ietf.group.info.group_about',kwargs=dict(acronym=group.acronym)),
-                    urlreverse('ietf.group.info.group_about',kwargs=dict(acronym=group.acronym,group_type=group.type_id)),
-                   ]:
+        for url in [group.about_url(),] + group_urlreverse_list(group, 'ietf.group.views.group_about'):
             r = self.client.get(url)
             self.assertEqual(r.status_code, 200)
             self.assertTrue(group.name in unicontent(r))
@@ -233,6 +268,17 @@ class GroupPagesTests(TestCase):
             self.assertTrue(milestone.docs.all()[0].name in unicontent(r))
 
     def test_group_about(self):
+
+        def verify_cannot_edit_group(url, username):
+            self.client.login(username=username, password=username+"+password")
+            r = self.client.get(url)
+            self.assertEqual(r.status_code, 403)
+
+        def verify_can_edit_group(url, username):
+            self.client.login(username=username, password=username+"+password")
+            r = self.client.get(url)
+            self.assertEqual(r.status_code, 200)
+
         make_test_data()
         group = Group.objects.create(
             type_id="team",
@@ -240,18 +286,25 @@ class GroupPagesTests(TestCase):
             name="Test Team",
             description="The test team is testing.",
             state_id="active",
+            parent = Group.objects.get(acronym="farfut"),
         )
+        create_person(group, "chair", name="Testteam Chairman", username="teamchairman")
 
-        for url in [group.about_url(),
-                    urlreverse('ietf.group.info.group_about',kwargs=dict(acronym=group.acronym)),
-                    urlreverse('ietf.group.info.group_about',kwargs=dict(acronym=group.acronym,group_type=group.type_id)),
-                   ]:
+        for url in [group.about_url(),] + group_urlreverse_list(group, 'ietf.group.views.group_about'):
             url = group.about_url()
             r = self.client.get(url)
             self.assertEqual(r.status_code, 200)
             self.assertTrue(group.name in unicontent(r))
             self.assertTrue(group.acronym in unicontent(r))
             self.assertTrue(group.description in unicontent(r))
+
+        for url in group_urlreverse_list(group, 'ietf.group.views_edit.edit'):
+
+            for username in ['plain','iana','iab chair','irtf chair','marschairman']:
+                verify_cannot_edit_group(url, username)
+
+            for username in ['secretary','teamchairman','ad']:
+                verify_can_edit_group(url, username)
 
     def test_materials(self):
         make_test_data()
@@ -267,9 +320,7 @@ class GroupPagesTests(TestCase):
         doc.set_state(State.objects.get(type="slides", slug="active"))
         DocAlias.objects.create(name=doc.name, document=doc)
 
-        for url in [ urlreverse("group_materials", kwargs={ 'acronym': group.acronym }),
-                     urlreverse("group_materials", kwargs={ 'acronym': group.acronym , 'group_type': group.type_id}),
-                   ]:
+        for url in group_urlreverse_list(group, 'ietf.group.views.materials'):
             r = self.client.get(url)
             self.assertEqual(r.status_code, 200)
             self.assertTrue(doc.title in unicontent(r))
@@ -294,10 +345,10 @@ class GroupPagesTests(TestCase):
             type="added_comment",
             by=Person.objects.get(name="(System)"))
 
-        url = urlreverse('ietf.group.info.history', kwargs=dict(group_type=group.type_id, acronym=group.acronym))
-        r = self.client.get(url)
-        self.assertEqual(r.status_code, 200)
-        self.assertTrue(e.desc in unicontent(r))
+        for url in group_urlreverse_list(group, 'ietf.group.views.history'):
+            r = self.client.get(url)
+            self.assertEqual(r.status_code, 200)
+            self.assertTrue(e.desc in unicontent(r))
 
     def test_feed(self):
         draft = make_test_data()
@@ -321,13 +372,42 @@ class GroupPagesTests(TestCase):
         self.assertTrue(de.desc in unicontent(r))
 
 
+    def test_chair_photos(self):
+        make_test_data()
+        url = urlreverse("ietf.group.views.chair_photos", kwargs={'group_type':'wg'})
+        r = self.client.get(url)
+        self.assertEqual(r.status_code, 200)
+        q = PyQuery(r.content)
+        chairs = Role.objects.filter(group__type='wg', group__state='active', name_id='chair')
+        self.assertEqual(len(q('div.photo-thumbnail img')), chairs.count())
+
+    def test_wg_photos(self):
+        make_test_data()
+        url = urlreverse("ietf.group.views.group_photos", kwargs={'group_type':'wg', 'acronym':'mars'})
+        r = self.client.get(url)
+        self.assertEqual(r.status_code, 200)
+        q = PyQuery(r.content)
+        roles = Role.objects.filter(group__acronym='mars')
+        self.assertEqual(len(q('div.photo-thumbnail img')), roles.count())
+
+    def test_group_photos(self):
+        make_test_data()
+        url = urlreverse("ietf.group.views.group_photos", kwargs={'acronym':'iab'})
+        r = self.client.get(url)
+        self.assertEqual(r.status_code, 200)
+        q = PyQuery(r.content)
+        roles = Role.objects.filter(group__acronym='iab')
+        self.assertEqual(len(q('div.photo-thumbnail img')), roles.count())
+
 class GroupEditTests(TestCase):
     def setUp(self):
         self.charter_dir = os.path.abspath("tmp-charter-dir")
         os.mkdir(self.charter_dir)
+        self.saved_charter_path = settings.CHARTER_PATH
         settings.CHARTER_PATH = self.charter_dir
 
     def tearDown(self):
+        settings.CHARTER_PATH = self.saved_charter_path
         shutil.rmtree(self.charter_dir)
 
     def test_create(self):
@@ -339,6 +419,8 @@ class GroupEditTests(TestCase):
         num_wgs = len(Group.objects.filter(type="wg"))
 
         bof_state = GroupStateName.objects.get(slug="bof")
+
+        area = Group.objects.filter(type="area").first()
 
         # normal get
         r = self.client.get(url)
@@ -356,27 +438,35 @@ class GroupEditTests(TestCase):
         # acronym contains non-alphanumeric
         r = self.client.post(url, dict(acronym="test...", name="Testing WG", state=bof_state.pk))
         self.assertEqual(r.status_code, 200)
+        self.assertTrue(len(q('form .has-error')) > 0)
 
         # acronym contains hyphen
         r = self.client.post(url, dict(acronym="test-wg", name="Testing WG", state=bof_state.pk))
         self.assertEqual(r.status_code, 200)
+        self.assertTrue(len(q('form .has-error')) > 0)
 
         # acronym too short
         r = self.client.post(url, dict(acronym="t", name="Testing WG", state=bof_state.pk))
         self.assertEqual(r.status_code, 200)
+        self.assertTrue(len(q('form .has-error')) > 0)
 
         # acronym doesn't start with an alpha character
         r = self.client.post(url, dict(acronym="1startwithalpha", name="Testing WG", state=bof_state.pk))
         self.assertEqual(r.status_code, 200)
+        self.assertTrue(len(q('form .has-error')) > 0)
 
-        # creation
+        # no parent group given
         r = self.client.post(url, dict(acronym="testwg", name="Testing WG", state=bof_state.pk))
+        self.assertEqual(r.status_code, 200)
+        self.assertTrue(len(q('form .has-error')) > 0)
+
+        # Ok creation
+        r = self.client.post(url, dict(acronym="testwg", name="Testing WG", state=bof_state.pk, parent=area.pk))
         self.assertEqual(r.status_code, 302)
         self.assertEqual(len(Group.objects.filter(type="wg")), num_wgs + 1)
         group = Group.objects.get(acronym="testwg")
         self.assertEqual(group.name, "Testing WG")
-        self.assertEqual(group.charter.name, "charter-ietf-testwg")
-        self.assertEqual(group.charter.rev, "00-00")
+        self.assertEqual(charter_name_for_group(group), "charter-ietf-testwg")
 
     def test_create_rg(self):
 
@@ -402,9 +492,7 @@ class GroupEditTests(TestCase):
         self.assertEqual(len(Group.objects.filter(type="rg")), num_rgs + 1)
         group = Group.objects.get(acronym="testrg")
         self.assertEqual(group.name, "Testing RG")
-        self.assertEqual(group.charter.name, "charter-irtf-testrg")
-        self.assertEqual(group.charter.rev, "00-00")
-        self.assertEqual(group.parent.acronym,'irtf')
+        self.assertEqual(charter_name_for_group(group), "charter-irtf-testrg")
 
     def test_create_based_on_existing_bof(self):
         make_test_data()
@@ -487,10 +575,10 @@ class GroupEditTests(TestCase):
                                   parent=area.pk,
                                   ad=ad.pk,
                                   state=state.pk,
-                                  chairs="aread@ietf.org, ad1@ietf.org",
-                                  secretaries="aread@ietf.org, ad1@ietf.org, ad2@ietf.org",
-                                  techadv="aread@ietf.org",
-                                  delegates="ad2@ietf.org",
+                                  chair_roles="aread@ietf.org, ad1@ietf.org",
+                                  secr_roles="aread@ietf.org, ad1@ietf.org, ad2@ietf.org",
+                                  techadv_roles="aread@ietf.org",
+                                  delegate_roles="ad2@ietf.org",
                                   list_email="mars@mail",
                                   list_subscribe="subscribe.mars",
                                   list_archive="archive.mars",
@@ -516,25 +604,46 @@ class GroupEditTests(TestCase):
         for prefix in ['ad1','ad2','aread','marschairman','marsdelegate']:
             self.assertTrue(prefix+'@' in outbox[0]['To'])
 
-    def test_initial_charter(self):
-        make_test_data()
-        group = Group.objects.get(acronym="mars")
-        for url in [ urlreverse('ietf.group.edit.submit_initial_charter', kwargs={'acronym':group.acronym}),
-                     urlreverse('ietf.group.edit.submit_initial_charter', kwargs={'acronym':group.acronym,'group_type':group.type_id}),
-                   ]:
-            login_testing_unauthorized(self, "secretary", url)
-            r = self.client.get(url,follow=True)
-            self.assertEqual(r.status_code,200) 
-            self.assertTrue(r.redirect_chain[0][0].endswith(urlreverse('charter_submit',kwargs={'name':group.charter.name,'option':'initcharter'})))
-            self.client.logout()
-                    
+    def test_edit_reviewers(self):
+        doc = make_test_data()
+        review_req = make_review_data(doc)
+        group = review_req.team
+
+        url = urlreverse('group_edit', kwargs=dict(group_type=group.type_id, acronym=group.acronym))
+        login_testing_unauthorized(self, "secretary", url)
+
+        # normal get
+        r = self.client.get(url)
+        self.assertEqual(r.status_code, 200)
+        q = PyQuery(r.content)
+        self.assertEqual(len(q('form input[name=reviewer_roles]')), 1)
+
+        # set reviewers
+        empty_outbox()
+        r = self.client.post(url,
+                             dict(name=group.name,
+                                  acronym=group.acronym,
+                                  parent=group.parent_id,
+                                  ad=Person.objects.get(name="Areað Irector").pk,
+                                  state=group.state_id,
+                                  reviewer_roles="ad2@ietf.org",
+                                  list_email=group.list_email,
+                                  list_subscribe=group.list_subscribe,
+                                  list_archive=group.list_archive,
+                                  urls=""
+                                  ))
+        self.assertEqual(r.status_code, 302)
+
+        group = reload_db_objects(group)
+        self.assertEqual(list(group.role_set.filter(name="reviewer").values_list("email", flat=True)), ["ad2@ietf.org"])
+        self.assertTrue('Personnel change' in outbox[0]['Subject'])
 
     def test_conclude(self):
         make_test_data()
 
         group = Group.objects.get(acronym="mars")
 
-        url = urlreverse('ietf.group.edit.conclude', kwargs=dict(group_type=group.type_id, acronym=group.acronym))
+        url = urlreverse('ietf.group.views_edit.conclude', kwargs=dict(group_type=group.type_id, acronym=group.acronym))
         login_testing_unauthorized(self, "secretary", url)
 
         # normal get
@@ -590,20 +699,22 @@ class MilestoneTests(TestCase):
     def test_milestone_sets(self):
         m1, m2, group = self.create_test_milestones()
 
-        url = urlreverse('group_edit_milestones', kwargs=dict(group_type=group.type_id, acronym=group.acronym))
+        for url in group_urlreverse_list(group, 'group_edit_milestones'):
+            login_testing_unauthorized(self, "secretary", url)
+
+            r = self.client.get(url)
+            self.assertEqual(r.status_code, 200)
+            self.assertTrue(m1.desc in unicontent(r))
+            self.assertTrue(m2.desc not in unicontent(r))
+            self.client.logout()
+
         login_testing_unauthorized(self, "secretary", url)
 
-        r = self.client.get(url)
-        self.assertEqual(r.status_code, 200)
-        self.assertTrue(m1.desc in unicontent(r))
-        self.assertTrue(m2.desc not in unicontent(r))
-
-        url = urlreverse('group_edit_charter_milestones', kwargs=dict(group_type=group.type_id, acronym=group.acronym))
-
-        r = self.client.get(url)
-        self.assertEqual(r.status_code, 200)
-        self.assertTrue(m1.desc not in unicontent(r))
-        self.assertTrue(m2.desc in unicontent(r))
+        for url in group_urlreverse_list(group, 'group_edit_charter_milestones'):
+            r = self.client.get(url)
+            self.assertEqual(r.status_code, 200)
+            self.assertTrue(m1.desc not in unicontent(r))
+            self.assertTrue(m2.desc in unicontent(r))
 
     def test_add_milestone(self):
         m1, m2, group = self.create_test_milestones()
@@ -841,7 +952,7 @@ class CustomizeWorkflowTests(TestCase):
 
         group = Group.objects.get(acronym="mars")
 
-        url = urlreverse('ietf.group.edit.customize_workflow', kwargs=dict(group_type=group.type_id, acronym=group.acronym))
+        url = urlreverse('ietf.group.views_edit.customize_workflow', kwargs=dict(group_type=group.type_id, acronym=group.acronym))
         login_testing_unauthorized(self, "secretary", url)
 
         state = State.objects.get(used=True, type="draft-stream-ietf", slug="wg-lc")
@@ -922,11 +1033,11 @@ ames-chairs@ietf.org                                             xfilter-mars-ch
 expand-ames-chairs@virtual.ietf.org                              mars_chair@ietf.org
 """)
         self.group_alias_file.close()
-        self.save_group_virtual_path = settings.GROUP_VIRTUAL_PATH
+        self.saved_group_virtual_path = settings.GROUP_VIRTUAL_PATH
         settings.GROUP_VIRTUAL_PATH = self.group_alias_file.name
 
     def tearDown(self):
-        settings.GROUP_VIRTUAL_PATH = self.save_group_virtual_path
+        settings.GROUP_VIRTUAL_PATH = self.saved_group_virtual_path
         os.unlink(self.group_alias_file.name)
 
     def testAliases(self):
@@ -940,27 +1051,27 @@ expand-ames-chairs@virtual.ietf.org                              mars_chair@ietf
             self.assertTrue(all([x in unicontent(r) for x in ['mars-ads@','mars-chairs@']]))
             self.assertFalse(any([x in unicontent(r) for x in ['ames-ads@','ames-chairs@']]))
 
-        url = urlreverse('ietf.group.info.email_aliases', kwargs=dict())
+        url = urlreverse('ietf.group.views.email_aliases', kwargs=dict())
         login_testing_unauthorized(self, "plain", url)
         r = self.client.get(url)
         self.assertTrue(r.status_code,200)
         self.assertTrue(all([x in unicontent(r) for x in ['mars-ads@','mars-chairs@','ames-ads@','ames-chairs@']]))
 
-        url = urlreverse('ietf.group.info.email_aliases', kwargs=dict(group_type="wg"))
+        url = urlreverse('ietf.group.views.email_aliases', kwargs=dict(group_type="wg"))
         r = self.client.get(url)
         self.assertEqual(r.status_code,200)
         self.assertTrue('mars-ads@' in unicontent(r))
 
-        url = urlreverse('ietf.group.info.email_aliases', kwargs=dict(group_type="rg"))
+        url = urlreverse('ietf.group.views.email_aliases', kwargs=dict(group_type="rg"))
         r = self.client.get(url)
         self.assertEqual(r.status_code,200)
         self.assertFalse('mars-ads@' in unicontent(r))
 
     def testExpansions(self):
-        url = urlreverse('ietf.group.info.email', kwargs=dict(acronym="mars"))
+        url = urlreverse('ietf.group.views.email', kwargs=dict(acronym="mars"))
         r = self.client.get(url)
         self.assertEqual(r.status_code,200)
-        self.assertTrue('Email Aliases' in unicontent(r))
+        self.assertTrue('Email aliases' in unicontent(r))
         self.assertTrue('mars-ads@ietf.org' in unicontent(r))
         self.assertTrue('group_personnel_change' in unicontent(r))
  
@@ -988,3 +1099,173 @@ class AjaxTests(TestCase):
         mars_wg = Group.objects.get(acronym="mars")
         self.assertEqual(mars_wg_data["name"], mars_wg.name)
 
+class MeetingInfoTests(TestCase):
+
+    def setUp(self):
+        self.group = GroupFactory.create(type_id='wg')
+        today = datetime.date.today()
+        SessionFactory.create(meeting__type_id='ietf',group=self.group,meeting__date=today-datetime.timedelta(days=90))
+        self.inprog = SessionFactory.create(meeting__type_id='ietf',group=self.group,meeting__date=today-datetime.timedelta(days=1))
+        SessionFactory.create(meeting__type_id='ietf',group=self.group,meeting__date=today+datetime.timedelta(days=90))
+        SessionFactory.create(meeting__type_id='interim',group=self.group,meeting__date=today+datetime.timedelta(days=45))
+
+
+    def test_meeting_info(self):
+        for url in group_urlreverse_list(self.group, 'ietf.group.views.meetings'):
+            response = self.client.get(url)
+            self.assertEqual(response.status_code, 200) 
+            q = PyQuery(response.content)
+            self.assertTrue(q('#inprogressmeets'))
+            self.assertTrue(q('#futuremeets'))
+            self.assertTrue(q('#pastmeets'))
+
+        self.group.session_set.filter(id=self.inprog.id).delete()
+        response = self.client.get(url)
+        self.assertEqual(response.status_code, 200) 
+        q = PyQuery(response.content)
+        self.assertFalse(q('#inprogressmeets'))
+        
+
+class StatusUpdateTests(TestCase):
+
+    def test_unsupported_group_types(self):
+
+        def ensure_updates_dont_show(group, user):
+            url = urlreverse('ietf.group.views.group_about',kwargs={'acronym':group.acronym})
+            if user:
+                self.client.login(username=user.username,password='%s+password'%user.username)
+            response = self.client.get(url)
+            self.assertEqual(response.status_code, 200)
+            q = PyQuery(response.content)
+            self.assertFalse(q('tr#status_update') )
+            self.client.logout()
+
+        def ensure_cant_edit(group,user):
+            url = urlreverse('ietf.group.views.group_about_status_edit',kwargs={'acronym':group.acronym})
+            if user:
+                self.client.login(username=user.username,password='%s+password'%user.username)
+            response = self.client.get(url)
+            self.assertEqual(response.status_code, 404)
+            self.client.logout()
+
+        for type_id in GroupTypeName.objects.exclude(slug__in=('wg','rg','team')).values_list('slug',flat=True):
+            group = GroupFactory.create(type_id=type_id)
+            for user in (None,User.objects.get(username='secretary')):
+                ensure_updates_dont_show(group,user)
+                ensure_cant_edit(group,user)
+
+    def test_see_status_update(self):
+        chair = RoleFactory(name_id='chair',group__type_id='wg')
+        GroupEventFactory(type='status_update',group=chair.group)
+        for url in group_urlreverse_list(chair.group, 'ietf.group.views.group_about'): 
+            response = self.client.get(url)
+            self.assertEqual(response.status_code,200)
+            q=PyQuery(response.content)
+            self.assertTrue(q('tr#status_update'))
+            self.assertTrue(q('tr#status_update td a:contains("Show")'))
+            self.assertFalse(q('tr#status_update td a:contains("Edit")'))
+            self.client.login(username=chair.person.user.username,password='%s+password'%chair.person.user.username)
+            response = self.client.get(url)
+            self.assertEqual(response.status_code,200)
+            q=PyQuery(response.content)
+            self.assertTrue(q('tr#status_update td a:contains("Show")'))
+            self.assertTrue(q('tr#status_update td a:contains("Edit")'))
+            self.client.logout()
+
+    def test_view_status_update(self):
+        chair = RoleFactory(name_id='chair',group__type_id='wg')
+        event = GroupEventFactory(type='status_update',group=chair.group)
+        for url in group_urlreverse_list(chair.group, 'ietf.group.views.group_about_status'): 
+            response = self.client.get(url)
+            self.assertEqual(response.status_code,200)
+            q=PyQuery(response.content)
+            self.assertTrue(urlize(escape(event.desc) in q('pre')))
+            self.assertFalse(q('a#edit_button'))
+            self.client.login(username=chair.person.user.username,password='%s+password'%chair.person.user.username)
+            response = self.client.get(url)
+            self.assertEqual(response.status_code,200)
+            q=PyQuery(response.content)
+            self.assertTrue(q('a#edit_button'))
+            self.client.logout()
+
+    def test_edit_status_update(self):
+        chair = RoleFactory(name_id='chair',group__type_id='wg')
+        event = GroupEventFactory(type='status_update',group=chair.group)
+        url = urlreverse('ietf.group.views.group_about_status_edit',kwargs={'acronym':chair.group.acronym}) 
+        response = self.client.get(url)
+        self.assertEqual(response.status_code,404)
+        self.client.login(username=chair.person.user.username,password='%s+password'%chair.person.user.username)
+        response = self.client.get(url)
+        self.assertEqual(response.status_code,200)
+        q=PyQuery(response.content)
+        self.assertTrue(event.desc in q('form textarea#id_content').text())
+
+        response = self.client.post(url,dict(content='Direct content typed into form',submit_response='1'))
+        self.assertEqual(response.status_code, 302)
+        self.assertEqual(chair.group.latest_event(type='status_update').desc,'Direct content typed into form')
+
+        test_file = StringIO.StringIO("This came from a file.")
+        test_file.name = "unnamed"
+        response = self.client.post(url,dict(txt=test_file,submit_response="1"))
+        self.assertEqual(response.status_code, 302)
+        self.assertEqual(chair.group.latest_event(type='status_update').desc,'This came from a file.')
+
+    def test_view_all_status_updates(self):
+        GroupEventFactory(type='status_update',desc='blah blah blah',group__type_id='wg')
+        GroupEventFactory(type='status_update',desc='blah blah blah',group__type_id='rg')
+        url = urlreverse('ietf.group.views.all_status')
+        response = self.client.get(url)
+        self.assertEqual(response.status_code,200)
+
+    def test_view_status_update_for_meeting(self):
+        chair = RoleFactory(name_id='chair',group__type_id='wg')
+        GroupEventFactory(type='status_update',group=chair.group)
+        sess = SessionFactory.create(meeting__type_id='ietf',group=chair.group,meeting__date=datetime.datetime.today()-datetime.timedelta(days=1))
+        url = urlreverse('ietf.group.views.group_about_status_meeting',kwargs={'acronym':chair.group.acronym,'num':sess.meeting.number}) 
+        response = self.client.get(url)
+        self.assertEqual(response.status_code,200)
+        url = urlreverse('ietf.group.views.group_about_status_meeting',kwargs={'group_type':chair.group.type_id,'acronym':chair.group.acronym,'num':sess.meeting.number}) 
+        response = self.client.get(url)
+        self.assertEqual(response.status_code,200)
+       
+class GroupParentLoopTests(TestCase):
+
+    def test_group_parent_loop(self):
+        make_test_data()
+        mars = Group.objects.get(acronym="mars")
+        test1 = Group.objects.create(
+            type_id="team",
+            acronym="testteam1",
+            name="Test One",
+            description="The test team 1 is testing.",
+            state_id="active",
+            parent = mars,
+        )
+        test2 = Group.objects.create(
+            type_id="team",
+            acronym="testteam2",
+            name="Test Two",
+            description="The test team 2 is testing.",
+            state_id="active",
+            parent = test1,
+        )
+        # Change the parent of Mars to make a loop
+        mars.parent = test2
+
+        # In face of the loop in the parent links, the code should not loop forever
+        import signal
+
+        def timeout_handler(signum, frame):
+            raise Exception("Infinite loop in parent links is not handeled properly.")
+
+        signal.signal(signal.SIGALRM, timeout_handler)
+        signal.alarm(1)   # One second
+        try:
+            test2.is_decendant_of("ietf")
+        except Exception:
+            raise
+        finally:
+            signal.alarm(0)
+
+        # If we get here, then there is not an infinite loop
+        return

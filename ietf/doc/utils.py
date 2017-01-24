@@ -3,16 +3,19 @@ import re
 import urllib
 import math
 import datetime
+import hashlib
+import json
+from collections import defaultdict
 
 from django.conf import settings
-from django.db.models.query import EmptyQuerySet
 from django.forms import ValidationError
-from django.utils.html import strip_tags, escape
+from django.utils.html import escape
+from django.core.urlresolvers import reverse as urlreverse
 
-from ietf.doc.models import Document, DocHistory, State
-from ietf.doc.models import DocAlias, RelatedDocument, BallotType, DocReminder
-from ietf.doc.models import DocEvent, BallotDocEvent, NewRevisionDocEvent, StateDocEvent
-from ietf.doc.models import save_document_in_history
+from ietf.doc.models import Document, DocHistory, State, DocumentAuthor, DocHistoryAuthor
+from ietf.doc.models import DocAlias, RelatedDocument, RelatedDocHistory, BallotType, DocReminder
+from ietf.doc.models import DocEvent, ConsensusDocEvent, BallotDocEvent, NewRevisionDocEvent, StateDocEvent
+from ietf.doc.models import TelechatDocEvent
 from ietf.name.models import DocReminderTypeName, DocRelationshipName
 from ietf.group.models import Role
 from ietf.ietfauth.utils import has_role
@@ -20,28 +23,50 @@ from ietf.utils import draft, markup_txt
 from ietf.utils.mail import send_mail
 from ietf.mailtrigger.utils import gather_address_lists
 
-#TODO FIXME - it would be better if this lived in ietf/doc/mails.py, but there's
-#        an import order issue to work out.
-def email_update_telechat(request, doc, text):
-    (to, cc) = gather_address_lists('doc_telechat_details_changed',doc=doc)
+def save_document_in_history(doc):
+    """Save a snapshot of document and related objects in the database."""
+    def get_model_fields_as_dict(obj):
+        return dict((field.name, getattr(obj, field.name))
+                    for field in obj._meta.fields
+                    if field is not obj._meta.pk)
 
-    if not to:
-        return
-    
-    text = strip_tags(text)
-    send_mail(request, to, None,
-              "Telechat update notice: %s" % doc.file_tag(),
-              "doc/mail/update_telechat.txt",
-              dict(text=text,
-                   url=settings.IDTRACKER_BASE_URL + doc.get_absolute_url()),
-              cc=cc)
+    # copy fields
+    fields = get_model_fields_as_dict(doc)
+    fields["doc"] = doc
+    fields["name"] = doc.canonical_name()
+
+    dochist = DocHistory(**fields)
+    dochist.save()
+
+    # copy many to many
+    for field in doc._meta.many_to_many:
+        if field.rel.through and field.rel.through._meta.auto_created:
+            setattr(dochist, field.name, getattr(doc, field.name).all())
+
+    # copy remaining tricky many to many
+    def transfer_fields(obj, HistModel):
+        mfields = get_model_fields_as_dict(item)
+        # map doc -> dochist
+        for k, v in mfields.iteritems():
+            if v == doc:
+                mfields[k] = dochist
+        HistModel.objects.create(**mfields)
+
+    for item in RelatedDocument.objects.filter(source=doc):
+        transfer_fields(item, RelatedDocHistory)
+
+    for item in DocumentAuthor.objects.filter(document=doc):
+        transfer_fields(item, DocHistoryAuthor)
+                
+    return dochist
+
 
 def get_state_types(doc):
     res = []
 
     if not doc:
         return res
-    
+
     res.append(doc.type_id)
 
     if doc.type_id == "draft":
@@ -52,7 +77,7 @@ def get_state_types(doc):
         res.append("draft-iana-review")
         res.append("draft-iana-action")
         res.append("draft-rfceditor")
-        
+
     return res
 
 def get_tags_for_stream_id(stream_id):
@@ -85,7 +110,6 @@ def can_adopt_draft(user, doc):
                                     group__type__in=("wg", "rg"),
                                     group__state="active",
                                     person__user=user).exists())
-
 
 def two_thirds_rule( recused=0 ):
     # For standards-track, need positions from 2/3 of the non-recused current IESG.
@@ -121,7 +145,7 @@ def needed_ballot_positions(doc, active_positions):
         elif isinstance(doc,DocHistory):
             related_set = doc.relateddochistory_set
         else:
-            related_set = EmptyQuerySet()
+            related_set = RelatedDocHistory.objects.none()
         for rel in related_set.filter(relationship__slug__in=['tops', 'tois', 'tohist', 'toinf', 'tobcp', 'toexp']):
             if (rel.target.document.std_level.slug in ['bcp','ps','ds','std']) or (rel.relationship.slug in ['tops','tois','tobcp']):
                 needed = two_thirds_rule(recused=len(recuse))
@@ -144,7 +168,7 @@ def needed_ballot_positions(doc, active_positions):
             answer.append("Has enough positions to pass.")
 
     return " ".join(answer)
-    
+
 def create_ballot_if_not_open(doc, by, ballot_slug, time=None):
     if not doc.ballot_open(ballot_slug):
         if time:
@@ -213,13 +237,18 @@ def augment_events_with_revision(doc, events):
     for e in sorted(events, key=lambda e: (e.time, e.id), reverse=True):
         while event_revisions and (e.time, e.id) < (event_revisions[-1]["time"], event_revisions[-1]["id"]):
             event_revisions.pop()
-
-        if event_revisions:
-            cur_rev = event_revisions[-1]["rev"]
-        else:
-            cur_rev = "00"
-
-        e.rev = cur_rev
+            
+        # Check for all subtypes which have 'rev' fields:
+        for sub in ['newrevisiondocevent', 'submissiondocevent', ]:
+            if hasattr(e, sub):
+                e = getattr(e, sub)
+                break
+        if not hasattr(e, 'rev'):
+            if event_revisions:
+                cur_rev = event_revisions[-1]["rev"]
+            else:
+                cur_rev = "00"
+            e.rev = cur_rev
 
 def add_links_in_new_revision_events(doc, events, diff_revisions):
     """Add direct .txt links and diff links to new_revision events."""
@@ -230,6 +259,11 @@ def add_links_in_new_revision_events(doc, events, diff_revisions):
     for e in sorted(events, key=lambda e: (e.time, e.id)):
         if not e.type == "new_revision":
             continue
+
+        for sub in ['newrevisiondocevent', 'submissiondocevent', ]:
+            if hasattr(e, sub):
+                e = getattr(e, sub)
+                break
 
         if not (e.doc.name, e.rev) in diff_urls:
             continue
@@ -252,6 +286,26 @@ def add_links_in_new_revision_events(doc, events, diff_revisions):
 
         prev = diff_url
 
+
+def add_events_message_info(events):
+    for e in events:
+        if not e.type == "added_message":
+            continue
+
+        e.message = e.addedmessageevent.message
+        e.msgtype = e.addedmessageevent.msgtype
+        e.in_reply_to = e.addedmessageevent.in_reply_to
+
+
+def get_unicode_document_content(key, filename, codec='utf-8', errors='ignore'):
+    try:
+        with open(filename, 'rb') as f:
+            raw_content = f.read().decode(codec,errors)
+    except IOError:
+        error = "Error; cannot read ("+key+")"
+        return error
+
+    return raw_content
 
 def get_document_content(key, filename, split=True, markup=True):
     try:
@@ -318,6 +372,20 @@ def prettify_std_name(n, spacing=" "):
     else:
         return n
 
+def default_consensus(doc):
+    # if someone edits the consensus return that, otherwise
+    # ietf stream => true and irtf stream => false
+    consensus = None
+    e = doc.latest_event(ConsensusDocEvent, type="changed_consensus")
+    if (e):
+        return e.consensus
+    if doc.stream_id == "ietf":
+        consensus = True
+    elif doc.stream_id == "irtf":
+        consensus = False
+    else:                               # ise, iab, legacy
+        return consensus
+
 def nice_consensus(consensus):
     mapping = {
         None: "Unknown",
@@ -343,7 +411,6 @@ def make_notify_changed_event(request, doc, by, new_notify, time=None):
     # events to match
     if doc.type.slug=='charter':
         event_type = 'changed_document'
-        save_document_in_history(doc)
     else:
         event_type = 'added_comment'
 
@@ -358,8 +425,6 @@ def make_notify_changed_event(request, doc, by, new_notify, time=None):
     return e
 
 def update_telechat(request, doc, by, new_telechat_date, new_returning_item=None):
-    from ietf.doc.models import TelechatDocEvent
-    
     on_agenda = bool(new_telechat_date)
 
     prev = doc.latest_event(TelechatDocEvent, type="scheduled_for_telechat")
@@ -378,7 +443,7 @@ def update_telechat(request, doc, by, new_telechat_date, new_returning_item=None
 
     # auto-set returning item _ONLY_ if the caller did not provide a value
     if (     new_returning_item != None
-         and on_agenda 
+         and on_agenda
          and prev_agenda
          and new_telechat_date != prev_telechat
          and prev_telechat < datetime.date.today()
@@ -392,7 +457,7 @@ def update_telechat(request, doc, by, new_telechat_date, new_returning_item=None
     e.doc = doc
     e.returning_item = returning
     e.telechat_date = new_telechat_date
-    
+
     if on_agenda != prev_agenda:
         if on_agenda:
             e.desc = "Placed on agenda for telechat - %s" % (new_telechat_date)
@@ -410,7 +475,11 @@ def update_telechat(request, doc, by, new_telechat_date, new_returning_item=None
             e.desc = "Removed telechat returning item indication"
 
     e.save()
+
+    from ietf.doc.mails import email_update_telechat
     email_update_telechat(request, doc, e.desc)
+
+    return e
 
 def rebuild_reference_relations(doc,filename=None):
     if doc.type.slug != 'draft':
@@ -426,7 +495,7 @@ def rebuild_reference_relations(doc,filename=None):
        refs = draft.Draft(draft._gettext(filename), filename).get_refs()
     except IOError as e:
        return { 'errors': ["%s :%s" %  (e.strerror, filename)] }
-    
+
     doc.relateddocument_set.filter(relationship__slug__in=['refnorm','refinfo','refold','refunk']).delete()
 
     warnings = []
@@ -449,21 +518,34 @@ def rebuild_reference_relations(doc,filename=None):
 
     ret = {}
     if errors:
-        ret['errors']=errors 
+        ret['errors']=errors
     if warnings:
-        ret['warnings']=warnings 
+        ret['warnings']=warnings
     if unfound:
-        ret['unfound']=list(unfound) 
+        ret['unfound']=list(unfound)
 
     return ret
 
-def set_replaces_for_document(request, doc, new_replaces, by, email_subject, email_comment=""):
+def set_replaces_for_document(request, doc, new_replaces, by, email_subject, comment=""):
     addrs = gather_address_lists('doc_replacement_changed',doc=doc)
     to = set(addrs.to)
     cc = set(addrs.cc)
 
     relationship = DocRelationshipName.objects.get(slug='replaces')
     old_replaces = doc.related_that_doc("replaces")
+
+    events = []
+
+    e = DocEvent(doc=doc, by=by, type='changed_document')
+    new_replaces_names = u", ".join(d.name for d in new_replaces) or u"None"
+    old_replaces_names = u", ".join(d.name for d in old_replaces) or u"None"
+    e.desc = u"This document now replaces <b>%s</b> instead of %s" % (new_replaces_names, old_replaces_names)
+    e.save()
+
+    events.append(e)
+
+    if comment:
+        events.append(DocEvent.objects.create(doc=doc, by=by, type="added_comment", desc=comment))
 
     for d in old_replaces:
         if d not in new_replaces:
@@ -483,19 +565,13 @@ def set_replaces_for_document(request, doc, new_replaces, by, email_subject, ema
             RelatedDocument.objects.create(source=doc, target=d, relationship=relationship)
             d.document.set_state(State.objects.get(type='draft', slug='repl'))
 
-    e = DocEvent(doc=doc, by=by, type='changed_document')
-    new_replaces_names = u", ".join(d.name for d in new_replaces) or u"None"
-    old_replaces_names = u", ".join(d.name for d in old_replaces) or u"None"
-    e.desc = u"This document now replaces <b>%s</b> instead of %s" % (new_replaces_names, old_replaces_names)
-    e.save()
-
     # make sure there are no lingering suggestions duplicating new replacements
     RelatedDocument.objects.filter(source=doc, target__in=new_replaces, relationship="possibly-replaces").delete()
 
     email_desc = e.desc.replace(", ", "\n    ")
 
-    if email_comment:
-        email_desc += "\n" + email_comment
+    if comment:
+        email_desc += "\n" + comment
 
     from ietf.doc.mails import html_to_text
 
@@ -507,6 +583,8 @@ def set_replaces_for_document(request, doc, new_replaces, by, email_subject, ema
                    doc=doc,
                    url=settings.IDTRACKER_BASE_URL + doc.get_absolute_url()),
               cc=list(cc))
+
+    return events
 
 def check_common_doc_name_rules(name):
     """Check common rules for document names for use in forms, throws
@@ -539,3 +617,90 @@ def uppercase_std_abbreviated_name(name):
         return name.upper()
     else:
         return name
+
+def extract_complete_replaces_ancestor_mapping_for_docs(names):
+    """Return dict mapping all replaced by relationships of the
+    replacement ancestors to docs. So if x is directly replaced by y
+    and y is in names or replaced by something in names, x in
+    replaces[y]."""
+
+    replaces = defaultdict(set)
+
+    checked = set()
+    front = names
+    while True:
+        if not front:
+            break
+
+        relations = RelatedDocument.objects.filter(
+            source__in=front, relationship="replaces"
+        ).select_related("target").values_list("source", "target__document")
+
+        if not relations:
+            break
+
+        checked.update(front)
+
+        front = []
+        for source_doc, target_doc in relations:
+            replaces[source_doc].add(target_doc)
+
+            if target_doc not in checked:
+                front.append(target_doc)
+
+    return replaces
+
+
+def crawl_history(doc):
+    # return document history data for inclusion in doc.json (used by timeline)
+    def get_ancestors(doc):
+        ancestors = []
+        if hasattr(doc, 'relateddocument_set'):
+            for rel in doc.relateddocument_set.filter(relationship__slug='replaces'):
+                if rel.target.document not in ancestors:
+                    ancestors.append(rel.target.document)
+                    ancestors.extend(get_ancestors(rel.target.document))
+            return ancestors
+
+    history = {}
+    docs = get_ancestors(doc)
+    if docs is not None:
+        docs.append(doc)
+        for d in docs:
+            for e in d.docevent_set.filter(type='new_revision').distinct():
+                if hasattr(e, 'newrevisiondocevent'):
+                    url = urlreverse("doc_view", kwargs=dict(name=d)) + e.newrevisiondocevent.rev + "/"
+                    history[url] = {
+                        'name': d.name,
+                        'rev': e.newrevisiondocevent.rev,
+                        'published': e.time.isoformat(),
+                        'url': url,
+                    }
+                    if d.history_set.filter(rev=e.newrevisiondocevent.rev).exists():
+                        history[url]['pages'] = d.history_set.filter(rev=e.newrevisiondocevent.rev).first().pages
+
+    if doc.type_id == "draft":
+        e = doc.latest_event(type='published_rfc')
+    else:
+        e = doc.latest_event(type='iesg_approved')
+    if e:
+        url = urlreverse("doc_view", kwargs=dict(name=e.doc))
+        history[url] = {
+            'name': e.doc.canonical_name(),
+            'rev': e.doc.canonical_name(),
+            'published': e.time.isoformat(),
+            'url': url
+        }
+        if hasattr(e, 'newrevisiondocevent') and doc.history_set.filter(rev=e.newrevisiondocevent.rev).exists():
+            history[url]['pages'] = doc.history_set.filter(rev=e.newrevisiondocevent.rev).first().pages
+    history = history.values()
+    return sorted(history, key=lambda x: x['published'])
+
+
+def get_search_cache_key(params):
+    from ietf.doc.views_search import SearchForm
+    fields = set(SearchForm.base_fields) - set(['sort',])
+    kwargs = dict([ (k,v) for (k,v) in params.items() if k in fields ])
+    key = "doc:document:search:" + hashlib.sha512(json.dumps(kwargs, sort_keys=True)).hexdigest()
+    return key
+    

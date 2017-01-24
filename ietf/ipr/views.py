@@ -357,7 +357,7 @@ def email(request, id):
             'to': addrs.to,
             'cc': addrs.cc,
             'frm': settings.IPR_EMAIL_FROM,
-            'subject': 'Regarding {}'.format(ipr.title),
+            'subject': u'Regarding {}'.format(ipr.title),
             'reply_to': reply_to,
         }
         form = MessageModelForm(initial=initial)
@@ -370,6 +370,11 @@ def email(request, id):
 def history(request, id):
     """Show the history for a specific IPR disclosure"""
     ipr = get_object_or_404(IprDisclosureBase, id=id).get_child()
+
+    if not has_role(request.user, 'Secretariat'):
+        if ipr.state.slug != 'posted':
+            raise Http404
+
     events = ipr.iprevent_set.all().order_by("-time", "-id").select_related("by")
     if not has_role(request.user, "Secretariat"):
         events = events.exclude(type='private_comment')
@@ -557,6 +562,17 @@ def post(request, id):
     
 def search(request):
     search_type = request.GET.get("submit")
+    # query field
+    q = ''
+    # legacy support
+    if not search_type and request.GET.get("option", None) == "document_search":
+        docname = request.GET.get("document_search", "")
+        if docname.startswith("draft-"):
+            search_type = "draft"
+            q = docname
+        if docname.startswith("rfc"):
+            search_type = "rfc"
+            q = docname
     if search_type:
         form = SearchForm(request.GET)
         docid = request.GET.get("id") or request.GET.get("id_document_tag") or ""
@@ -569,7 +585,6 @@ def search(request):
             states = IprDisclosureStateName.objects.values_list('slug',flat=True)
         
         # get query field
-        q = ''
         if request.GET.get(search_type):
             q = request.GET.get(search_type)
 

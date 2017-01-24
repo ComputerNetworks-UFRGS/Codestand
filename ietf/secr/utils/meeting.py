@@ -20,28 +20,26 @@ def get_materials(group,meeting):
         for doc in session.materials.exclude(states__slug='deleted').order_by('order'):
             if doc.type.slug in ('minutes','agenda'):
                 materials[doc.type.slug] = doc
+            elif doc.type.slug == 'draft':
+                continue
+                # drafts are currently managed directly by the session and document views
             elif doc not in materials[doc.type.slug]:
                 materials[doc.type.slug].append(doc)
     return materials
 
 def get_proceedings_path(meeting,group):
     if meeting.type_id == 'ietf':
-        path = os.path.join(get_upload_root(meeting),group.acronym + '.html')
+        path = os.path.join(meeting.get_materials_path(),group.acronym + '.html')
     elif meeting.type_id == 'interim':
-        path = os.path.join(get_upload_root(meeting),'proceedings.html')
+        path = os.path.join(meeting.get_materials_path(),'proceedings.html')
     return path
 
 def get_proceedings_url(meeting,group=None):
-    if meeting.type_id == 'ietf':
-        url = "%sproceedings/%s/" % (settings.MEDIA_URL,meeting.number)
-        if group:
-            url = url + "%s.html" % group.acronym
-
+    url = '%sproceedings/%s/' % (settings.IETF_HOST_URL,meeting.number)
+    if meeting.type_id == 'ietf' and group:
+        url = url + '%s.html' % group.acronym
     elif meeting.type_id == 'interim':
-        url = "%sproceedings/interim/%s/%s/proceedings.html" % (
-            settings.MEDIA_URL,
-            meeting.date.strftime('%Y/%m/%d'),
-            group.acronym)
+        url = url + 'proceedings.html'
     return url
     
 def get_session(timeslot, schedule=None):
@@ -72,15 +70,3 @@ def get_timeslot(session, schedule=None):
     else:
         return None
 
-def get_upload_root(meeting):
-    path = ''
-    if meeting.type.slug == 'ietf':
-        path = os.path.join(settings.AGENDA_PATH,meeting.number)
-    elif meeting.type.slug == 'interim':
-        path = os.path.join(settings.AGENDA_PATH,
-                            'interim',
-                            meeting.date.strftime('%Y'),
-                            meeting.date.strftime('%m'),
-                            meeting.date.strftime('%d'),
-                            meeting.session_set.all()[0].group.acronym)
-    return path

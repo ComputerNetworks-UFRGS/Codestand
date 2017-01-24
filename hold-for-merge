@@ -1,8 +1,19 @@
 # -*- conf-mode -*-
 
-branch/iola/event-saving-refactor-r10076 @ 10190
 
-personal/rcross/v6.7.3.dev0@10382	# Test errors, corrected in later commit
+/branch/proceedings/6.29.1.dev0@11850	# Merged into /branch/proceedings/6.30.1.dev0, will be merged from there
+/branch/proceedings/6.29.1.dev0@11856	# Merged into /branch/proceedings/6.30.1.dev0, will be merged from there
+/personal/rcross/6.29.1.dev0@11765	# Merged into ^/personal/rjs/6.29.1.dev0@11770, will be merged from there
+/personal/rcross/6.29.1.dev0@11768	# Merged into ^/personal/rjs/6.29.1.dev0@11770, will be merged from there
+
+/personal/presnick/6.27.1.dev0@11687	# Hold for tests
+/personal/rcross/6.27.1.dev0@11667	# Needs re-work to use the mailtrigger infrastructure
+/personal/anurag_nc/6.18.2.dev0@11096	# Adds email validation as per issue #839, but at the cost of not being able to make the recipient name part of the notification list.
+/personal/anurag_nc/6.18.2.dev0@11084	# Unneccessary rollback
+/personal/anurag_nc/6.18.2.dev0@11071   # Doesn't pass tests, needs rework
+/personal/rcross/v6.8.1.dev0@10727	# Loads of whitespace changes.  Pyflakes issue already fixed
+/personal/lars/6.11.1.dev0@10537	# Downgrades the PT fonts to a limited unicode range, renames them, and removes copyright from css file.
+branch/iola/event-saving-refactor-r10076 @ 10190
 branch/amsl/liaisons@10160		# Merged as branch/amsl/liaisons/6.4.1 @ 10160
 personal/lars/6.2.1.dev0@9970		# Requires the timeline work
 personal/lars/6.0.5.dev0@9734		# Obsoleted - don't use 'bleach'

@@ -2,7 +2,11 @@
 {# Copyright The IETF Trust 2015, All Rights Reserved #}
 {% load origin %}
 
-{% load ietf_filters %}
+{% load ietf_filters staticfiles managed_groups %}
+
+{% block pagehead %}
+<link rel="stylesheet" href="{% static "jquery.tablesorter/css/theme.bootstrap.min.css" %}">
+{% endblock %}
 
 {% block bodyAttrs %}data-spy="scroll" data-target="#affix"{% endblock %}
 
@@ -23,132 +27,179 @@
       {% endif %}
 
       <p>
-        <a class="btn btn-default" href="{% url "proceedings" %}">Meeting materials manager</a>
+        {% if user|has_role:"Secretariat" %}
+          <a class="btn btn-default" href="{% url "proceedings" %}">Secretariat proceedings functions</a>
+        {% endif %}
         <a class="btn btn-default" href="/meeting/{{meeting_num}}/requests">Meeting requests/conflicts</a>
       </p>
 
-      {# cache for 15 minutes, as long as there's no proceedings activity. takes 4-8 seconds to generate. #}
-      {% load cache %}
-      {% cache 900 ietf_meeting_materials meeting_num cache_version %}
+      {% with "True" as show_agenda %}
+	<!-- Plenaries -->
+	{% if plenaries %}
+	  <h2 class="anchor-target" id="plenaries">Plenaries</h2>
+	  <table class="table table-condensed table-striped tablesorter">
+	    <thead>
+	      <tr>
+                {% if user|has_role:"Secretariat" or user|managed_groups %}
+                  <th class="col-md-1">Group</th>
+                  <th class="col-md-1">Agenda</th>
+                  <th class="col-md-1">Minutes</th>
+                  <th class="col-md-5">Slides</th>
+                  <th class="col-md-2">Drafts</th>
+                  <th class="col-md-2">&nbsp;</th>
+                {% else %}
+                  <th class="col-md-1">Group</th>
+                  <th class="col-md-1">Agenda</th>
+                  <th class="col-md-1">Minutes</th>
+                  <th class="col-md-6">Slides</th>
+                  <th class="col-md-3">Drafts</th>
+                {% endif %}
+	      </tr>
+	    </thead>
 
-        {% with "True" as show_agenda %}
-          <!-- Plenaries -->
-          {% if plenaries %}
-            <h2 class="anchor-target" id="plenaries">Plenaries</h2>
-            <table class="table table-condensed table-striped">
-              <thead>
-	        <tr>
-	          <th>Group</th>
-	          <th>Agenda</th>
-	          <th>Minutes</th>
-	          <th>Slides</th>
-	        </tr>
-              </thead>
+	    <tbody>
+	      {% for session in plenaries %}
+		{% include "meeting/group_materials.html" %}
+	      {% endfor %}
+	    </tbody>
+	  </table>
+	{% endif %}
 
-              <tbody>
-	        {% for session in plenaries %}
-	          {% include "meeting/group_materials.html" %}
-	        {% endfor %}
-              </tbody>
-            </table>
-          {% endif %}
+	<!-- Working groups -->
+	{% regroup ietf|dictsort:"group.parent.acronym" by group.parent.name as areas %}
+	{% for sessions in areas %}
+	  <h2 class="anchor-target" id="{{sessions.list.0.group.parent.acronym}}">{{sessions.list.0.group.parent.acronym|upper}} <small>{{ sessions.grouper }}</small></h2>
+	  <table class="table table-condensed table-striped tablesorter">
+	    <thead>
+	      <tr>
+                {% if user|has_role:"Secretariat" or user|managed_groups %}
+                  <th class="col-md-1">Group</th>
+                  <th class="col-md-1">Agenda</th>
+                  <th class="col-md-1">Minutes</th>
+                  <th class="col-md-5">Slides</th>
+                  <th class="col-md-2">Drafts</th>
+                  <th class="col-md-2">&nbsp;</th>
+                {% else %}
+                  <th class="col-md-1">Group</th>
+                  <th class="col-md-1">Agenda</th>
+                  <th class="col-md-1">Minutes</th>
+                  <th class="col-md-6">Slides</th>
+                  <th class="col-md-3">Drafts</th>
+                {% endif %}
+	      </tr>
+	    </thead>
 
-          <!-- Working groups -->
-          {% regroup ietf|dictsort:"group.parent.acronym" by group.parent.name as areas %}
-          {% for sessions in areas %}
-            <h2 class="anchor-target" id="{{sessions.list.0.group.parent.acronym}}">{{sessions.list.0.group.parent.acronym|upper}} <small>{{ sessions.grouper }}</small></h2>
-            <table class="table table-condensed table-striped">
-              <thead>
-	        <tr>
-	          <th>Group</th>
-	          <th>Agenda</th>
-	          <th>Minutes</th>
-	          <th>Slides</th>
-	        </tr>
-              </thead>
+	    <tbody>
+	      {% for session in sessions.list|dictsort:"group.acronym" %}
+		{% ifchanged session.group.acronym %}
+		  {% include "meeting/group_materials.html" %}
+		{% endifchanged %}
+	      {% endfor %}
+	    </tbody>
+	  </table>
+	{% endfor %}
 
-              <tbody>
-	        {% for session in sessions.list|dictsort:"group.acronym" %}
-	          {% ifchanged session.group.acronym %}
-	            {% include "meeting/group_materials.html" %}
-	          {% endifchanged %}
-	        {% endfor %}
-              </tbody>
-            </table>
-          {% endfor %}
+	<!-- Training Sessions -->
+	{% if training %}
+	  {% with "False" as show_agenda %}
+	    <h2 class="anchor-target" id="training">Training</h2>
+	    <table class="table table-condensed table-striped tablesorter">
+	      <thead>
+		<tr>
+                {% if user|has_role:"Secretariat" or user|managed_groups %}
+                  <th class="col-md-1">Group</th>
+                  <th class="col-md-1">Agenda</th>
+                  <th class="col-md-1">Minutes</th>
+                  <th class="col-md-5">Slides</th>
+                  <th class="col-md-2">Drafts</th>
+                  <th class="col-md-2">&nbsp;</th>
+                {% else %}
+                  <th class="col-md-1">Group</th>
+                  <th class="col-md-1">Agenda</th>
+                  <th class="col-md-1">Minutes</th>
+                  <th class="col-md-6">Slides</th>
+                  <th class="col-md-3">Drafts</th>
+                {% endif %}
+		</tr>
+	      </thead>
 
-          <!-- Training Sessions -->
-          {% if training %}
-            {% with "False" as show_agenda %}
-              <h2 class="anchor-target" id="training">Training</h2>
-              <table class="table table-condensed table-striped">
-                <thead>
-	          <tr>
-	            <th>Group</th>
-	            <th>Agenda</th>
-	            <th>Minutes</th>
-	            <th>Slides</th>
-	          </tr>
-                </thead>
+	      <tbody>
+		{% for session in training %}
+		  {% ifchanged %}
+		    {% include "meeting/group_materials.html" %}
+		  {% endifchanged %}
+		{% endfor %}
+	      </tbody>
+	    </table>
+	  {% endwith %}
+	{% endif %}
 
-                <tbody>
-	          {% for session in training %}
-	            {% ifchanged %}
-	              {% include "meeting/group_materials.html" %}
-	            {% endifchanged %}
-	          {% endfor %}
-                </tbody>
-              </table>
-            {% endwith %}
-          {% endif %}
+	<!-- IAB Sessions -->
+	{% if iab %}
+	  <h2 class="anchor-target" id="iab">IAB <small>Internet Architecture Board</small></h2>
+	  <table class="table table-condensed table-striped tablesorter">
+	    <thead>
+	      <tr>
+                {% if user|has_role:"Secretariat" or user|managed_groups %}
+                  <th class="col-md-1">Group</th>
+                  <th class="col-md-1">Agenda</th>
+                  <th class="col-md-1">Minutes</th>
+                  <th class="col-md-5">Slides</th>
+                  <th class="col-md-2">Drafts</th>
+                  <th class="col-md-2">&nbsp;</th>
+                {% else %}
+                  <th class="col-md-1">Group</th>
+                  <th class="col-md-1">Agenda</th>
+                  <th class="col-md-1">Minutes</th>
+                  <th class="col-md-6">Slides</th>
+                  <th class="col-md-3">Drafts</th>
+                {% endif %}
+	      </tr>
+	    </thead>
 
-          <!-- IAB Sessions -->
-          {% if iab %}
-            <h2 class="anchor-target" id="iab">IAB <small>Internet Architecture Board</small></h2>
-            <table class="table table-condensed table-striped">
-              <thead>
-	        <tr>
-	          <th>Group</th>
-	          <th>Agenda</th>
-	          <th>Minutes</th>
-	          <th>Slides</th>
-	        </tr>
-              </thead>
+	    <tbody>
+	      {% for session in iab %}
+		{% ifchanged %}
+		  {% include "meeting/group_materials.html" %}
+		{% endifchanged %}
+	      {% endfor %}
+	    </tbody>
+	  </table>
+	{% endif %}
 
-              <tbody>
-	        {% for session in iab %}
-	          {% ifchanged %}
-	            {% include "meeting/group_materials.html" %}
-	          {% endifchanged %}
-	        {% endfor %}
-              </tbody>
-            </table>
-          {% endif %}
+	<!-- IRTF Sessions -->
+	{% if irtf %}
+	  <h2 class="anchor-target" id="irtf">IRTF <small>Internet Research Task Force</small></h2>
+	  <table class="table table-condensed table-striped tablesorter">
+	    <thead>
+	      <tr>
+                {% if user|has_role:"Secretariat" or user|managed_groups %}
+                  <th class="col-md-1">Group</th>
+                  <th class="col-md-1">Agenda</th>
+                  <th class="col-md-1">Minutes</th>
+                  <th class="col-md-5">Slides</th>
+                  <th class="col-md-2">Drafts</th>
+                  <th class="col-md-2">&nbsp;</th>
+                {% else %}
+                  <th class="col-md-1">Group</th>
+                  <th class="col-md-1">Agenda</th>
+                  <th class="col-md-1">Minutes</th>
+                  <th class="col-md-6">Slides</th>
+                  <th class="col-md-3">Drafts</th>
+                {% endif %}
+	      </tr>
+	    </thead>
 
-          <!-- IRTF Sessions -->
-          {% if irtf %}
-            <h2 class="anchor-target" id="irtf">IRTF <small>Internet Research Task Force</small></h2>
-            <table class="table table-condensed table-striped">
-              <thead>
-	        <tr>
-	          <th>Group</th>
-	          <th>Agenda</th>
-	          <th>Minutes</th>
-	          <th>Slides</th>
-	        </tr>
-              </thead>
-
-              <tbody>
-	        {% for session in irtf|dictsort:"group.acronym" %}
-	          {% ifchanged %}
-	            {% include "meeting/group_materials.html" %}
-	          {% endifchanged %}
-	        {% endfor %}
-              </tbody>
-            </table>
-          {% endif %}
-        {% endwith %}
-      {% endcache %}
+	    <tbody>
+	      {% for session in irtf|dictsort:"group.acronym" %}
+		{% ifchanged %}
+		  {% include "meeting/group_materials.html" %}
+		{% endifchanged %}
+	      {% endfor %}
+	    </tbody>
+	  </table>
+	{% endif %}
+      {% endwith %}
     </div>
 
     <div class="col-md-2 hidden-print bs-docs-sidebar" id="affix">
@@ -174,4 +225,8 @@
       </ul>
     </div>
   </div>
+{% endblock %}
+
+{% block js %}
+<script src="{% static "jquery.tablesorter/js/jquery.tablesorter.combined.min.js" %}"></script>
 {% endblock %}

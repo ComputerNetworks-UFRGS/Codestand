@@ -4,7 +4,6 @@ from django.conf import settings
 from django.db import models
 
 from ietf.meeting.models import Meeting
-from ietf.secr.utils.meeting import get_upload_root
 
 
 class InterimManager(models.Manager):
@@ -26,7 +25,7 @@ class InterimMeeting(Meeting):
     def group(self):
         return self.session_set.all()[0].group
 
-    def agenda(self):
+    def agenda(self):                   # pylint: disable=method-hidden
         session = self.session_set.all()[0]
         agendas = session.materials.exclude(states__slug='deleted').filter(type='agenda')
         if agendas:
@@ -43,18 +42,16 @@ class InterimMeeting(Meeting):
             return None
         
     def get_proceedings_path(self, group=None):
-        path = os.path.join(get_upload_root(self),'proceedings.html')
-        return path
+        return os.path.join(self.get_materials_path(),'proceedings.html')
     
     def get_proceedings_url(self, group=None):
         '''
         If the proceedings file doesn't exist return empty string.  For use in templates.
         '''
         if os.path.exists(self.get_proceedings_path()):
-            url = "%sproceedings/interim/%s/%s/proceedings.html" % (
-                settings.MEDIA_URL,
-                self.date.strftime('%Y/%m/%d'),
-                self.group().acronym)
+            url = "%sproceedings/%s/proceedings.html" % (
+                settings.IETF_HOST_URL,
+                self.number)
             return url
         else:
             return ''

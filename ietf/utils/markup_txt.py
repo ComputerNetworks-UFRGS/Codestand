@@ -34,7 +34,9 @@ from django.utils.html import escape
 import string
 import re
 
-def markup(content, split=True):
+from ietf.utils.text import fill
+
+def markup(content, split=True, width=None):
     # normalize line endings to LF only
     content = content.replace("\r\n", "\n")
     content = content.replace("\r", "\n")
@@ -52,6 +54,10 @@ def markup(content, split=True):
     content = content.lstrip()
     # remove runs of blank lines
     content = re.sub("\n\n\n+", "\n\n", content)
+
+    # maybe fill.  This must be done before the escaping below.
+    if width:
+        content = fill(content, width)
 
     # expand tabs + escape 
     content = escape(content.expandtabs())
@@ -71,3 +77,28 @@ def markup(content, split=True):
         #return (content1, content2)
     else:
         return "<pre>" + content + "</pre>\n"
+
+def markup_unicode(content, split=True, width=None, container_classes=None):
+    # normalize line endings to LF only
+    content = content.replace("\r\n", "\n")
+    content = content.replace("\r", "\n")
+
+    # remove leading white space
+    content = content.lstrip()
+    # remove runs of blank lines
+    content = re.sub("\n\n\n+", "\n\n", content)
+
+    # maybe fill.  This must be done before the escaping below.
+    if width:
+        content = fill(content, width)
+
+    # expand tabs + escape 
+    content_to_show = escape(content.expandtabs())
+
+    if split:
+        n = content.find("\n", 5000)
+        content_to_show = content_to_show[:n+1]
+    
+    pre = '<pre class="%s" >' % container_classes if container_classes else '<pre>'
+
+    return pre+content_to_show+'</pre>\n'

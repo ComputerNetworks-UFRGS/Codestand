@@ -6,6 +6,9 @@
 
 {% block pagehead %}
   <link rel="alternate" type="application/atom+xml" href="/feed/group-changes/{{ group.acronym }}/">
+  <script src="{% static 'd3/d3.min.js' %}"></script>
+  <script src="{% static 'jquery/jquery.min.js' %}"></script>
+  <script src="{% static 'ietf/js/document_timeline.js' %}"></script>
 {% endblock %}
 
 {% block title %}{{ doc.title }}{% endblock %}
@@ -15,6 +18,7 @@
   {{ top|safe }}
 
   {% include "doc/revisions_list.html" %}
+  <div id="timeline"></div>
 
   <table class="table table-condensed">
     <thead id="message-row">
@@ -91,7 +95,7 @@
 
     <tbody class="meta">
       <tr>
-	<th>WG</th>
+	<th>{{ group.type.name }}</th>
 	<th>State</th>
 	<td class="edit"></td>
 	<td>{{ group.state.name }}</td>
@@ -99,9 +103,18 @@
     </tbody>
 
     <tbody class="meta">
+      {% if group.type_id != "rg" %}
       <tr>
 	<th>IESG</th>
 	<th>Responsible AD</th>
+	<td></td>
+	<td>
+	  {{ group.ad_role.person.plain_name|default:"(None)" }}
+	</td>
+	  </tr>
+	  <tr>
+	<th></th>
+	<th>Charter Edit AD</th>
 	<td class="edit">
 	  {% if can_manage %}
 	    {% doc_edit_button "charter_edit_ad" name=doc.name %}
@@ -111,6 +124,7 @@
 	  {{ doc.ad|default:"(None)" }}
 	</td>
       </tr>
+      {% endif %}
 
       {% if not snapshot and chartering %}
 	<tr>
@@ -207,4 +221,3 @@
   {% endif %}
 
 {% endblock %}
-

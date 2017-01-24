@@ -3,7 +3,6 @@
 {% load origin %}
 {% load staticfiles %}
 {% load ietf_filters ipr_filters bootstrap3 widget_tweaks %}
-{% load future %}
 
 {% block title %}{% if form.instance %}Edit IPR #{{ form.instance.id }}{% else %}New IPR{% endif %}{% endblock %}
 
@@ -64,7 +63,6 @@
     will be posted, but will be marked as "non-compliant".
   </p>
 
-  {% bootstrap_messages %}
 
   <form class="ipr-form form-horizontal show-required" method="post">
     {% csrf_token %}
@@ -227,7 +225,7 @@
 
       {% endif %}
 
-      <h2>{% cycle section %}. Contact information of submitter of this form <small>if different from the contact information above</small></h2>
+      <h2>{% cycle section %}. Contact information of submitter of this form</h2>
 
       {% bootstrap_field form.same_as_ii_above layout='horizontal' %}
       {% bootstrap_field form.submitter_name layout='horizontal' %}
@@ -247,6 +245,6 @@
 {% block js %}
   <script src="{% static 'select2/select2.min.js' %}"></script>
   <script src="{% static 'ietf/js/select2-field.js' %}"></script>
-  <script src="{% static 'bootstrap-datepicker/js/bootstrap-datepicker.js' %}"></script>
+  <script src="{% static 'bootstrap-datepicker/js/bootstrap-datepicker.min.js' %}"></script>
   <script src="{% static 'ietf/js/ipr-edit.js' %}"></script>
 {% endblock %}

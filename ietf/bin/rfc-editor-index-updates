@@ -1,15 +1,19 @@
 #!/usr/bin/env python
 
-import os, sys, re, json, datetime
+import os, sys, datetime
 import syslog
 import traceback
-
-syslog.openlog(os.path.basename(__file__), syslog.LOG_PID, syslog.LOG_USER)
 
 # boilerplate
 basedir = os.path.abspath(os.path.join(os.path.dirname(__file__), "../.."))
 sys.path = [ basedir ] + sys.path
-os.environ.setdefault("DJANGO_SETTINGS_MODULE", "ietf.settings")
+os.environ["DJANGO_SETTINGS_MODULE"] = "ietf.settings"
+
+virtualenv_activation = os.path.join(basedir, "env", "bin", "activate_this.py")
+if os.path.exists(virtualenv_activation):
+    execfile(virtualenv_activation, dict(__file__=virtualenv_activation))
+
+syslog.openlog(os.path.basename(__file__), syslog.LOG_PID, syslog.LOG_USER)
 
 import django
 django.setup()
@@ -29,22 +33,28 @@ if options.skip_date:
     skip_date = datetime.datetime.strptime(options.skip_date, "%Y-%m-%d").date()
 
 from ietf.utils.pipe import pipe
-from ietf.sync.rfceditor import *
 from ietf.doc.utils import rebuild_reference_relations
+import ietf.sync.rfceditor
 
 syslog.syslog("Updating document metadata from RFC index from %s" % settings.RFC_EDITOR_QUEUE_URL)
 
-response = fetch_index_xml(settings.RFC_EDITOR_INDEX_URL)
-data = parse_index(response)
+response = ietf.sync.rfceditor.fetch_index_xml(settings.RFC_EDITOR_INDEX_URL)
+data = ietf.sync.rfceditor.parse_index(response)
 
-if len(data) < MIN_INDEX_RESULTS:
+if len(data) < ietf.sync.rfceditor.MIN_INDEX_RESULTS:
     syslog.syslog("Not enough results, only %s" % len(data))
     sys.exit(1)
 
-changed, new_rfcs  = update_docs_from_rfc_index(data, skip_older_than_date=skip_date)
+new_rfcs = []
+for changes, doc, rfc_published in ietf.sync.rfceditor.update_docs_from_rfc_index(data, skip_older_than_date=skip_date):
+    if rfc_published:
+        new_rfcs.append(doc)
 
-for c in changed:
-    syslog.syslog(c)
+    for c in changes:
+        syslog.syslog("%s: %s" % (doc.name, c))
+        print "%s: %s" % (doc.name, c)
+
+sys.exit(0)
 
 # This can be called while processing a notifying POST from the RFC Editor
 # Spawn a child to sync the rfcs and calculate new reference relationships

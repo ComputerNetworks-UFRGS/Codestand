@@ -40,6 +40,8 @@ import time
 import itertools
 import json
 
+import debug               # pyflakes:ignore
+
 
 from django import forms
 from django.conf import settings
@@ -52,12 +54,13 @@ from django.contrib.sites.models import Site
 
 from ietf.doc.models import Document, TelechatDocEvent, LastCallDocEvent, ConsensusDocEvent, DocEvent, IESG_BALLOT_ACTIVE_STATES
 from ietf.doc.utils import update_telechat, augment_events_with_revision
-from ietf.group.models import GroupMilestone
+from ietf.group.models import GroupMilestone, Role
 from ietf.iesg.agenda import agenda_data, agenda_sections, fill_in_agenda_docs, get_agenda_date
 from ietf.iesg.models import TelechatDate
+from ietf.iesg.utils import telechat_page_count
 from ietf.ietfauth.utils import has_role, role_required, user_is_person
 from ietf.person.models import Person
-from ietf.doc.views_search import fill_in_search_attributes
+from ietf.doc.utils_search import fill_in_document_table_attributes
 
 def review_decisions(request, year=None):
     events = DocEvent.objects.filter(type__in=("iesg_disapproved", "iesg_approved"))
@@ -92,6 +95,7 @@ def agenda_json(request, date=None):
     res = {
         "telechat-date": str(data["date"]),
         "as-of": str(datetime.datetime.utcnow()),
+        "page-counts": telechat_page_count(get_agenda_date(date))._asdict(),
         "sections": {},
         }
 
@@ -156,6 +160,9 @@ def agenda_json(request, date=None):
                     e = doc.latest_event(ConsensusDocEvent, type="changed_consensus")
                     if e:
                         docinfo['consensus'] = e.consensus
+
+                    docinfo['rfc-ed-note'] = doc.has_rfc_editor_note()
+
                 elif doc.type_id == 'conflrev':
                     docinfo['rev'] = doc.rev
                     td = doc.relateddocument_set.get(relationship__slug='conflrev').target.document
@@ -327,11 +334,11 @@ def handle_reschedule_form(request, doc, dates, status):
     if request.method == 'POST':
         form = RescheduleForm(request.POST, **formargs)
         if form.is_valid():
-            update_telechat(request, doc, request.user.person,
-                            form.cleaned_data['telechat_date'],
-                            False if form.cleaned_data['clear_returning_item'] else None)
-            doc.time = datetime.datetime.now()
-            doc.save()
+            e = update_telechat(request, doc, request.user.person,
+                                form.cleaned_data['telechat_date'],
+                                False if form.cleaned_data['clear_returning_item'] else None)
+            if e:
+                doc.save_with_history([e])
 
             status["changed"] = True
     else:
@@ -363,7 +370,7 @@ def agenda_documents(request):
         sections = agenda_sections()
         # augment the docs with the search attributes, since we're using
         # the search_result_row view to display them (which expects them)
-        fill_in_search_attributes(docs_by_date[date])
+        fill_in_document_table_attributes(docs_by_date[date])
         fill_in_agenda_docs(date, sections, docs_by_date[date])
 
         telechats.append({
@@ -467,3 +474,10 @@ def milestones_needing_review(request):
                                    ),
                               context_instance=RequestContext(request))
 
+def photos(request):
+    roles = sorted(Role.objects.filter(group__type='area', group__state='active', name_id='ad'),key=lambda x: "" if x.group.acronym=="gen" else x.group.acronym)
+    for role in roles:
+        role.last_initial = role.person.last_name()[0]
+    return render(request, 'iesg/photos.html', {'group_type': 'IESG', 'role': '', 'roles': roles })
+
+    

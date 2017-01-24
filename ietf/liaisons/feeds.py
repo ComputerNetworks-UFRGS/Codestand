@@ -17,7 +17,6 @@ from ietf.liaisons.models import LiaisonStatement
 class LiaisonStatementsFeed(Feed):
     feed_type = Atom1Feed
     link = reverse_lazy("ietf.liaisons.views.liaison_list")
-    description_template = "liaisons/feed_item_description.html"
 
     def get_object(self, request, kind, search=None):
         obj = {}
@@ -41,11 +40,11 @@ class LiaisonStatementsFeed(Feed):
                 # wildcards to make it easier to construct a URL that
                 # matches
                 search_string = re.sub(r"[^a-zA-Z1-9]", ".", search)
-                statement = LiaisonStatement.objects.filter(from_name__iregex=search_string).first()
+                statement = LiaisonStatement.objects.filter(from_groups__name__iregex=search_string).first()
                 if not statement:
                     raise FeedDoesNotExist
 
-                name = statement.from_name
+                name = statement.from_groups.first().name
                 obj['filter'] = { 'from_name': name }
                 obj['title'] = u'Liaison Statements from %s' % name
                 return obj
@@ -77,7 +76,10 @@ class LiaisonStatementsFeed(Feed):
             qs = qs.filter(**obj['filter'])
         if obj.has_key('limit'):
             qs = qs[:obj['limit']]
-        return qs
+
+        qs = qs.prefetch_related("attachments")
+
+	return qs
 
     def title(self, obj):
         return obj['title']
@@ -88,6 +90,12 @@ class LiaisonStatementsFeed(Feed):
     def item_title(self, item):
         return render_to_string("liaisons/liaison_title.html", { 'liaison': item }).strip()
 
+    def item_description(self, item):
+        return render_to_string("liaisons/feed_item_description.html", {
+            'liaison': item,
+            "attachments": item.attachments.all(),
+        })
+
     def item_link(self, item):
         return urlreverse("ietf.liaisons.views.liaison_detail", kwargs={ "object_id": item.pk })
 
@@ -97,4 +105,4 @@ class LiaisonStatementsFeed(Feed):
         return item.submitted
 
     def item_author_name(self, item):
-        return item.from_name
+        return item.from_groups.first().name

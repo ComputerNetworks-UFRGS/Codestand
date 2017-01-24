@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 from __future__ import unicode_literals
 
-from django.db import models, migrations
+from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
@@ -15,15 +15,21 @@ class Migration(migrations.Migration):
             name='CodingProject',
             fields=[
                 ('id', models.AutoField(verbose_name='ID', serialize=False, auto_created=True, primary_key=True)),
-                ('title', models.CharField(max_length=80)),
+                ('title', models.CharField(max_length=200)),
                 ('additional_information', models.CharField(max_length=255)),
                 ('coder', models.IntegerField(null=True, blank=True)),
                 ('creation_date', models.DateTimeField(auto_now_add=True)),
                 ('reputation', models.IntegerField(null=True, blank=True)),
+                ('is_archived', models.BooleanField(default=False)),
             ],
-            options={
-            },
-            bases=(models.Model,),
+        ),
+        migrations.CreateModel(
+            name='DashboardConfig',
+            fields=[
+                ('id', models.AutoField(verbose_name='ID', serialize=False, auto_created=True, primary_key=True)),
+                ('user', models.IntegerField(null=True, blank=True)),
+                ('data', models.CharField(max_length=255, null=True, blank=True)),
+            ],
         ),
         migrations.CreateModel(
             name='Implementation',
@@ -31,9 +37,6 @@ class Migration(migrations.Migration):
                 ('id', models.AutoField(verbose_name='ID', serialize=False, auto_created=True, primary_key=True)),
                 ('link', models.URLField(blank=True)),
             ],
-            options={
-            },
-            bases=(models.Model,),
         ),
         migrations.CreateModel(
             name='ProjectContact',
@@ -42,9 +45,6 @@ class Migration(migrations.Migration):
                 ('contact', models.CharField(max_length=80)),
                 ('type', models.CharField(max_length=50, choices=[(b'Twitter', b'Twitter'), (b'Facebook', b'Facebook'), (b'Jabber', b'Jabber'), (b'Mail', b'Email')])),
             ],
-            options={
-            },
-            bases=(models.Model,),
         ),
         migrations.CreateModel(
             name='ProjectContainer',
@@ -56,13 +56,12 @@ class Migration(migrations.Migration):
                 ('protocol', models.CharField(max_length=255)),
                 ('description', models.TextField()),
                 ('docs', models.CharField(max_length=10000, null=True, blank=True)),
+                ('is_archived', models.BooleanField(default=False)),
+                ('is_deleted', models.BooleanField(default=False)),
                 ('code_request', models.ForeignKey(blank=True, to='requests.CodeRequest', null=True)),
                 ('codings', models.ManyToManyField(to='matches.CodingProject')),
-                ('contacts', models.ManyToManyField(to='matches.ProjectContact', null=True, blank=True)),
+                ('contacts', models.ManyToManyField(to='matches.ProjectContact', blank=True)),
             ],
-            options={
-            },
-            bases=(models.Model,),
         ),
         migrations.CreateModel(
             name='ProjectTag',
@@ -70,26 +69,25 @@ class Migration(migrations.Migration):
                 ('id', models.AutoField(verbose_name='ID', serialize=False, auto_created=True, primary_key=True)),
                 ('name', models.CharField(max_length=80)),
             ],
-            options={
-            },
-            bases=(models.Model,),
         ),
         migrations.AddField(
             model_name='projectcontainer',
             name='tags',
-            field=models.ManyToManyField(to='matches.ProjectTag', null=True, blank=True),
-            preserve_default=True,
+            field=models.ManyToManyField(to='matches.ProjectTag', blank=True),
+        ),
+        migrations.AddField(
+            model_name='codingproject',
+            name='contacts',
+            field=models.ManyToManyField(to='matches.ProjectContact', blank=True),
         ),
         migrations.AddField(
             model_name='codingproject',
             name='links',
-            field=models.ManyToManyField(to='matches.Implementation', null=True, blank=True),
-            preserve_default=True,
+            field=models.ManyToManyField(to='matches.Implementation', blank=True),
         ),
         migrations.AddField(
             model_name='codingproject',
             name='tags',
-            field=models.ManyToManyField(to='matches.ProjectTag', null=True, blank=True),
-            preserve_default=True,
+            field=models.ManyToManyField(to='matches.ProjectTag', blank=True),
         ),
     ]

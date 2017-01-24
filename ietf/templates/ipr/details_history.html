@@ -2,8 +2,11 @@
 {# Copyright The IETF Trust 2015, All Rights Reserved #}
 {% load origin %}
 
-{% load ietf_filters ipr_filters %}
-{% load future %}
+{% load ietf_filters ipr_filters staticfiles %}
+
+{% block morecss %}
+<link rel="stylesheet" href="{% static "jquery.tablesorter/css/theme.bootstrap.min.css" %}">
+{% endblock %}
 
 {% block title %}History for IPR - {{ ipr.title }}{% endblock %}
 
@@ -20,7 +23,7 @@
     </p>
   {% endif %}
 
-  <table class="table table-condensed table-striped history">
+  <table class="table table-condensed table-striped history tablesorter">
     <thead>
       <tr>
         <th>Date</th>
@@ -54,3 +57,7 @@
     </tbody>
   </table>
 {% endblock content %}
+
+{% block js %}
+<script src="{% static "jquery.tablesorter/js/jquery.tablesorter.combined.min.js" %}"></script>
+{% endblock %}

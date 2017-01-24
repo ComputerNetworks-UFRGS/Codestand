@@ -44,7 +44,7 @@ def all_id_txt():
 
     inactive_states = ["pub", "watching", "dead"]
 
-    in_iesg_process = all_ids.exclude(states=State.objects.get(type="draft", slug="rfc")).filter(states__in=list(State.objects.filter(type="draft-iesg").exclude(slug__in=inactive_states))).only("name", "rev")
+    in_iesg_process = all_ids.exclude(states=State.objects.filter(type="draft", slug__in=["rfc","repl"])).filter(states__in=list(State.objects.filter(type="draft-iesg").exclude(slug__in=inactive_states))).only("name", "rev")
 
     # handle those actively in the IESG process
     for d in in_iesg_process:
@@ -101,7 +101,7 @@ def all_id2_txt():
     # this returns a lot of data so try to be efficient
 
     drafts = Document.objects.filter(type="draft").exclude(name__startswith="rfc").order_by('name')
-    drafts = drafts.select_related('group', 'group__parent', 'ad', 'ad__email', 'intended_std_level', 'shepherd', 'shepherd__email')
+    drafts = drafts.select_related('group', 'group__parent', 'ad', 'intended_std_level', 'shepherd', )
     drafts = drafts.prefetch_related("states")
 
     rfc_aliases = dict(DocAlias.objects.filter(name__startswith="rfc",
@@ -239,7 +239,7 @@ def active_drafts_index_by_group(extra_values=()):
         if d:
             if "authors" not in d:
                 d["authors"] = []
-            d["authors"].append(unicode(a.author.person))
+            d["authors"].append(a.author.person.plain_ascii()) # This should probably change to .plain_name() when non-ascii names are permitted
 
     # put docs into groups
     for d in docs_dict.itervalues():

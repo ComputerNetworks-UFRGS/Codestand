@@ -3,7 +3,6 @@
 {% load origin %}
 {% load staticfiles %}
 {% load ietf_filters submit_tags %}
-{% load future %}
 
 {% block title %}Submission status of {{ submission.name }}-{{ submission.rev }}{% endblock %}
 
@@ -37,32 +36,52 @@
     <p class="alert alert-danger">Please fix errors in the form below.</p>
   {% endif %}
 
-  <h2>I-D nits</h2>
+  <h2>Submission checks</h2>
   <p>
-    {% if passes_idnits %}
-      Your draft has been verified to meet I-D nits requirements.
+    {% if passes_checks %}
+      Your draft has been verified to pass the submission checks.
     {% else %}
-      Your draft has <b>NOT</b> been verified to meet I-D nits requirements.
+      Your draft has <b>NOT</b> been verified to pass the submission checks.
     {% endif %}
   </p>
-  <button class="btn btn-default" data-toggle="modal" data-target="#nits">View I-D nits</button>
+  {% for check in submission.checks.all %}
+    {% if check.errors %}
+       <p class="alert alert-warning">
+	  The {{check.checker}} returned {{ check.errors }} error{{ check.errors|pluralize }}
+	  and {{ check.warnings }} warning
 
-  <div class="modal fade" id="nits" tabindex="-1" role="dialog" aria-labelledby="nits" aria-hidden="true">
-    <div class="modal-dialog modal-lg">
-      <div class="modal-content">
-        <div class="modal-header">
-	  <button type="button" class="close" data-dismiss="modal" aria-hidden="true">&times;</button>
-	  <h4 class="modal-title" id="nitslabel">I-D nits for {{ submission.name }}-{{ submission.rev }}</h4>
-        </div>
-        <div class="modal-body">
-	  <pre>{{ submission.idnits_message }}</pre>
-        </div>
-        <div class="modal-footer">
-	  <button type="button" class="btn btn-default" data-dismiss="modal">Close</button>
-        </div>
+	  {{ check.warnings|pluralize }} ; click the button
+	  below to see details.  Please fix those, and resubmit.
+       </p>
+    {% elif check.warnings %}
+       <p class="alert alert-warning">
+	  The {{check.checker}} returned {{ check.warnings }} warning{{ check.warnings|pluralize }}.
+       </p>
+    {% endif %}
+  {% endfor %}
+
+  {% for check in submission.checks.all %}
+    {% if check.passed != None %}
+      <button class="btn btn-{% if check.passed %}{% if check.warnings %}warning{% elif check.errors %}warning{% else %}success{% endif %}{% else %}danger{% endif %}" data-toggle="modal" data-target="#check-{{check.pk}}">View {{ check.checker }}</button>
+
+      <div class="modal fade" id="check-{{check.pk}}" tabindex="-1" role="dialog" aria-labelledby="check-{{check.pk}}" aria-hidden="true">
+	<div class="modal-dialog modal-lg">
+	  <div class="modal-content">
+	    <div class="modal-header">
+	      <button type="button" class="close" data-dismiss="modal" aria-hidden="true">&times;</button>
+	      <h4 class="modal-title" id="nitslabel">{{ check.checker|title }} for {{ submission.name }}-{{ submission.rev }}</h4>
+	    </div>
+	    <div class="modal-body">
+	      <pre>{{ check.message }}</pre>
+	    </div>
+	    <div class="modal-footer">
+	      <button type="button" class="btn btn-default" data-dismiss="modal">Close</button>
+	    </div>
+	  </div>
+	</div>
       </div>
-    </div>
-  </div>
+    {% endif %}
+  {% endfor %}
 
   <div class="modal fade" id="twopages" tabindex="-1" role="dialog" aria-labelledby="twopageslabel" aria-hidden="true">
     <div class="modal-dialog modal-lg">
@@ -81,28 +100,33 @@
     </div>
   </div>
 
+  {% if submission.state_id == "waiting-for-draft" %}
+    <p class="alert alert-warning">
+      This submission is awaiting the first draft upload.
+    </p>
+  {% else %}
+    <h2>Meta-data from the submission</h2>
 
-  <h2>Meta-data from the submission</h2>
+    {% if errors %}
+      <div class="alert alert-danger">
+        <p><b>Meta-Data errors found!</b></p>
+      <p  >Please make sure that your Internet-Draft includes all of the required meta-data in the proper format.</p>
 
-  {% if errors %}
-    <div class="alert alert-danger">
-      <p><b>Meta-Data errors found!</b></p>
-      <p>Please make sure that your Internet-Draft includes all of the required meta-data in the proper format.</p>
+        <p>If your Internet-Draft <b>does</b> include all of the required meta-data in the proper format, and if
+          the error(s) identified below are due to the failure of the tool to extract the meta-data correctly,
+          then please use the "Adjust meta-data" button below, which will take you to the "Adjust screen" where
+          you can correct the improperly extracted meta-data. You will then be able to submit your Internet-Draft
+          to the Secretariat for manual posting.</p>
 
-      <p>If your Internet-Draft <b>does</b> include all of the required meta-data in the proper format, and if
-        the error(s) identified below are due to the failure of the tool to extract the meta-data correctly,
-        then please use the "Adjust meta-data" button below, which will take you to the "Adjust screen" where
-        you can correct the improperly extracted meta-data. You will then be able to submit your Internet-Draft
-        to the Secretariat for manual posting.</p>
+        <p>If your Internet-Draft <b>does not</b> include all of the required meta-data in the proper format, then
+          please cancel this submission, update your Internet-Draft, and resubmit it.</p>
 
-      <p>If your Internet-Draft <b>does not</b> include all of the required meta-data in the proper format, then
-        please cancel this submission, update your Internet-Draft, and resubmit it.</p>
-
-      <p><b>Note:</b> The secretariat will <b>not</b> add any
-        meta-data to your Internet-Draft or edit the meta-data. An
-        Internet-Draft that does not include all of the required meta-data in
-        the proper format <b>will</b> be returned to the submitter.</p>
-    </div>
+        <p><b>Note:</b> The secretariat will <b>not</b> add any
+          meta-data to your Internet-Draft or edit the meta-data. An
+          Internet-Draft that does not include all of the required meta-data in
+          the proper format <b>will</b> be returned to the submitter.</p>
+      </div>
+    {% endif %}
   {% endif %}
 
   <table class="table table-condensed table-striped">
@@ -110,7 +134,7 @@
       <th>Document</th>
       <td>
         {% if submission.state_id == "posted" %}
-          <a href="https://www.ietf.org/id/{{ submission.name }}-{{submission.rev}}.txt">{{ submission.name }}</a>
+          <a href="{% url 'ietf.doc.views_doc.document_main' name=submission.name %}">{{ submission.name }}</a>
         {% else %}
           {{ submission.name }}
         {% endif %}
@@ -218,7 +242,7 @@
     </form>
     <p>Leads to manual post by the secretariat.</p>
 
-    {% if passes_idnits and not errors %}
+    {% if passes_checks and not errors %}
       <h2>Please edit the following meta-data before posting:</h2>
 
       <form class="idsubmit" method="post">
@@ -285,6 +309,11 @@
     </form>
   {% endif %}
 
+  {% if user|has_role:"Secretariat" %}
+    <p></p>
+    <a id="send{{ submission.pk }}" class="btn btn-default" href="{% url "ietf.submit.views.send_submission_email" submission_id=submission.pk %}" title="Email submitter"><span class="glyphicon glyphicon-envelope" aria-hidden="true"></span>Send Email</a>
+  {% endif %}
+
   {% if show_send_full_url %}
     <div class="alert alert-danger">
       <p>You are not allowed to modify or cancel this submission. You can
@@ -309,7 +338,7 @@
 
   <h2>History</h2>
 
-  <table class="table table-condensed table-striped">
+  <table  id="history" class="table table-condensed table-striped">
     <thead>
       <tr><th>Date</th><th>By</th><th>Event</th></tr>
     </thead>
@@ -318,7 +347,21 @@
         <tr>
           <td class="text-nowrap">{{ e.time|date:"Y-m-d" }}</td>
           <td>{{ e.by|default:"" }}</td>
-          <td>{{ e.desc }}</td>
+          {%  if e.desc|startswith:"Received message" or e.desc|startswith:"Sent message" %}
+            {%  with m=e.submissionemailevent.message %}
+              {% if user.is_authenticated %}
+                <td> 
+                  {% if  e.desc|startswith:"Received message" and user|has_role:"Secretariat" %}
+                    <a id="reply{{ submission.pk }}" class="btn btn-default btn-xs" href="{% url "ietf.submit.views.send_submission_email" submission_id=submission.pk message_id=e.submissionemailevent.pk %}" title="Reply"><span class="glyphicon glyphicon-envelope" aria-hidden="true"></span> Reply</a>
+                  {% endif %}
+                  Email: <a id="aw{{ submission.pk }}-{{ m.pk }}" href="{% url "ietf.submit.views.show_submission_email_message" submission_id=submission.pk message_id=e.submissionemailevent.pk access_token=submission.access_token %}">{{ e.desc }}</a></td>
+              {% else %}
+                <td>Email: <a id="aw{{ submission.pk }}-{{ m.pk }}" href="{% url "ietf.submit.views.show_submission_email_message" submission_id=submission.pk message_id=e.submissionemailevent.pk %}">{{ e.desc }}</a></td>
+              {% endif %}
+            {% endwith %}
+          {%  else %}
+            <td>{{ e.desc }}</td>
+          {%  endif %}
         </tr>
       {% endfor %}
     </tbody>

@@ -1,16 +1,18 @@
 import os
 import sys
 import json
+from importlib import import_module
 
+from django.apps import apps
 from django.test import Client
 from django.conf import settings
-from django.utils.importlib import import_module
-from django.db import models
 
 from tastypie.exceptions import BadRequest
-from tastypie.test import ResourceTestCase
+from tastypie.test import ResourceTestCaseMixin
 
 import debug                            # pyflakes:ignore
+
+from ietf.utils.test_utils import TestCase
 
 OMITTED_APPS = (
     'ietf.secr.meetings',
@@ -18,7 +20,7 @@ OMITTED_APPS = (
     'ietf.ipr',
 )
 
-class TastypieApiTestCase(ResourceTestCase):
+class TastypieApiTestCase(ResourceTestCaseMixin, TestCase):
     def __init__(self, *args, **kwargs):
         self.apps = {}
         for app_name in settings.INSTALLED_APPS:
@@ -28,7 +30,7 @@ class TastypieApiTestCase(ResourceTestCase):
                 models_path = os.path.join(os.path.dirname(app.__file__), "models.py")
                 if os.path.exists(models_path):
                     self.apps[name] = app
-        super(ResourceTestCase, self).__init__(*args, **kwargs)
+        super(TastypieApiTestCase, self).__init__(*args, **kwargs)
 
     def test_api_top_level(self):
         client = Client(Accept='application/json')
@@ -80,7 +82,8 @@ class TastypieApiTestCase(ResourceTestCase):
             self.assertValidJSONResponse(r)
             app_resources = json.loads(r.content)
             self._assertCallbackReturnsSameJSON("/api/v1/%s/"%name, app_resources)
-            model_list = models.get_models(app.models)
+            #
+            model_list = apps.get_app_config(name).get_models()
             for model in model_list:
                 if not model._meta.model_name in app_resources.keys():
                     #print("There doesn't seem to be any resource for model %s.models.%s"%(app.__name__,model.__name__,))

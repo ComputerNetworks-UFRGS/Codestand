@@ -5,7 +5,7 @@
 {% load bootstrap3 %}
 
 {% block pagehead %}
-  <link rel="stylesheet" href="{% static 'bootstrap-datepicker/css/datepicker3.css' %}">
+  <link rel="stylesheet" href="{% static 'bootstrap-datepicker/css/bootstrap-datepicker3.min.css' %}">
 {% endblock %}
 
 {% block subtitle %} - Settings{% endblock %}
@@ -13,12 +13,6 @@
 {% block nomcom_content %}
   {% origin %}
   <h2>Settings</h2>
-
-  {% if message %}
-    <div class="alert alert-{{ message.0 }}">{{ message.1 }}</div>
-  {% endif %}
-
-  {% bootstrap_messages %}
 
   <form enctype="multipart/form-data" method="post">
     {% csrf_token %}
@@ -37,16 +31,10 @@
     {% endbuttons %}
   </form>
 
-  <h2>Delete Nomcom</h2>
-
-  <p>
-    <a class="btn btn-danger" href="{% url "nomcom_delete_nomcom" year %}" class="deletelink">Delete NomCom</a>
-  </p>
-
 {% endblock %}
 
 {% block js %}
-  <script src="{% static 'bootstrap-datepicker/js/bootstrap-datepicker.js' %}"></script>
+  <script src="{% static 'bootstrap-datepicker/js/bootstrap-datepicker.min.js' %}"></script>
   <script>
    $('input[id*="reminderdates"][type="text"]').datepicker({
        format: "yyyy-mm-dd",

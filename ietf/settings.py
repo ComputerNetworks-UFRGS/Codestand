@@ -5,6 +5,16 @@
 # http://code.djangoproject.com/wiki/SplitSettings
 
 import os
+import sys
+import datetime
+import warnings
+
+warnings.simplefilter("always", DeprecationWarning)
+warnings.filterwarnings("ignore", message="Report.file_reporters will no longer be available in Coverage.py 4.2", module="coverage.report")
+warnings.filterwarnings("ignore", message="initial_data fixtures are deprecated. Use data migrations instead.", module="django.core.management.commands.loaddata")
+warnings.filterwarnings("ignore", message="The popen2 module is deprecated.  Use the subprocess module.", module="ietf.utils.pipe")
+warnings.filterwarnings("ignore", message="django.contrib.contenttypes.generic is deprecated and will be removed in Django 1.9.", module="south.modelsinspector")
+
 try:
     import syslog
     syslog.openlog("datatracker", syslog.LOG_PID, syslog.LOG_USER)
@@ -12,19 +22,13 @@ except ImportError:
     pass
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-
-# a place to put ajax logs if necessary.
-LOG_DIR = '/var/log/datatracker'
-
-import sys
 sys.path.append(os.path.abspath(BASE_DIR + "/.."))
 
-import datetime
-
 from ietf import __version__
+import debug
 
 DEBUG = False
-TEMPLATE_DEBUG = DEBUG
+debug.debug = DEBUG
 
 # Valid values:
 # 'production', 'test', 'development'
@@ -44,6 +48,7 @@ ADMINS = (
 )
 
 ALLOWED_HOSTS = [".ietf.org", ".ietf.org.", "209.208.19.216", "4.31.198.44", ]
+
 
 # Server name of the tools server
 TOOLS_SERVER = 'tools.' + IETF_DOMAIN
@@ -66,12 +71,6 @@ DATABASES = {
         #'PASSWORD': 'ietf',
         #'OPTIONS': {},
     },
-#    'legacy': {
-#        'NAME': 'ietf',
-#        'ENGINE': 'django.db.backends.mysql',
-#        'USER': 'ietf',
-#        #'PASSWORD': 'ietf',
-#    },
 }
 
 DATABASE_TEST_OPTIONS = {
@@ -99,9 +98,33 @@ USE_I18N = False
 
 USE_TZ = False
 
-MEDIA_URL = 'https://www.ietf.org/'
-IETF_ID_URL = MEDIA_URL + 'id/'
-IETF_ID_ARCHIVE_URL = MEDIA_URL + 'archive/id/'
+if SERVER_MODE == 'production':
+    MEDIA_ROOT = '/a/www/www6s/lib/dt/media/'
+    MEDIA_URL  = 'https://www.ietf.org/lib/dt/media/'
+    PHOTOS_DIRNAME = 'photo'
+    PHOTOS_DIR = os.path.join(MEDIA_ROOT, PHOTOS_DIRNAME)
+else:
+    MEDIA_ROOT = os.path.join(os.path.dirname(BASE_DIR), 'media')
+    MEDIA_URL = '/media/'
+    PHOTOS_DIRNAME = 'photo'
+    PHOTOS_DIR = os.path.join(MEDIA_ROOT, PHOTOS_DIRNAME)
+
+OLD_PHOTO_DIRS = [
+    '/a/www/www6/wg/images',
+    '/a/www/www6/iesg/bio/photo',
+    '/a/www/iab/wp-content/IAB-uploads/2010/10/',
+    '/a/www/iab/wp-content/IAB-uploads/2011/05/',
+    '/a/www/iab/wp-content/IAB-uploads/2014/02/',
+    '/a/www/iab/wp-content/IAB-uploads/2015/02/',
+    '/a/www/iab/wp-content/IAB-uploads/2015/03/',
+    '/a/www/iab/wp-content/IAB-uploads/2015/06/',
+    '/a/www/iab/wp-content/IAB-uploads/2015/08/',
+    '/a/www/iab/wp-content/IAB-uploads/2016/03/',
+]
+
+IETF_HOST_URL = 'https://www.ietf.org/'
+IETF_ID_URL = IETF_HOST_URL + 'id/'
+IETF_ID_ARCHIVE_URL = IETF_HOST_URL + 'archive/id/'
 
 
 # Absolute path to the directory static files should be collected to.
@@ -135,8 +158,6 @@ WSGI_APPLICATION = "ietf.wsgi.application"
 
 AUTHENTICATION_BACKENDS = ( 'django.contrib.auth.backends.ModelBackend', )
 
-#DATABASE_ROUTERS = ["ietf.legacy_router.LegacyRouter"]
-
 # ------------------------------------------------------------------------
 # Django/Python Logging Framework Modifications
 
@@ -163,7 +184,7 @@ LOGGING['handlers']['mail_admins']['filters'] += [ 'skip_suspicious_operations' 
 from django.http import UnreadablePostError
 def skip_unreadable_post(record):
     if record.exc_info:
-        exc_type, exc_value = record.exc_info[:2]
+        exc_type, exc_value = record.exc_info[:2] # pylint: disable=unused-variable
         if isinstance(exc_value, UnreadablePostError):
             return False
     return True
@@ -179,19 +200,56 @@ LOGGING['handlers']['mail_admins']['filters'] += [ 'skip_unreadable_posts' ]
 # End logging
 # ------------------------------------------------------------------------
 
-#SESSION_COOKIE_AGE = 60 * 60 * 24 * 7 * 2 # Age of cookie, in seconds: 2 weeks.
-SESSION_COOKIE_AGE = 60 * 60 * 24 * 365 * 50 # Age of cookie, in seconds: 50 years
 
+# SESSION_COOKIE_AGE = 60 * 60 * 24 * 7 * 2 # Age of cookie, in seconds: 2 weeks (django default)
+SESSION_COOKIE_AGE = 60 * 60 * 24 * 7 * 4 # Age of cookie, in seconds: 4 weeks
 SESSION_EXPIRE_AT_BROWSER_CLOSE = False
+# We want to use the JSON serialisation, as it's safer -- but there is /secr/
+# code which stashes objects in the session that can't be JSON serialized.
+# Switch when that code is rewritten.
+#SESSION_SERIALIZER = "django.contrib.sessions.serializers.JSONSerializer"
 SESSION_SERIALIZER = 'django.contrib.sessions.serializers.PickleSerializer'
+SESSION_ENGINE = "django.contrib.sessions.backends.cache"
+SESSION_SAVE_EVERY_REQUEST = True
 
-TEMPLATE_LOADERS = (
-    ('django.template.loaders.cached.Loader', (
-        'django.template.loaders.filesystem.Loader',
-        'django.template.loaders.app_directories.Loader',
-    )),
-    'ietf.dbtemplate.template.Loader',
-)
+PREFERENCES_COOKIE_AGE = 60 * 60 * 24 * 365 * 50 # Age of cookie, in seconds: 50 years
+
+TEMPLATES = [
+    {
+        'BACKEND': 'django.template.backends.django.DjangoTemplates',
+        'DIRS': [
+            BASE_DIR + "/templates",
+            BASE_DIR + "/secr/templates",
+        ],
+        'OPTIONS': {
+            'context_processors': [
+                'django.contrib.auth.context_processors.auth',
+                'django.template.context_processors.debug',
+                'django.template.context_processors.i18n',
+                'django.template.context_processors.request',
+                'django.template.context_processors.media',
+                #'django.template.context_processors.tz',
+                'django.contrib.messages.context_processors.messages',
+                'ietf.context_processors.server_mode',
+                'ietf.context_processors.debug_mark_queries_from_view',
+                'ietf.context_processors.revision_info',
+                'ietf.secr.context_processors.secr_revision_info',
+                'ietf.context_processors.rfcdiff_base_url',
+            ],
+            'loaders': [
+                ('django.template.loaders.cached.Loader', (
+                    'django.template.loaders.filesystem.Loader',
+                    'django.template.loaders.app_directories.Loader',
+                )),
+                'ietf.dbtemplate.template.Loader',
+            ]
+        },
+    },
+]
+
+if DEBUG:
+    TEMPLATES[0]['OPTIONS']['string_if_invalid'] = "** No value found for '%s' **"
+
 
 MIDDLEWARE_CLASSES = (
     'django.middleware.csrf.CsrfViewMiddleware',
@@ -208,24 +266,6 @@ MIDDLEWARE_CLASSES = (
 )
 
 ROOT_URLCONF = 'ietf.urls'
-
-TEMPLATE_DIRS = (
-    BASE_DIR + "/templates",
-    BASE_DIR + "/secr/templates",
-)
-
-TEMPLATE_CONTEXT_PROCESSORS = (
-    'django.contrib.auth.context_processors.auth',
-    'django.core.context_processors.debug',
-    'django.core.context_processors.i18n',
-    'django.core.context_processors.request',
-    'django.core.context_processors.media',
-    'django.contrib.messages.context_processors.messages',
-    'ietf.context_processors.server_mode',
-    'ietf.context_processors.revision_info',
-    'ietf.secr.context_processors.secr_revision_info',
-    'ietf.context_processors.rfcdiff_base_url',
-)
 
 # Additional locations of static files (in addition to each app's static/ dir)
 STATICFILES_DIRS = (
@@ -252,6 +292,7 @@ INSTALLED_APPS = (
     'form_utils',
     'tastypie',
     'widget_tweaks',
+    'django_markup',
     # IETF apps
     'ietf.api',
     'ietf.community',
@@ -272,6 +313,7 @@ INSTALLED_APPS = (
     'ietf.person',
     'ietf.redirects',
     'ietf.release',
+    'ietf.review',
     'ietf.submit',
     'ietf.sync',
     'ietf.utils',
@@ -308,13 +350,16 @@ BOOTSTRAP3 = {
 
     # Class to indicate error
     'form_error_class': 'bootstrap3-error',
+
+    'field_renderers': {
+        'default': 'ietf.utils.bootstrap.SeparateErrorsFromHelpTextFieldRenderer',
+        'inline': 'bootstrap3.renderers.InlineFieldRenderer',
+    },
+    
 }
 
+# Override this in your settings_local with the IP addresses relevant for you:
 INTERNAL_IPS = (
-# AMS servers
-	'64.170.98.32',
-	'64.170.98.86',
-
 # local
         '127.0.0.1',
         '::1',
@@ -328,7 +373,8 @@ RFCDIFF_BASE_URL = "https://www.ietf.org/rfcdiff"
 TEST_RUNNER = 'ietf.utils.test_runner.IetfTestRunner'
 
 # Fixtures which will be loaded before testing starts
-GLOBAL_TEST_FIXTURES = [ 'names','ietf.utils.test_data.make_immutable_base_data','nomcom_templates' ]
+GLOBAL_TEST_FIXTURES = [ 'names','ietf.utils.test_data.make_immutable_base_data',
+    'nomcom_templates','proceedings_templates' ]
 
 TEST_DIFF_FAILURE_DIR = "/tmp/test/failure/"
 
@@ -340,16 +386,37 @@ TEST_BLUESHEET_DIR = "tmp-bluesheet-dir"
 
 # These are regexes
 TEST_URL_COVERAGE_EXCLUDE = [
-    "^\^admin/",
+    r"^\^admin/",
 ]
 
-# Tese are filename globs
+# These are filename globs.  They are fed directly to the coverage code checker.
 TEST_CODE_COVERAGE_EXCLUDE = [
     "*/tests*",
     "*/admin.py",
     "*/migrations/*",
+    "*/management/commands/*",
+    "idindex/generate_all_id2_txt.py",
+    "idindex/generate_all_id_txt.py",
+    "idindex/generate_id_abstracts_txt.py",
+    "idindex/generate_id_index_txt.py",
+    "ietf/checks.py",
+    "ietf/manage.py",
+    "ietf/virtualenv-manage.py",
+    "ietf/meeting/timedeltafield.py",   # Dead code, kept for a migration include
+    "ietf/review/import_from_review_tool.py",
     "ietf/settings*",
+    "ietf/utils/templatetags/debug_filters.py",
     "ietf/utils/test_runner.py",
+    "name/generate_fixtures.py",
+    "review/import_from_review_tool.py",
+]
+
+# These are filename globs.  They are used by test_parse_templates() and
+# get_template_paths()
+TEST_TEMPLATE_IGNORE = [
+    ".*",                             # dot-files
+    "*~",                             # tilde temp-files
+    "#*",                             # files beginning with a hashmark
 ]
 
 TEST_COVERAGE_MASTER_FILE = os.path.join(BASE_DIR, "../release-coverage.json.gz")
@@ -370,6 +437,16 @@ MAX_WG_DELEGATES = 3
 
 DATE_FORMAT = "Y-m-d"
 DATETIME_FORMAT = "Y-m-d H:i T"
+
+URL_REGEXPS = {
+    "acronym": r"(?P<acronym>[-a-z0-9]+)",
+    "charter": r"(?P<name>charter-[-a-z0-9]+)",
+    "date": r"(?P<date>\d{4}-\d{2}-\d{2})",
+    "name": r"(?P<name>[A-Za-z0-9._+-]+)",
+    "rev": r"(?P<rev>[0-9-]+)",
+    "owner": r"(?P<owner>[-A-Za-z0-9\'+._]+@[A-Za-z0-9-._]+)",
+    "schedule_name": r"(?P<name>[A-Za-z0-9-:_]+)",
+}
 
 # Override this in settings_local.py if needed
 # *_PATH variables ends with a slash/ .
@@ -395,6 +472,7 @@ MEETING_RECORDINGS_DIR = '/a/www/audio'
 
 # Mailing list info URL for lists hosted on the IETF servers
 MAILING_LIST_INFO_URL = "https://www.ietf.org/mailman/listinfo/%(list_addr)s"
+MAILING_LIST_ARCHIVE_URL = "https://mailarchive.ietf.org"
 
 # Liaison Statement Tool settings (one is used in DOC_HREFS below)
 LIAISON_UNIVERSAL_FROM = 'Liaison Statement Management Tool <lsmt@' + IETF_DOMAIN + '>'
@@ -414,10 +492,11 @@ DOC_HREFS = {
 }
 
 MEETING_DOC_HREFS = {
-    "agenda": "/meeting/{meeting}/agenda/{doc.group.acronym}/",
-    "minutes": "https://www.ietf.org/proceedings/{meeting}/minutes/{doc.external_url}",
-    "slides": "https://www.ietf.org/proceedings/{meeting}/slides/{doc.external_url}",
+    "agenda": "/meeting/{meeting.number}/agenda/{doc.group.acronym}/",
+    "minutes": "https://www.ietf.org/proceedings/{meeting.number}/minutes/{doc.external_url}",
+    "slides": "https://www.ietf.org/proceedings/{meeting.number}/slides/{doc.external_url}",
     "recording": "{doc.external_url}",
+    "bluesheets": "https://www.ietf.org/proceedings/{meeting.number}/bluesheets/{doc.external_url}",
 }
 
 # Override this in settings_local.py if needed
@@ -455,13 +534,15 @@ NOMCOM_PUBLIC_KEYS_DIR = '/a/www/nomcom/public_keys/'
 NOMCOM_FROM_EMAIL = 'nomcom-chair@ietf.org'
 OPENSSL_COMMAND = '/usr/bin/openssl'
 DAYS_TO_EXPIRE_NOMINATION_LINK = ''
-DEFAULT_FEEDBACK_TYPE = 'offtopic'
 NOMINEE_FEEDBACK_TYPES = ['comment', 'questio', 'nomina']
 
 # ID Submission Tool settings
 IDSUBMIT_FROM_EMAIL = 'IETF I-D Submission Tool <idsubmission@ietf.org>'
 IDSUBMIT_ANNOUNCE_FROM_EMAIL = 'internet-drafts@ietf.org'
 IDSUBMIT_ANNOUNCE_LIST_EMAIL = 'i-d-announce@ietf.org'
+
+# Interim Meeting Tool settings
+INTERIM_ANNOUNCE_FROM_EMAIL = 'IESG Secretary <iesg-secretary@ietf.org>'
 
 # Days from meeting to day of cut off dates on submit -- cutoff_time_utc is added to this
 IDSUBMIT_DEFAULT_CUTOFF_DAY_OFFSET_00 = 13
@@ -473,6 +554,15 @@ IDSUBMIT_REPOSITORY_PATH = INTERNET_DRAFT_PATH
 IDSUBMIT_STAGING_PATH = '/a/www/www6s/staging/'
 IDSUBMIT_STAGING_URL = '//www.ietf.org/staging/'
 IDSUBMIT_IDNITS_BINARY = '/a/www/ietf-datatracker/scripts/idnits'
+IDSUBMIT_PYANG_COMMAND = 'pyang -p %(modpath)s --verbose --ietf  %(model)s'
+
+IDSUBMIT_CHECKER_CLASSES = (
+    "ietf.submit.checkers.DraftIdnitsChecker",
+    "ietf.submit.checkers.DraftYangChecker",
+)
+
+
+IDSUBMIT_MANUAL_STAGING_DIR = '/tmp/'
 
 IDSUBMIT_FILE_TYPES = (
     'txt',
@@ -481,10 +571,10 @@ IDSUBMIT_FILE_TYPES = (
     'ps',
 )
 IDSUBMIT_MAX_DRAFT_SIZE =  {
-    'txt':  6*1024*1024,  # Max size of txt draft file in bytes
-    'xml': 10*1024*1024,  # Max size of xml draft file in bytes
-    'pdf': 10*1024*1024,
-    'ps' : 10*1024*1024,
+    'txt':  2*1024*1024,  # Max size of txt draft file in bytes
+    'xml':  3*1024*1024,  # Max size of xml draft file in bytes
+    'pdf':  6*1024*1024,
+    'ps' :  6*1024*1024,
 }
 
 IDSUBMIT_MAX_DAILY_SAME_DRAFT_NAME = 20
@@ -496,22 +586,31 @@ IDSUBMIT_MAX_DAILY_SAME_GROUP_SIZE = 450 # in MB
 IDSUBMIT_MAX_DAILY_SUBMISSIONS = 1000
 IDSUBMIT_MAX_DAILY_SUBMISSIONS_SIZE = 2000 # in MB
 
+YANG_RFC_MODEL_DIR = '/a/www/ietf-ftp/yang/rfcmod/'
+YANG_DRAFT_MODEL_DIR = '/a/www/ietf-ftp/yang/draftmod/'
+YANG_INVAL_MODEL_DIR = '/a/www/ietf-ftp/yang/invalmod/'
+
 XML_LIBRARY = "/www/tools.ietf.org/tools/xml2rfc/web/public/rfc/"
 
-MEETING_MATERIALS_SUBMISSION_START_DAYS = -90
-MEETING_MATERIALS_SUBMISSION_CUTOFF_DAYS = 26
-MEETING_MATERIALS_SUBMISSION_CORRECTION_DAYS = 50
+# === Meeting Related Settings =================================================
+
+MEETING_MATERIALS_DEFAULT_SUBMISSION_START_DAYS = 90
+MEETING_MATERIALS_DEFAULT_SUBMISSION_CUTOFF_DAYS = 26
+MEETING_MATERIALS_DEFAULT_SUBMISSION_CORRECTION_DAYS = 50
 
 INTERNET_DRAFT_DAYS_TO_EXPIRE = 185
 
+FLOORPLAN_MEDIA_DIR = 'floor'
+
+# ==============================================================================
+
 DOT_BINARY = '/usr/bin/dot'
 UNFLATTEN_BINARY= '/usr/bin/unflatten'
-PS2PDF_BINARY = '/usr/bin/ps2pdf'
 RSYNC_BINARY = '/usr/bin/rsync'
 
 # Account settings
 DAYS_TO_EXPIRE_REGISTRATION_LINK = 3
-HTPASSWD_COMMAND = "/usr/bin/htpasswd2"
+HTPASSWD_COMMAND = "/usr/bin/htpasswd"
 HTPASSWD_FILE = "/www/htpasswd"
 
 # Generation of bibxml files for xml2rfc
@@ -527,7 +626,8 @@ SECR_INTERIM_LISTING_DIR = '/a/www/www6/meeting/interim'
 SECR_MAX_UPLOAD_SIZE = 40960000
 SECR_PROCEEDINGS_DIR = '/a/www/www6s/proceedings/'
 SECR_PPT2PDF_COMMAND = ['/usr/bin/soffice','--headless','--convert-to','pdf','--outdir']
-
+REGISTRATION_ATTENDEES_BASE_URL = 'https://ietf.org/registration/attendees/'
+NEW_PROCEEDINGS_START = 95
 USE_ETAGS=True
 
 PRODUCTION_TIMEZONE = "America/Los_Angeles"
@@ -559,23 +659,38 @@ BADNESS_MUCHTOOBIG = 500
 SELENIUM_TESTS = False
 SELENIUM_TESTS_ONLY = False
 
+# Set debug apps in settings_local.DEV_APPS
+
+DEV_APPS = ()
+DEV_MIDDLEWARE_CLASSES = ()
+
+# django-debug-toolbar and the debug listing of sql queries at the bottom of
+# each page when in dev mode can overlap in functionality, and can slow down
+# page loading.  If you wish to use the sql_queries debug listing, put this in
+# your settings_local and make sure your client IP address is in INTERNAL_IPS:
+#
+#    DEV_TEMPLATE_CONTEXT_PROCESSORS = (
+#        'ietf.context_processors.sql_debug',
+#    )
+#
+DEV_TEMPLATE_CONTEXT_PROCESSORS = ()
+
 # Domain which hosts draft and wg alias lists
 DRAFT_ALIAS_DOMAIN = IETF_DOMAIN
 GROUP_ALIAS_DOMAIN = IETF_DOMAIN
 
-# Path to the email alias lists.  Used by ietf.utils.aliases
-DRAFT_ALIASES_PATH = os.path.abspath(BASE_DIR + "/../test/data/draft-aliases")
-DRAFT_VIRTUAL_PATH = os.path.abspath(BASE_DIR + "/../test/data/draft-virtual")
+TEST_DATA_DIR = os.path.abspath(BASE_DIR + "/../test/data")
 
-# Set debug apps in DEV_APPS settings_local
-DEV_APPS = ()
+# Path to the email alias lists.  Used by ietf.utils.aliases
+DRAFT_ALIASES_PATH = os.path.join(TEST_DATA_DIR, "draft-aliases")
+DRAFT_VIRTUAL_PATH = os.path.join(TEST_DATA_DIR, "draft-virtual")
 DRAFT_VIRTUAL_DOMAIN = "virtual.ietf.org"
 
-GROUP_ALIASES_PATH = os.path.abspath(BASE_DIR + "/../test/data/group-aliases")
-GROUP_VIRTUAL_PATH = os.path.abspath(BASE_DIR + "/../test/data/group-virtual")
+GROUP_ALIASES_PATH = os.path.join(TEST_DATA_DIR, "group-aliases")
+GROUP_VIRTUAL_PATH = os.path.join(TEST_DATA_DIR, "group-virtual")
 GROUP_VIRTUAL_DOMAIN = "virtual.ietf.org"
 
-POSTCONFIRM_PATH   = "/a/postconfirm/test-wrapper"
+POSTCONFIRM_PATH   = "/a/postconfirm/wrapper"
 
 USER_PREFERENCE_DEFAULTS = {
     "expires_soon"  : "14",
@@ -584,14 +699,94 @@ USER_PREFERENCE_DEFAULTS = {
     "left_menu"     : "on",
 }
 
+TRAC_MASTER_DIR = "/a/www/trac-setup/"
+TRAC_WIKI_DIR_PATTERN = "/a/www/www6s/trac/%s"
+TRAC_WIKI_URL_PATTERN = "https://trac.ietf.org/trac/%s/wiki"
+TRAC_ISSUE_URL_PATTERN = "https://trac.ietf.org/trac/%s/report/1"
+TRAC_SVN_DIR_PATTERN = "/a/svn/group/%s"
+TRAC_SVN_URL_PATTERN = "https://svn.ietf.org/svn/group/%s/"
+SVN_PACKAGES = [
+    "/usr/lib/python2.7/dist-packages/svn",
+    "/usr/lib/python2.7/dist-packages/libsvn",
+]
+
+TRAC_ENV_OPTIONS = [
+    ('project', 'name', "{name} Wiki"),
+    ('trac', 'database', 'sqlite:db/trac.db' ),
+    ('trac', 'repository_type', 'svn'),
+    ('trac', 'repository_dir', "{svn_dir}"),
+    ('inherit', 'file', "/a/www/trac-setup/conf/trac.ini"),
+    ('components', 'tracopt.versioncontrol.svn.*', 'enabled'),
+]
+
+TRAC_WIKI_PAGES_TEMPLATES = [
+    "utils/wiki/IetfSpecificFeatures",
+    "utils/wiki/InterMapTxt",
+    "utils/wiki/SvnTracHooks",
+    "utils/wiki/ThisTracInstallation",
+    "utils/wiki/TrainingMaterials",
+    "utils/wiki/WikiStart",
+]
+
+TRAC_ISSUE_SEVERITY_ADD = [
+    "-",
+    "Candidate WG Document",
+    "Active WG Document",
+    "Waiting for Expert Review",
+    "In WG Last Call",
+    "Waiting for Shepherd Writeup",
+    "Submitted WG Document",
+    "Dead WG Document",
+]
+
+SVN_ADMIN_COMMAND = "/usr/bin/svnadmin"
+
+# Email addresses people attempt to set for their account will be checked
+# against the following list of regex expressions with re.search(pat, addr):
+EXLUDED_PERSONAL_EMAIL_REGEX_PATTERNS = ["@ietf.org$"]
+
+MARKUP_SETTINGS = {
+    'restructuredtext': {
+        'settings_overrides': {
+            'initial_header_level': 3,
+            'doctitle_xform': False,
+            'footnote_references': 'superscript',
+            'trim_footnote_reference_space': True,
+            'default_reference_context': 'view',
+            'link_base': ''
+        }
+    }
+}
+
+MAILMAN_LIB_DIR = '/usr/lib/mailman'
+
+# This is the number of seconds required between subscribing to an ietf
+# mailing list and datatracker account creation being accepted
+LIST_ACCOUNT_DELAY = 60*60*25           # 25 hours
+ACCOUNT_REQUEST_EMAIL = 'account-request@ietf.org'
+
+
+SILENCED_SYSTEM_CHECKS = [
+    "fields.W342",  # Setting unique=True on a ForeignKey has the same effect as using a OneToOneField.
+]
+
 
 # Put the production SECRET_KEY in settings_local.py, and also any other
 # sensitive or site-specific changes.  DO NOT commit settings_local.py to svn.
-from settings_local import *            # pyflakes:ignore
+from settings_local import *            # pyflakes:ignore pylint: disable=wildcard-import
+
+for app in INSTALLED_APPS:
+    if app.startswith('ietf'):
+        app_settings_file = os.path.join(BASE_DIR, '../', app.replace('.', os.sep), "settings.py")
+        if os.path.exists(app_settings_file):
+            exec "from %s import *" % (app+".settings")
 
 # Add DEV_APPS to INSTALLED_APPS
 INSTALLED_APPS += DEV_APPS
 INSTALLED_APPS += CODESTAND_APPS
+MIDDLEWARE_CLASSES += DEV_MIDDLEWARE_CLASSES
+TEMPLATES[0]['OPTIONS']['context_processors'] += DEV_TEMPLATE_CONTEXT_PROCESSORS
+
 
 # We provide a secret key only for test and development modes.  It's
 # absolutely vital that django fails to start in production mode unless a
@@ -599,13 +794,19 @@ INSTALLED_APPS += CODESTAND_APPS
 # publicly available, for instance from the source repository.
 if SERVER_MODE != 'production':
     # stomp out the cached template loader, it's annoying
-    TEMPLATE_LOADERS = tuple(l for e in TEMPLATE_LOADERS for l in (e[1] if isinstance(e, tuple) and "cached.Loader" in e[0] else (e,)))
+    loaders = TEMPLATES[0]['OPTIONS']['loaders']
+    loaders = tuple(l for e in loaders for l in (e[1] if isinstance(e, tuple) and "cached.Loader" in e[0] else (e,)))
+    TEMPLATES[0]['OPTIONS']['loaders'] = loaders
 
     CACHES = {
          'default': {
              'BACKEND': 'django.core.cache.backends.dummy.DummyCache',
          }
     }
+    SESSION_ENGINE = "django.contrib.sessions.backends.db"
+
     if 'SECRET_KEY' not in locals():
         SECRET_KEY = 'PDwXboUq!=hPjnrtG2=ge#N$Dwy+wn@uivrugwpic8mxyPfHka'
+
     ALLOWED_HOSTS = ['*',]
+    

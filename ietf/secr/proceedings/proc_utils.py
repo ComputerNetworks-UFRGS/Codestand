@@ -8,9 +8,14 @@ import datetime
 import glob
 import os
 import shutil
+import subprocess
+
+import debug        # pyflakes:ignore
 
 from django.conf import settings
-from django.shortcuts import render_to_response
+from django.http import HttpRequest
+from django.shortcuts import render_to_response, render
+from django.db.utils import ConnectionDoesNotExist
 
 from ietf.doc.models import Document, RelatedDocument, DocEvent, NewRevisionDocEvent, State
 from ietf.group.models import Group, Role
@@ -22,8 +27,8 @@ from ietf.secr.proceedings.models import InterimMeeting    # proxy model
 from ietf.secr.proceedings.models import Registration
 from ietf.secr.utils.document import get_rfc_num
 from ietf.secr.utils.group import groups_by_session
-from ietf.secr.utils.meeting import get_upload_root, get_proceedings_path, get_materials, get_session
-
+from ietf.secr.utils.meeting import get_proceedings_path, get_materials, get_session
+from ietf.utils.log import log
 
 # -------------------------------------------------
 # Helper Functions
@@ -36,11 +41,11 @@ def check_audio_files(group,meeting):
     Example: ietf90-salonb-20140721-1710-pm3.mp3
     
     '''
-    for session in Session.objects.filter(group=group,meeting=meeting,status__in=('sched','schedw')):
-        try:
-            timeslot = session.official_timeslotassignment().timeslot
-        except IndexError:
-            continue
+    for session in Session.objects.filter(group=group,
+                                          meeting=meeting,
+                                          status=('sched'),
+                                          timeslotassignments__schedule=meeting.agenda):
+        timeslot = session.official_timeslotassignment().timeslot
         if not (timeslot.location and timeslot.time):
             continue
         room = timeslot.location.name.lower()
@@ -53,16 +58,16 @@ def check_audio_files(group,meeting):
             url = 'https://www.ietf.org/audio/ietf{}/{}'.format(meeting.number,os.path.basename(file))
             doc = Document.objects.filter(external_url=url).first()
             if not doc:
-                create_recording(session,meeting,group,url)
+                create_recording(session,url)
 
 
-def create_recording(session,meeting,group,url):
+def create_recording(session,url):
     '''
     Creates the Document type=recording, setting external_url and creating
     NewRevisionDocEvent
     '''
-    sequence = get_next_sequence(group,meeting,'recording')
-    name = 'recording-{}-{}-{}'.format(meeting.number,group.acronym,sequence)
+    sequence = get_next_sequence(session.group,session.meeting,'recording')
+    name = 'recording-{}-{}-{}'.format(session.meeting.number,session.group.acronym,sequence)
     time = session.official_timeslotassignment().timeslot.time.strftime('%Y-%m-%d %H:%M')
     if url.endswith('mp3'):
         title = 'Audio recording for {}'.format(time)
@@ -72,10 +77,12 @@ def create_recording(session,meeting,group,url):
     doc = Document.objects.create(name=name,
                                   title=title,
                                   external_url=url,
-                                  group=group,
+                                  group=session.group,
                                   rev='00',
                                   type_id='recording')
     doc.set_state(State.objects.get(type='recording', slug='active'))
+
+    doc.docalias_set.create(name=name)
     
     # create DocEvent
     NewRevisionDocEvent.objects.create(type='new_revision',
@@ -100,97 +107,67 @@ def mycomp(timeslot):
 
 def get_progress_stats(sdate,edate):
     '''
-    This function takes a date range and produces a dictionary of statistics / objects for use
-    in a progress report.  Generally the end date will be the date of the last meeting
+    This function takes a date range and produces a dictionary of statistics / objects for
+    use in a progress report.  Generally the end date will be the date of the last meeting
     and the start date will be the date of the meeting before that.
     '''
     data = {}
     data['sdate'] = sdate
     data['edate'] = edate
 
-    # Activty Report Section
-    new_docs = Document.objects.filter(type='draft').filter(docevent__type='new_revision',
-                                                            docevent__newrevisiondocevent__rev='00',
-                                                            docevent__time__gte=sdate,
-                                                            docevent__time__lt=edate)
-    data['new'] = new_docs.count()
-    data['updated'] = 0
-    data['updated_more'] = 0
-    for d in new_docs:
-        updates = d.docevent_set.filter(type='new_revision',time__gte=sdate,time__lt=edate).count()
-        if updates > 1:
-            data['updated'] += 1
-        if updates > 2:
-            data['updated_more'] +=1
-
-    # calculate total documents updated, not counting new, rev=00
-    result = set()
     events = DocEvent.objects.filter(doc__type='draft',time__gte=sdate,time__lt=edate)
-    for e in events.filter(type='new_revision').exclude(newrevisiondocevent__rev='00'):
-        result.add(e.doc)
-    data['total_updated'] = len(result)
+    
+    data['actions_count'] = events.filter(type='iesg_approved').count()
+    data['last_calls_count'] = events.filter(type='sent_last_call').count()
+    new_draft_events = events.filter(newrevisiondocevent__rev='00')
+    new_drafts = list(set([ e.doc_id for e in new_draft_events ]))
+    data['new_drafts_count'] = len(new_drafts)
+    data['new_drafts_updated_count'] = events.filter(doc__in=new_drafts,newrevisiondocevent__rev='01').count()
+    data['new_drafts_updated_more_count'] = events.filter(doc__in=new_drafts,newrevisiondocevent__rev='02').count()
+    
+    update_events = events.filter(type='new_revision').exclude(doc__in=new_drafts)
+    data['updated_drafts_count'] = len(set([ e.doc_id for e in update_events ]))
+    
+    # Calculate Final Four Weeks stats (ffw)
+    ffwdate = edate - datetime.timedelta(days=28)
+    ffw_new_count = events.filter(time__gte=ffwdate,newrevisiondocevent__rev='00').count()
+    try:
+        ffw_new_percent = format(ffw_new_count / float(data['new_drafts_count']),'.0%')
+    except ZeroDivisionError:
+        ffw_new_percent = 0
+        
+    data['ffw_new_count'] = ffw_new_count
+    data['ffw_new_percent'] = ffw_new_percent
+    
+    ffw_update_events = events.filter(time__gte=ffwdate,type='new_revision').exclude(doc__in=new_drafts)
+    ffw_update_count = len(set([ e.doc_id for e in ffw_update_events ]))
+    try:
+        ffw_update_percent = format(ffw_update_count / float(data['updated_drafts_count']),'.0%')
+    except ZeroDivisionError:
+        ffw_update_percent = 0
+    
+    data['ffw_update_count'] = ffw_update_count
+    data['ffw_update_percent'] = ffw_update_percent
 
-    # calculate sent last call
-    data['last_call'] = events.filter(type='sent_last_call').count()
+    rfcs = events.filter(type='published_rfc')
+    data['rfcs'] = rfcs.select_related('doc').select_related('doc__group').select_related('doc__intended_std_level')
 
-    # calculate approved
-    data['approved'] = events.filter(type='iesg_approved').count()
+    data['counts'] = {'std':rfcs.filter(doc__intended_std_level__in=('ps','ds','std')).count(),
+                      'bcp':rfcs.filter(doc__intended_std_level='bcp').count(),
+                      'exp':rfcs.filter(doc__intended_std_level='exp').count(),
+                      'inf':rfcs.filter(doc__intended_std_level='inf').count()}
 
-    # get 4 weeks
-    ff1_date = edate - datetime.timedelta(days=28)
-    ff_docs = Document.objects.filter(type='draft').filter(docevent__type='new_revision',
-                                                           docevent__newrevisiondocevent__rev='00',
-                                                           docevent__time__gte=ff1_date,
-                                                           docevent__time__lt=edate)
-    ff_new_count = ff_docs.count()
-    ff_new_percent = format(ff_new_count / float(data['new']),'.0%')
-
-    # calculate total documents updated in final four weeks, not counting new, rev=00
-    result = set()
-    events = DocEvent.objects.filter(doc__type='draft',time__gte=ff1_date,time__lt=edate)
-    for e in events.filter(type='new_revision').exclude(newrevisiondocevent__rev='00'):
-        result.add(e.doc)
-    ff_update_count = len(result)
-    ff_update_percent = format(ff_update_count / float(data['total_updated']),'.0%')
-
-    data['ff_new_count'] = ff_new_count
-    data['ff_new_percent'] = ff_new_percent
-    data['ff_update_count'] = ff_update_count
-    data['ff_update_percent'] = ff_update_percent
-
-    # Progress Report Section
-    data['docevents'] = DocEvent.objects.filter(doc__type='draft',time__gte=sdate,time__lt=edate)
-    data['action_events'] = data['docevents'].filter(type='iesg_approved')
-    data['lc_events'] = data['docevents'].filter(type='sent_last_call')
-
-    data['new_groups'] = Group.objects.filter(type='wg',
-                                              groupevent__changestategroupevent__state='active',
-                                              groupevent__time__gte=sdate,
-                                              groupevent__time__lt=edate)
-
-    data['concluded_groups'] = Group.objects.filter(type='wg',
-                                                    groupevent__changestategroupevent__state='conclude',
-                                                    groupevent__time__gte=sdate,
-                                                    groupevent__time__lt=edate)
-
-    data['new_docs'] = Document.objects.filter(type='draft').filter(docevent__type='new_revision',
-                                                                    docevent__time__gte=sdate,
-                                                                    docevent__time__lt=edate).distinct()
-
-    data['rfcs'] = DocEvent.objects.filter(type='published_rfc',
-                                           doc__type='draft',
-                                           time__gte=sdate,
-                                           time__lt=edate)
-
-    # attach the ftp URL for use in the template
-    for event in data['rfcs']:
-        num = get_rfc_num(event.doc)
-        event.ftp_url = 'ftp://ftp.ietf.org/rfc/rfc%s.txt' % num
-
-    data['counts'] = {'std':data['rfcs'].filter(doc__intended_std_level__in=('ps','ds','std')).count(),
-                      'bcp':data['rfcs'].filter(doc__intended_std_level='bcp').count(),
-                      'exp':data['rfcs'].filter(doc__intended_std_level='exp').count(),
-                      'inf':data['rfcs'].filter(doc__intended_std_level='inf').count()}
+    data['new_groups'] = Group.objects.filter(
+        type='wg',
+        groupevent__changestategroupevent__state='active',
+        groupevent__time__gte=sdate,
+        groupevent__time__lt=edate)
+        
+    data['concluded_groups'] = Group.objects.filter(
+        type='wg',
+        groupevent__changestategroupevent__state='conclude',
+        groupevent__time__gte=sdate,
+        groupevent__time__lt=edate)
 
     return data
 
@@ -221,8 +198,8 @@ def create_interim_directory():
 
     # produce date sorted output
     page = 'proceedings.html'
-    meetings = InterimMeeting.objects.order_by('-date')
-    response = render_to_response('proceedings/interim_directory.html',{'meetings': meetings})
+    meetings = InterimMeeting.objects.filter(session__status='sched').order_by('-date')
+    response = render(HttpRequest(), 'proceedings/interim_directory.html',{'meetings': meetings})
     path = os.path.join(settings.SECR_INTERIM_LISTING_DIR, page)
     f = open(path,'w')
     f.write(response.content)
@@ -230,9 +207,9 @@ def create_interim_directory():
 
     # produce group sorted output
     page = 'proceedings-bygroup.html'
-    qs = InterimMeeting.objects.all()
+    qs = InterimMeeting.objects.filter(session__status='sched')
     meetings = sorted(qs, key=lambda a: a.group().acronym)
-    response = render_to_response('proceedings/interim_directory.html',{'meetings': meetings})
+    response = render(HttpRequest(), 'proceedings/interim_directory.html',{'meetings': meetings})
     path = os.path.join(settings.SECR_INTERIM_LISTING_DIR, page)
     f = open(path,'w')
     f.write(response.content)
@@ -261,15 +238,9 @@ def create_proceedings(meeting, group, is_final=False):
 
     docs = Document.objects.filter(group=group,type='draft').order_by('time')
 
-    meeting_root = get_upload_root(meeting)
-    if meeting.type.slug == 'ietf':
-        url_root = "%sproceedings/%s/" % (settings.MEDIA_URL,meeting.number)
-    else:
-        url_root = "%sproceedings/interim/%s/%s/" % (
-            settings.MEDIA_URL,
-            meeting.date.strftime('%Y/%m/%d'),
-            group.acronym)
-    
+    meeting_root = meeting.get_materials_path()
+    url_root = "%sproceedings/%s/" % (settings.IETF_HOST_URL,meeting.number)
+
     # Only do these tasks if we are running official proceedings generation,
     # otherwise skip them for expediency.  This procedure is called any time meeting
     # materials are uploaded/deleted, and we don't want to do all this work each time.
@@ -356,6 +327,7 @@ def create_proceedings(meeting, group, is_final=False):
         charter = None
         ctime = None
 
+    status_update = group.latest_event(type='status_update',time__lte=meeting.get_submission_correction_date())
 
     # rather than return the response as in a typical view function we save it as the snapshot
     # proceedings.html
@@ -371,7 +343,8 @@ def create_proceedings(meeting, group, is_final=False):
         'tas': tas,
         'meeting': meeting,
         'rfcs': rfcs,
-        'materials': materials}
+        'materials': materials,
+        'status_update': status_update,}
     )
 
     # save proceedings
@@ -399,7 +372,7 @@ def gen_areas(context):
 
     # append proceedings URL
     for group in gmet + gnot:
-        group.proceedings_url = "%sproceedings/%s/%s.html" % (settings.MEDIA_URL,meeting.number,group.acronym)
+        group.proceedings_url = "%sproceedings/%s/%s.html" % (settings.IETF_HOST_URL,meeting.number,group.acronym)
 
     for (counter,area) in enumerate(context['areas'], start=1):
         groups_met = {'wg':filter(lambda a: a.parent==area and a.state.slug not in ('bof','bof-conc') and a.type_id=='wg',gmet),
@@ -454,6 +427,12 @@ def gen_attendees(context):
     meeting = context['meeting']
 
     attendees = Registration.objects.using('ietf' + meeting.number).all().order_by('lname')
+
+    if settings.SERVER_MODE!='production':
+        try:
+            attendees.count()
+        except ConnectionDoesNotExist:
+            attendees = Registration.objects.none()
 
     html = render_to_response('proceedings/attendee.html',{
         'meeting': meeting,
@@ -570,7 +549,7 @@ def gen_research(context):
 
     # append proceedings URL
     for group in groups:
-        group.proceedings_url = "%sproceedings/%s/%s.html" % (settings.MEDIA_URL,meeting.number,group.acronym)
+        group.proceedings_url = "%sproceedings/%s/%s.html" % (settings.IETF_HOST_URL,meeting.number,group.acronym)
 
     html = render_to_response('proceedings/rg_irtf.html',{
         'meeting': meeting,
@@ -596,3 +575,34 @@ def gen_training(context):
         path = os.path.join(settings.SECR_PROCEEDINGS_DIR,meeting.number,'train-%s.html' % counter )
         write_html(path,html.content)
 
+def is_powerpoint(doc):
+    '''
+    Returns true if document is a Powerpoint presentation
+    '''
+    return doc.file_extension() in ('ppt','pptx')
+
+def post_process(doc):
+    '''
+    Does post processing on uploaded file.
+    - Convert PPT to PDF
+    '''
+    if is_powerpoint(doc) and hasattr(settings,'SECR_PPT2PDF_COMMAND'):
+        try:
+            cmd = settings.SECR_PPT2PDF_COMMAND
+            cmd.append(doc.get_file_path())                                 # outdir
+            cmd.append(os.path.join(doc.get_file_path(),doc.external_url))  # filename
+            subprocess.check_call(cmd)
+        except (subprocess.CalledProcessError, OSError) as error:
+            log("Error converting PPT: %s" % (error))
+            return
+        # change extension
+        base,ext = os.path.splitext(doc.external_url)
+        doc.external_url = base + '.pdf'
+
+        e = DocEvent.objects.create(
+            type='changed_document',
+            by=Person.objects.get(name="(System)"),
+            doc=doc,
+            desc='Converted document to PDF',
+        )
+        doc.save_with_history([e])

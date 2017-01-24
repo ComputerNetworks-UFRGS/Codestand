@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/env python
 # -*- python -*-
 """
 NAME
@@ -38,7 +38,17 @@ COPYRIGHT
 """
 from __future__ import print_function
 
-import sys, os.path, getopt, re, tzparse, pytz
+import sys
+import os
+
+path = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+if not path in sys.path:
+    sys.path.insert(0, path)
+
+import getopt
+import re
+import pytz
+import tzparse
 import debug
 
 version = "0.20"
@@ -125,14 +135,18 @@ def pipe(cmd, inp=None):
     return out
 
 def split_loginfo(line):
-    parts = line.split()
-    rev = parts[0][1:]
-    who = parts[2]
-    date = parts[4]
-    time = parts[5]
-    tz   = parts[6]
-    when = tzparse.tzparse(" ".join(parts[4:7]), "%Y-%m-%d %H:%M:%S %Z")
-    when = when.astimezone(pytz.utc)
+    try:
+        parts = line.split()
+        rev  = parts[0][1:]
+        who  = parts[2]
+        date = parts[4]
+        time = parts[5]
+        tz   = parts[6]
+        when = tzparse.tzparse(" ".join(parts[4:7]), "%Y-%m-%d %H:%M:%S %Z")
+        when = when.astimezone(pytz.utc)
+    except ValueError as e:
+        sys.stderr.write("Bad log line format: %s\n  %s\n" % (line, e))
+
     return rev, who, when
 
 # ----------------------------------------------------------------------
@@ -151,17 +165,22 @@ head = int(svn_info['Revision'])
 cachefn = os.path.join(os.environ.get('HOME', '.'), '.mergeinfo')
 
 if os.path.exists(cachefn):
+    note("Reading mergeinfo cache file %s" % cachefn)
     with open(cachefn, "r") as file:
         cache = json.load(file)
 else:
     sys.stderr.write("No merge info cache file found -- will have to extract all information from SVN.\n"+
         "This may take some time.\n\n")
+    opt_verbose = True
     cache = {}
 mergeinfo = cache[repo] if repo in cache else {}
 
 merged_revs = {}
 write_cache = False
+note("Getting svn:mergeinfo for current branch")
 for line in pipe('svn propget svn:mergeinfo .').splitlines():
+    if opt_verbose:
+        sys.stderr.write('.')
     if line in mergeinfo:
         merged = mergeinfo[line]
     else:
@@ -190,7 +209,11 @@ if write_cache:
     with open(cachefn, "w") as file:
         json.dump(cache, file, indent=2, sort_keys=True)
 
-def get_list(repo, filename):
+def get_changeset_list_from_file(repo, filename):
+    """
+    This is used to read changesets to hold or merge from the ready-for-merge
+    and hold-for-merge files.
+    """
     list = []
     note("Reading list from '%s'" % filename)
     with open(filename) as file:
@@ -228,15 +251,18 @@ def get_ready_commits(repo, tree):
         note("Running '%s' ..." % cmd)
     commit_log = pipe(cmd)
     for line in commit_log.splitlines():
-        if re.search('^r[0-9]+ ', line):
+        if re.search('^r[0-9]+ \|', line):
             rev, who, when = split_loginfo(line)
             branch = None
             continue
         if (line.startswith('   M') or line.startswith('   A') or line.startswith('   D')) and branch == None:
             type, path = line[:4], line[5:]
+            if ' (from ' in path:
+                i = path.index(' (from ')
+                path = path[:i]
             branch = '/'.join(path.split('/')[1:4])
         elif re.search("(?i)((commit|branch) ready (for|to) merge)", line):
-            if not (rev in merged_revs and branch == merged_revs[rev]):
+            if not rev in merged_revs:
                 note("   %s  %s: %s@%s" % (when.strftime("%Y-%m-%d %H:%MZ"), who, branch, rev))
                 list += [(rev, repo, branch),]
             elif rev in merged_revs and not branch == merged_revs[rev]:
@@ -248,21 +274,28 @@ def get_ready_commits(repo, tree):
             
     return list
     
-ready  = get_list(repo, 'ready-for-merge')
-hold   = get_list(repo, 'hold-for-merge')
+ready  = get_changeset_list_from_file(repo, 'ready-for-merge')
+hold   = get_changeset_list_from_file(repo, 'hold-for-merge')
 ready += get_ready_commits(repo, 'personal')
 ready += get_ready_commits(repo, 'branch/amsl')
 ready += get_ready_commits(repo, 'branch/iola')
+ready += get_ready_commits(repo, 'branch/proceedings')
 
 ready_commits = {}
+all_commits = {}
 not_passed = {}
+branches = set()
 for entry in ready:
     rev, repo, branch = entry
+    branches.add(branch)
     # Get the time, committer, and commit message
     cmd = 'svn log -v -r %s %s/%s/' % (rev, repo, branch)
     if opt_verbose > 1:
         note("Running '%s' ..." % cmd)
-    loginfo = pipe(cmd).splitlines()
+    try:
+        loginfo = pipe(cmd).splitlines()
+    except OSError:
+        continue
     try:
         rev, who, when = split_loginfo(loginfo[1])
     except IndexError:
@@ -270,6 +303,9 @@ for entry in ready:
     for line in loginfo[3:]:
         type, path = line[:4], line[5:]
         if 'M' in type or 'A' in type or 'D' in type:
+            if ' (from ' in path:
+                i = path.index(' (from ')
+                path = path[:i]
             break
     # Get the test status
     try:
@@ -284,11 +320,55 @@ for entry in ready:
     # 
     merge_path = os.path.join(*path.split(os.path.sep)[:4])
     if not (rev, repo, merge_path) in hold:
-        output_line = "%s  %-24s %s@%s" % (when.strftime("%Y-%m-%d_%H:%MZ"), who+":", merge_path, rev)
+        output_line = "%s  %-24s ^/%s@%s" % (when.strftime("%Y-%m-%d_%H:%MZ"), who+":", merge_path, rev)
+        all_commits[when] = (rev, repo, branch, who, merge_path)
         if unittest == 'passed':
             ready_commits[when] = output_line
         else:
             not_passed[when] = output_line
+unmerged_branch_commits = {}
+for branch in branches:
+    note("Fetching commit information for branch %s" % branch)
+    commits = []
+    cmd = 'svn log -v -r 0:HEAD --stop-on-copy %s/%s/' % (repo, branch)
+    commit_log = pipe(cmd)
+    rev = None
+    mod = False
+    for line in commit_log.splitlines():
+        if re.search('^r[0-9]+ ', line):
+            rev, who, when = split_loginfo(line)
+        elif re.search('^   [AMD]', line):
+            if not ' (from ' in line and not mod:
+                mod = True
+        elif re.search('^-{72}$', line) and rev and mod:
+            if not rev in merged_revs:
+                commits.append(rev)
+            rev = None
+            mod = False
+    commits.sort()
+    unmerged_branch_commits[branch] = commits
+
+keys = all_commits.keys()
+keys.sort()
+# Check that we don't have holes in the commit list -- commits not mentioned
+# as ready for merge, and not already merged, earlier than a waiting commit.
+unmerged = False
+for key in keys:
+    (rev, repo, branch, who, merge_path) = all_commits[key]
+    i = unmerged_branch_commits[branch].index(rev)
+    if not i == 0:
+        unmerged = True
+        sys.stderr.write("There are unmerged commits ahead of r%s on branch %s:\n" % (rev, branch))
+        for j in range(0,i):
+            commit = unmerged_branch_commits[branch][j]
+            if commit != rev:
+                sys.stderr.write("  %s:\n" % commit)
+                commit_comment = pipe("svn log -c %s ^/" % commit).splitlines()[3:-1]
+                for l in commit_comment:
+                    sys.stderr.write("    %s\n" % l)
+        unmerged_branch_commits[branch] = unmerged_branch_commits[branch][i:]
+        sys.stderr.write("\n")
+    del unmerged_branch_commits[branch][0]
 
 keys = not_passed.keys()
 keys.sort()

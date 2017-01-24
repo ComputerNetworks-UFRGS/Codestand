@@ -26,10 +26,11 @@ General Instructions for Deployment of a New Release
 
       cd $releasenumber
 
-    Optionally set up a Python virtual environment::
+    It is recommended set up a Python virtual environment 
+    under $releasenumber/env/::
 
-      virtualenv .		# optional
-      source bin/activate	# optional
+      virtualenv env	# optional
+      source env/bin/activate			# optional
 
  4. Install requirements (make sure your pip is reasonably fresh first).
     The following will install required python modules locally if you
@@ -41,7 +42,11 @@ General Instructions for Deployment of a New Release
 
       ietf/manage.py collectstatic
 
- 6. Run migrations::
+ 6. Run migrations.  Some migration create files which need to be writeable
+    by the web servers, so make sure that you're running as wwwrun when
+    doing this::
+
+      sudo su - wwwrun -s /bin/bash
 
       ietf/manage.py migrate
 
@@ -55,9 +60,9 @@ General Instructions for Deployment of a New Release
       rm ./web
       ln -s $releasenumber web
 
- 9. Restart apache::
+ 9. Reload apache::
 
-      sudo /etc/init.d/apache2 restart
+      sudo service apache2 reload
 
  10. It's now also a good idea to go to the datatracker front page::
 

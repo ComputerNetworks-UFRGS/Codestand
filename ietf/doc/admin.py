@@ -3,7 +3,11 @@ from django.utils.safestring import mark_safe
 from django.contrib import admin
 from django import forms
 
-from models import *                    # pyflakes:ignore
+from models import (StateType, State, DocAlias, DocumentAuthor, RelatedDocument,
+    Document, DocHistory, BallotType, DocEvent,  NewRevisionDocEvent, StateDocEvent,
+    ConsensusDocEvent, BallotDocEvent, WriteupDocEvent, LastCallDocEvent,
+    TelechatDocEvent, BallotPositionDocEvent)
+
 from ietf.doc.utils import get_state_types
 
 class StateTypeAdmin(admin.ModelAdmin):
@@ -76,6 +80,9 @@ class StatesField(forms.ModelMultipleChoiceField):
     
 class DocumentForm(forms.ModelForm):
     states = StatesField(queryset=State.objects.all(), required=False)
+    comment_about_changes = forms.CharField(
+        widget=forms.Textarea(attrs={'rows':10,'cols':40,'class':'vLargeTextField'}),
+        help_text="This comment about the changes made will be saved in the document history.")
     
     def __init__(self, *args, **kwargs):
         super(DocumentForm, self).__init__(*args, **kwargs)
@@ -95,6 +102,15 @@ class DocumentAdmin(admin.ModelAdmin):
     raw_id_fields = ['authors', 'group', 'shepherd', 'ad']
     inlines = [DocAliasInline, DocAuthorInline, RelatedDocumentInline, ]
     form = DocumentForm
+
+    def save_model(self, request, obj, form, change):
+        e = DocEvent.objects.create(
+                doc=obj,
+                by=request.user.person,
+                type='changed_document',
+                desc=form.cleaned_data.get('comment_about_changes'),
+            )
+        obj.save_with_history([e])
 
     def state(self, instance):
         return self.get_state()
@@ -133,11 +149,16 @@ admin.site.register(BallotType, BallotTypeAdmin)
 
 class DocEventAdmin(admin.ModelAdmin):
     def rev(self, obj):
-        return obj.doc.rev
-    list_display = ["doc", "type", "rev", "by", "time"]
+        h = obj.get_dochistory()
+        return h.rev if h else ""
+    def doc_time(self, obj):
+        h = obj.get_dochistory()
+        return h.time if h else ""
+    def short_desc(self, obj):
+        return obj.desc[:32]
+    list_display = ["id", "doc", "type", "rev", "by", "time", "doc_time", "short_desc" ]
     search_fields = ["doc__name", "by__name"]
     raw_id_fields = ["doc", "by"]
-
 admin.site.register(DocEvent, DocEventAdmin)
 
 admin.site.register(NewRevisionDocEvent, DocEventAdmin)
@@ -150,6 +171,10 @@ admin.site.register(TelechatDocEvent, DocEventAdmin)
 
 class BallotPositionDocEventAdmin(DocEventAdmin):
     raw_id_fields = ["doc", "by", "ad", "ballot"]
-
 admin.site.register(BallotPositionDocEvent, BallotPositionDocEventAdmin)
+    
+class DocumentAuthorAdmin(admin.ModelAdmin):
+    list_display = ['id', 'document', 'author', 'order']
+    search_fields = [ 'document__name', 'author__address', ]
+admin.site.register(DocumentAuthor, DocumentAuthorAdmin)
     

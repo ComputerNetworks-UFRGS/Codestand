@@ -1,7 +1,12 @@
-from django.http import HttpResponse
-from django.db.models import Q
+import datetime
 
-from ietf.person.models import Email, Person
+from django.db.models import Q
+from django.http import HttpResponse, Http404
+from django.shortcuts import render, get_object_or_404
+
+import debug                            # pyflakes:ignore
+
+from ietf.person.models import Email, Person, Alias
 from ietf.person.fields import select2_id_name_json
 
 def ajax_select2_search(request, model_name):
@@ -29,9 +34,12 @@ def ajax_select2_search(request, model_name):
 
     # require an account at the Datatracker
     only_users = request.GET.get("user") == "1"
+    all_emails = request.GET.get("a", "0") == "1"
 
     if model == Email:
-        objs = objs.filter(active=True).order_by('person__name').exclude(person=None)
+        objs = objs.exclude(person=None).order_by('person__name')        
+        if not all_emails:
+            objs = objs.filter(active=True)
         if only_users:
             objs = objs.exclude(person__user=None)
     elif model == Person:
@@ -47,3 +55,14 @@ def ajax_select2_search(request, model_name):
     objs = objs.distinct()[page:page + 10]
 
     return HttpResponse(select2_id_name_json(objs), content_type='application/json')
+
+def profile(request, email_or_name):
+
+    if '@' in email_or_name:
+        persons = [ get_object_or_404(Email, address=email_or_name).person, ]
+    else:
+        aliases = Alias.objects.filter(name=email_or_name)
+        persons = list(set([ a.person for a in aliases ]))
+        if not persons:
+            raise Http404
+    return render(request, 'person/profile.html', {'persons': persons, 'today':datetime.date.today()})

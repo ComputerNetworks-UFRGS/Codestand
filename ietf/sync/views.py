@@ -3,18 +3,18 @@ import subprocess
 import os
 import json
 
-from django.http import HttpResponse, HttpResponseForbidden, HttpResponseServerError, HttpResponseRedirect, Http404
-from django.shortcuts import render_to_response
-from django.template import RequestContext
+from django.http import HttpResponse, HttpResponseForbidden, HttpResponseRedirect, Http404
+from django.shortcuts import render
 from django.conf import settings
 from django.contrib.auth.models import User
 from django.contrib.contenttypes.models import ContentType
 from django.views.decorators.csrf import csrf_exempt
 
-from ietf.doc.models import DeletedEvent, StateDocEvent
+from ietf.doc.models import DeletedEvent, StateDocEvent, DocEvent
 from ietf.ietfauth.utils import role_required, has_role
 from ietf.sync.discrepancies import find_discrepancies
 from ietf.utils.serialize import object_as_shallow_dict
+from ietf.utils.log import log
 
 SYNC_BIN_PATH = os.path.abspath(os.path.join(os.path.dirname(os.path.abspath(__file__)), "../bin"))
 
@@ -22,9 +22,7 @@ SYNC_BIN_PATH = os.path.abspath(os.path.join(os.path.dirname(os.path.abspath(__f
 def discrepancies(request):
     sections = find_discrepancies()
 
-    return render_to_response("sync/discrepancies.html",
-                              dict(sections=sections),
-                              context_instance=RequestContext(request))
+    return render(request, "sync/discrepancies.html", dict(sections=sections))
 
 @csrf_exempt # external API so we can't expect the other end to have a token
 def notify(request, org, notification):
@@ -75,44 +73,51 @@ def notify(request, org, notification):
 
     if request.method == "POST":
         def runscript(name):
-            p = subprocess.Popen(["python", os.path.join(SYNC_BIN_PATH, name)],
-                                 stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
-            out, _ = p.communicate()
-            return (p.returncode, out)
+            cmd = ["python", os.path.join(SYNC_BIN_PATH, name)]
+            cmdstring = " ".join(cmd)
+            p = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+            out, err = p.communicate()
+            if p.returncode:
+                log("Subprocess error %s when running '%s': %s %s" % (p.returncode, cmd, err, out))
+                raise subprocess.CalledProcessError(p.returncode, cmdstring, "\n".join([err, out]))
 
-        import syslog
-        syslog.syslog("Running sync script from notify view POST")
+        log("Running sync script from notify view POST")
 
         if notification == "protocols":
-            failed, out = runscript("iana-protocols-updates")
+            runscript("iana-protocols-updates")
 
         if notification == "changes":
-            failed, out = runscript("iana-changes-updates")
+            runscript("iana-changes-updates")
 
         if notification == "queue":
-            failed, out = runscript("rfc-editor-queue-updates")
+            runscript("rfc-editor-queue-updates")
 
         if notification == "index":
-            failed, out = runscript("rfc-editor-index-updates")
+            runscript("rfc-editor-index-updates")
 
-        if failed:
-            return HttpResponseServerError("FAIL\n\n" + out, content_type="text/plain; charset=%s"%settings.DEFAULT_CHARSET)
-        else:
-            return HttpResponse("OK", content_type="text/plain; charset=%s"%settings.DEFAULT_CHARSET)
+        return HttpResponse("OK", content_type="text/plain; charset=%s"%settings.DEFAULT_CHARSET)
 
-    return render_to_response('sync/notify.html',
-                              dict(org=known_orgs[org],
-                                   notification=notification,
-                                   help_text=known_notifications[notification],
-                                   ),
-                              context_instance=RequestContext(request))
+    return render(request, 'sync/notify.html',
+                  dict(org=known_orgs[org],
+                       notification=notification,
+                       help_text=known_notifications[notification],
+                  ))
 
 @role_required('Secretariat', 'RFC Editor')
 def rfceditor_undo(request):
     """Undo a DocEvent."""
-    events = StateDocEvent.objects.filter(state_type="draft-rfceditor",
-                                          time__gte=datetime.datetime.now() - datetime.timedelta(weeks=1)
-                                          ).order_by("-time", "-id")
+    events = []
+    events.extend(StateDocEvent.objects.filter(
+        state_type="draft-rfceditor",
+        time__gte=datetime.datetime.now() - datetime.timedelta(weeks=1)
+    ).order_by("-time", "-id"))
+
+    events.extend(DocEvent.objects.filter(
+        type="sync_from_rfc_editor",
+        time__gte=datetime.datetime.now() - datetime.timedelta(weeks=1)
+    ).order_by("-time", "-id"))
+
+    events.sort(key=lambda e: (e.time, e.id), reverse=True)
 
     if request.method == "POST":
         try:
@@ -120,9 +125,10 @@ def rfceditor_undo(request):
         except ValueError:
             return HttpResponse("Could not parse event id")
 
-        try:
-            e = events.get(id=eid)
-        except StateDocEvent.DoesNotExist:
+        for e in events:
+            if e.id == eid:
+                break
+        else:
             return HttpResponse("Event does not exist")
 
         doc = e.doc
@@ -145,7 +151,4 @@ def rfceditor_undo(request):
 
         return HttpResponseRedirect("")
 
-    return render_to_response('sync/rfceditor_undo.html',
-                              dict(events=events,
-                                   ),
-                              context_instance=RequestContext(request))
+    return render(request, 'sync/rfceditor_undo.html', dict(events=events))

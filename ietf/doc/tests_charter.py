@@ -8,9 +8,13 @@ from pyquery import PyQuery
 from django.conf import settings
 from django.core.urlresolvers import reverse as urlreverse
 
+import debug                            # pyflakes:ignore
+
 from ietf.doc.models import ( Document, State, BallotDocEvent, BallotType, NewRevisionDocEvent,
     TelechatDocEvent, WriteupDocEvent )
-from ietf.doc.utils_charter import next_revision, default_review_text, default_action_text 
+from ietf.doc.utils_charter import ( next_revision, default_review_text, default_action_text,
+    charter_name_for_group )
+from ietf.doc.utils import close_open_ballots
 from ietf.group.models import Group, GroupMilestone
 from ietf.iesg.models import TelechatDate
 from ietf.person.models import Person
@@ -23,10 +27,16 @@ class EditCharterTests(TestCase):
     def setUp(self):
         self.charter_dir = os.path.abspath("tmp-charter-dir")
         os.mkdir(self.charter_dir)
+        self.saved_charter_path = settings.CHARTER_PATH
         settings.CHARTER_PATH = self.charter_dir
 
     def tearDown(self):
+        settings.CHARTER_PATH = self.saved_charter_path
         shutil.rmtree(self.charter_dir)
+
+    def write_charter_file(self, charter):
+        with open(os.path.join(self.charter_dir, "%s-%s.txt" % (charter.canonical_name(), charter.rev)), "w") as f:
+            f.write("This is a charter.")
 
     def test_startstop_process(self):
         make_test_data()
@@ -44,6 +54,8 @@ class EditCharterTests(TestCase):
             self.assertEqual(r.status_code, 200)
 
             # post
+            self.write_charter_file(charter)
+
             r = self.client.post(url, dict(message="test message"))
             self.assertEqual(r.status_code, 302)
             if option == "abandon":
@@ -95,21 +107,44 @@ class EditCharterTests(TestCase):
 
             self.assertTrue("state changed" in find_event("changed_state")[0].desc.lower())
 
-            if slug in ("intrev", "iesgrev"):
+            if slug in ("intrev", "extrev"):
                 self.assertTrue(find_event("created_ballot"))
 
             self.assertEqual(len(outbox), 3 if slug=="intrev" else 2 )
 
             if slug=="intrev":
-                self.assertTrue("Internal WG Review" in outbox[-3]['Subject'])
-                self.assertTrue(all([x in outbox[-3]['To'] for x in ['iab@','iesg@']]))
-                self.assertTrue("A new IETF working" in outbox[-3].get_payload())
+                self.assertIn("Internal WG Review", outbox[-3]['Subject'])
+                self.assertIn("iab@", outbox[-3]['To'])
+                self.assertIn("iesg@", outbox[-3]['To'])
+                self.assertIn("A new IETF WG", outbox[-3].get_payload())
+                body = outbox[-3].get_payload()
+                for word in ["Chairs", "Ames Man <ameschairman@ietf.org>",
+                    "Secretaries", "Secretary <amessecretary@ietf.org>",
+                    "Assigned Area Director", "Areað Irector <aread@ietf.org>",
+                    "Mailing list", "ames-wg@ietf.org",
+                    "Charter", "Milestones"]:
+                    self.assertIn(word, body)
 
-            self.assertTrue("state changed" in outbox[-2]['Subject'].lower())
-            self.assertTrue("iesg-secretary@" in outbox[-2]['To'])
+            self.assertIn("state changed", outbox[-2]['Subject'].lower())
+            self.assertIn("iesg-secretary@", outbox[-2]['To'])
+            body = outbox[-2].get_payload()
+            for word in ["WG", "Charter", ]:
+                self.assertIn(word, body)
 
-            self.assertTrue("State Update Notice" in outbox[-1]['Subject'])
-            self.assertTrue("ames-chairs@" in outbox[-1]['To'])
+            self.assertIn("State Update Notice", outbox[-1]['Subject'])
+            self.assertIn("ames-chairs@", outbox[-1]['To'])
+            body = outbox[-1].get_payload()
+            for word in ["State changed", "ID Tracker URL", ]:
+                self.assertIn(word, body)
+
+        by = Person.objects.get(user__username="secretary")
+        for slug in ('extrev','iesgrev'):
+            close_open_ballots(charter,by)
+            r = self.client.post(url, dict(charter_state=str(State.objects.get(used=True,type='charter',slug=slug).pk) ))
+            self.assertTrue(r.status_code,302)
+            charter = Document.objects.get(name="charter-ietf-%s" % group.acronym)
+            self.assertTrue(charter.ballot_open('approve'))
+
 
         # Exercise internal review of a recharter
         group = Group.objects.get(acronym="mars")
@@ -284,6 +319,40 @@ class EditCharterTests(TestCase):
             self.assertEqual(f.read(),
                               "Windows line\nMac line\nUnix line\n" + utf_8_snippet)
 
+    def test_submit_initial_charter(self):
+        make_test_data()
+
+        group = Group.objects.get(acronym="mars")
+        # get rid of existing charter
+        charter = group.charter
+        group.charter = None
+        group.save()
+        charter.delete()
+        charter = None
+
+        url = urlreverse('charter_submit', kwargs=dict(name=charter_name_for_group(group)))
+        login_testing_unauthorized(self, "secretary", url)
+
+        # normal get
+        r = self.client.get(url)
+        self.assertEqual(r.status_code, 200)
+        q = PyQuery(r.content)
+        self.assertEqual(len(q('form input[name=txt]')), 1)
+
+        # create charter
+        test_file = StringIO("Simple test")
+        test_file.name = "unnamed"
+
+        r = self.client.post(url, dict(txt=test_file))
+        self.assertEqual(r.status_code, 302)
+
+        charter = Document.objects.get(name="charter-ietf-%s" % group.acronym)
+        self.assertEqual(charter.rev, "00-00")
+        self.assertTrue("new_revision" in charter.latest_event().type)
+
+        group = Group.objects.get(pk=group.pk)
+        self.assertEqual(group.charter, charter)
+
     def test_edit_review_announcement_text(self):
         draft = make_test_data()
         charter = draft.group.charter
@@ -396,7 +465,8 @@ class EditCharterTests(TestCase):
         url = urlreverse('ietf.doc.views_charter.ballot_writeupnotes', kwargs=dict(name=charter.name))
         login_testing_unauthorized(self, "secretary", url)
 
-        default_action_text(draft.group, charter, by)
+        e = default_action_text(draft.group, charter, by)
+        e.save()
 
         # normal get
         r = self.client.get(url)
@@ -428,8 +498,7 @@ class EditCharterTests(TestCase):
         url = urlreverse('charter_approve', kwargs=dict(name=charter.name))
         login_testing_unauthorized(self, "secretary", url)
 
-        with open(os.path.join(self.charter_dir, "%s-%s.txt" % (charter.canonical_name(), charter.rev)), "w") as f:
-            f.write("This is a charter.")
+        self.write_charter_file(charter)
 
         p = Person.objects.get(name="Areað Irector")
 
@@ -486,11 +555,24 @@ class EditCharterTests(TestCase):
         self.assertTrue(os.path.exists(os.path.join(self.charter_dir, "charter-ietf-%s-%s.txt" % (group.acronym, charter.rev))))
 
         self.assertEqual(len(outbox), 2)
+        #
         self.assertTrue("approved" in outbox[0]['Subject'].lower())
         self.assertTrue("iesg-secretary" in outbox[0]['To'])
+        body = outbox[0].get_payload()
+        for word in ["WG",   "/wg/ames/charter/",
+            "Charter", "/doc/charter-ietf-ames/", ]:
+            self.assertIn(word, body)
+        #
         self.assertTrue("WG Action" in outbox[1]['Subject'])
         self.assertTrue("ietf-announce" in outbox[1]['To'])
         self.assertTrue("ames-wg@ietf.org" in outbox[1]['Cc'])
+        body = outbox[1].get_payload()
+        for word in ["Chairs", "Ames Man <ameschairman@ietf.org>",
+            "Secretaries", "Secretary <amessecretary@ietf.org>",
+            "Assigned Area Director", "Areað Irector <aread@ietf.org>",
+            "Area Directors", "Mailing list", "ames-wg@ietf.org",
+            "Charter", "/doc/charter-ietf-ames/", "Milestones"]:
+            self.assertIn(word, body)
 
         self.assertEqual(group.groupmilestone_set.filter(state="charter").count(), 0)
         self.assertEqual(group.groupmilestone_set.filter(state="active").count(), 2)

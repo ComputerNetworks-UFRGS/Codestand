@@ -8,6 +8,7 @@ from django.core.urlresolvers import reverse as urlreverse
 
 from ietf.doc.models import ( Document, State, DocEvent, BallotDocEvent,
     BallotPositionDocEvent, LastCallDocEvent, WriteupDocEvent, TelechatDocEvent )
+from ietf.doc.factories import DocumentFactory
 from ietf.group.models import Group, Role
 from ietf.name.models import BallotPositionName
 from ietf.iesg.models import TelechatDate
@@ -126,7 +127,7 @@ class EditPositionTests(TestCase):
     def test_send_ballot_comment(self):
         draft = make_test_data()
         draft.notify = "somebody@example.com"
-        draft.save()
+        draft.save_with_history([DocEvent.objects.create(doc=draft, type="changed_document", by=Person.objects.get(user__username="secretary"), desc="Test")])
 
         ad = Person.objects.get(name="Areað Irector")
 
@@ -218,8 +219,8 @@ class BallotWriteupsTests(TestCase):
                 regenerate_last_call_text="1"))
         self.assertEqual(r.status_code, 200)
         q = PyQuery(r.content)
-        draft = Document.objects.get(name=draft.name)
-        self.assertTrue("Subject: Last Call" in draft.latest_event(WriteupDocEvent, type="changed_last_call_text").text)
+        text = q("[name=last_call_text]").text()
+        self.assertTrue("Subject: Last Call" in text)
 
 
     def test_request_last_call(self):
@@ -230,12 +231,14 @@ class BallotWriteupsTests(TestCase):
         # give us an announcement to send
         r = self.client.post(url, dict(regenerate_last_call_text="1"))
         self.assertEqual(r.status_code, 200)
-        
+        q = PyQuery(r.content)
+        text = q("[name=last_call_text]").text()
+
         mailbox_before = len(outbox)
 
         # send
         r = self.client.post(url, dict(
-                last_call_text=draft.latest_event(WriteupDocEvent, type="changed_last_call_text").text,
+                last_call_text=text,
                 send_last_call_request="1"))
         draft = Document.objects.get(name=draft.name)
         self.assertEqual(draft.get_state_slug("draft-iesg"), "lc-req")
@@ -273,6 +276,45 @@ class BallotWriteupsTests(TestCase):
         self.assertEqual(r.status_code, 200)
         draft = Document.objects.get(name=draft.name)
         self.assertTrue("This is a simple test" in draft.latest_event(WriteupDocEvent, type="changed_ballot_writeup_text").text)
+
+    def test_edit_ballot_rfceditornote(self):
+        draft = make_test_data()
+        url = urlreverse('doc_ballot_rfceditornote', kwargs=dict(name=draft.name))
+        login_testing_unauthorized(self, "secretary", url)
+
+        # add a note to the RFC Editor
+        WriteupDocEvent.objects.create(
+            doc=draft,
+            desc="Changed text",
+            type="changed_rfc_editor_note_text",
+            text="This is a note for the RFC Editor.",
+            by=Person.objects.get(name="(System)"))
+
+        # normal get
+        r = self.client.get(url)
+        self.assertEqual(r.status_code, 200)
+        q = PyQuery(r.content)
+        self.assertEqual(len(q('textarea[name=rfc_editor_note]')), 1)
+        self.assertTrue(q('[type=submit]:contains("Save")'))
+        self.assertTrue("<label class=\"control-label\">RFC Editor Note</label>" in r.content)
+        self.assertTrue("This is a note for the RFC Editor" in r.content)
+
+        # save with a note
+        r = self.client.post(url, dict(
+                rfc_editor_note="This is a simple test.",
+                save_ballot_rfceditornote="1"))
+        self.assertEqual(r.status_code, 200)
+        draft = Document.objects.get(name=draft.name)
+        self.assertTrue(draft.has_rfc_editor_note())
+        self.assertTrue("This is a simple test" in draft.latest_event(WriteupDocEvent, type="changed_rfc_editor_note_text").text)
+
+        # clear the existing note
+        r = self.client.post(url, dict(
+                rfc_editor_note=" ",
+                clear_ballot_rfceditornote="1"))
+        self.assertEqual(r.status_code, 200)
+        draft = Document.objects.get(name=draft.name)
+        self.assertFalse(draft.has_rfc_editor_note())
 
     def test_issue_ballot(self):
         draft = make_test_data()
@@ -319,7 +361,6 @@ class BallotWriteupsTests(TestCase):
         # test regenerate
         r = self.client.post(url, dict(regenerate_approval_text="1"))
         self.assertEqual(r.status_code, 200)
-        draft = Document.objects.get(name=draft.name)
         self.assertTrue("Subject: Protocol Action" in draft.latest_event(WriteupDocEvent, type="changed_ballot_approval_text").text)
 
         # test regenerate when it's a disapprove
@@ -327,20 +368,114 @@ class BallotWriteupsTests(TestCase):
 
         r = self.client.post(url, dict(regenerate_approval_text="1"))
         self.assertEqual(r.status_code, 200)
-        draft = Document.objects.get(name=draft.name)
         self.assertTrue("NOT be published" in draft.latest_event(WriteupDocEvent, type="changed_ballot_approval_text").text)
 
         # test regenerate when it's a conflict review
         draft.group = Group.objects.get(type="individ")
         draft.stream_id = "irtf"
-        draft.save()
         draft.set_state(State.objects.get(used=True, type="draft-iesg", slug="iesg-eva"))
+        draft.save_with_history([DocEvent.objects.create(doc=draft, type="changed_document", by=Person.objects.get(user__username="secretary"), desc="Test")])
 
         r = self.client.post(url, dict(regenerate_approval_text="1"))
         self.assertEqual(r.status_code, 200)
-        draft = Document.objects.get(name=draft.name)
         self.assertTrue("Subject: Results of IETF-conflict review" in draft.latest_event(WriteupDocEvent, type="changed_ballot_approval_text").text)
         
+    def test_edit_verify_permissions(self):
+
+        def verify_fail(username, url):
+            if username:
+                self.client.login(username=username, password=username+"+password")
+            r = self.client.get(url)
+            self.assertEqual(r.status_code,403)
+
+        def verify_can_see(username, url):
+            self.client.login(username=username, password=username+"+password")
+            r = self.client.get(url)
+            self.assertEqual(r.status_code,200)
+            q = PyQuery(r.content)
+            self.assertEqual(len(q("<textarea class=\"form-control\"")),1) 
+
+        draft = make_test_data()
+
+        events = []
+        
+        e = WriteupDocEvent()
+        e.type = "changed_ballot_approval_text"
+        e.by = Person.objects.get(name="(System)")
+        e.doc = draft
+        e.desc = u"Ballot approval text was generated"
+        e.text = u"Test approval text."
+        e.save()
+        events.append(e)
+
+        e = WriteupDocEvent()
+        e.type = "changed_ballot_writeup_text"
+        e.by = Person.objects.get(name="(System)")
+        e.doc = draft
+        e.desc = u"Ballot writeup was generated"
+        e.text = u"Test ballot writeup text."
+        e.save()
+        events.append(e)
+
+        e = WriteupDocEvent()
+        e.type = "changed_ballot_rfceditornote_text"
+        e.by = Person.objects.get(name="(System)")
+        e.doc = draft
+        e.desc = u"RFC Editor Note for ballot was generated"
+        e.text = u"Test note to the RFC Editor text."
+        e.save()
+        events.append(e)
+
+        # IETF Stream Documents
+        for p in ['doc_ballot_approvaltext','doc_ballot_writeupnotes','doc_ballot_rfceditornote']:
+            url = urlreverse(p, kwargs=dict(name=draft.name))
+
+            for username in ['plain','marschairman','iab chair','irtf chair','ise','iana']:
+                verify_fail(username, url)
+
+            for username in ['secretary','ad']:
+                verify_can_see(username, url)
+
+        # RFC Editor Notes for documents in the IAB Stream
+        draft.stream_id = 'iab'
+        draft.save_with_history(events)
+        url = urlreverse('doc_ballot_rfceditornote', kwargs=dict(name=draft.name))
+
+        for username in ['plain','marschairman','ad','irtf chair','ise','iana']:
+            verify_fail(username, url)
+
+        for username in ['secretary','iab chair']:
+            verify_can_see(username, url)
+
+        # RFC Editor Notes for documents in the IRTF Stream
+        e = DocEvent(doc=draft,by=Person.objects.get(name="(System)"),type='changed_stream')
+        e.desc = u"Changed stream to <b>%s</b>" % 'irtf'
+        e.save()
+
+        draft.stream_id = 'irtf'
+        draft.save_with_history([e])
+        url = urlreverse('doc_ballot_rfceditornote', kwargs=dict(name=draft.name))
+
+        for username in ['plain','marschairman','ad','iab chair','ise','iana']:
+            verify_fail(username, url)
+
+        for username in ['secretary','irtf chair']:
+            verify_can_see(username, url)
+
+        # RFC Editor Notes for documents in the IAB Stream
+        e = DocEvent(doc=draft,by=Person.objects.get(name="(System)"),type='changed_stream')
+        e.desc = u"Changed stream to <b>%s</b>" % 'ise'
+        e.save()
+
+        draft.stream_id = 'ise'
+        draft.save_with_history([e])
+        url = urlreverse('doc_ballot_rfceditornote', kwargs=dict(name=draft.name))
+
+        for username in ['plain','marschairman','ad','iab chair','irtf chair','iana']:
+            verify_fail(username, url)
+
+        for username in ['secretary','ise']:
+            verify_can_see(username, url)
 
 class ApproveBallotTests(TestCase):
     def test_approve_ballot(self):
@@ -356,6 +491,21 @@ class ApproveBallotTests(TestCase):
         q = PyQuery(r.content)
         self.assertTrue(q('[type=submit]:contains("send announcement")'))
         self.assertEqual(len(q('form pre:contains("Subject: Protocol Action")')), 1)
+        self.assertEqual(len(q('form pre:contains("This is a note for the RFC Editor")')), 0)
+
+        # add a note to the RFC Editor
+        WriteupDocEvent.objects.create(
+            doc=draft,
+            desc="Changed text",
+            type="changed_rfc_editor_note_text",
+            text="This is a note for the RFC Editor.",
+            by=Person.objects.get(name="(System)"))
+        r = self.client.get(url)
+        self.assertEqual(r.status_code, 200)
+        q = PyQuery(r.content)
+        self.assertTrue(q('[type=submit]:contains("send announcement")'))
+        self.assertEqual(len(q('form pre:contains("Subject: Protocol Action")')), 1)
+        self.assertEqual(len(q('form pre:contains("This is a note for the RFC Editor")')), 1)
 
         # approve
         mailbox_before = len(outbox)
@@ -520,7 +670,6 @@ class DeferUndeferTestCase(TestCase):
         defer_states = dict(draft=['draft-iesg','defer'],conflrev=['conflrev','defer'],statchg=['statchg','defer'])
         if doc.type_id in defer_states:
             doc.set_state(State.objects.get(used=True, type=defer_states[doc.type_id][0],slug=defer_states[doc.type_id][1]))
-            doc.save()
 
         # get
         r = self.client.get(url)
@@ -576,3 +725,41 @@ class DeferUndeferTestCase(TestCase):
 
     def setUp(self):
         make_test_data()
+
+class RegenerateLastCallTestCase(TestCase):
+
+    def test_regenerate_last_call(self):
+        draft = DocumentFactory.create(
+                    stream_id='ietf',
+                    states=[('draft','active'),('draft-iesg','pub-req')],
+                    intended_std_level_id='ps',
+                )
+    
+        url = urlreverse('doc_ballot_lastcall', kwargs=dict(name=draft.name))
+        login_testing_unauthorized(self, "secretary", url)
+        r = self.client.get(url)
+        self.assertEqual(r.status_code, 200)
+
+        r = self.client.post(url, dict(regenerate_last_call_text="1"))
+        self.assertEqual(r.status_code, 200)
+        draft = Document.objects.get(name=draft.name)
+        lc_text = draft.latest_event(WriteupDocEvent, type="changed_last_call_text").text
+        self.assertTrue("Subject: Last Call" in lc_text)
+        self.assertFalse("contains normative down" in lc_text)
+
+        rfc = DocumentFactory.create(
+                  stream_id='ise',
+                  other_aliases=['rfc6666',],
+                  states=[('draft','rfc'),('draft-iesg','pub')],
+                  std_level_id='inf',
+              )
+
+        draft.relateddocument_set.create(target=rfc.docalias_set.get(name='rfc6666'),relationship_id='refnorm')
+
+        r = self.client.post(url, dict(regenerate_last_call_text="1"))
+        self.assertEqual(r.status_code, 200)
+        draft = Document.objects.get(name=draft.name)
+        lc_text = draft.latest_event(WriteupDocEvent, type="changed_last_call_text").text
+        self.assertTrue('contains these normative down' in lc_text)
+        self.assertTrue('rfc6666' in lc_text)
+        self.assertTrue('Independent Submission Editor stream' in lc_text)

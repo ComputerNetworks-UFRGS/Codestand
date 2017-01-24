@@ -1,5 +1,8 @@
 import json
 
+from collections import Counter
+from urllib import urlencode
+
 from django.utils.html import escape
 from django import forms
 from django.core.urlresolvers import reverse as urlreverse
@@ -12,7 +15,19 @@ def select2_id_name_json(objs):
     def format_email(e):
         return escape(u"%s <%s>" % (e.person.name, e.address))
     def format_person(p):
-        return escape(p.name)
+        if p.name_count > 1:
+            return escape('%s (%s)' % (p.name,p.email().address))
+        else:
+            return escape(p.name)
+
+    if objs and isinstance(objs[0], Email):
+        formatter = format_email
+    else:
+        formatter = format_person
+        c = Counter([p.name for p in objs])
+        for p in objs:
+           p.name_count = c[p.name]
+        
 
     formatter = format_email if objs and isinstance(objs[0], Email) else format_person
 
@@ -33,12 +48,14 @@ class SearchablePersonsField(forms.CharField):
     def __init__(self,
                  max_entries=None, # max number of selected objs
                  only_users=False, # only select persons who also have a user
+                 all_emails=False, # select only active email addresses
                  model=Person, # or Email
                  hint_text="Type in name to search for person.",
                  *args, **kwargs):
-        kwargs["max_length"] = 1000
+        kwargs["max_length"] = 10000
         self.max_entries = max_entries
         self.only_users = only_users
+        self.all_emails = all_emails
         assert model in [ Email, Person ]
         self.model = model
 
@@ -69,8 +86,13 @@ class SearchablePersonsField(forms.CharField):
         # doing this in the constructor is difficult because the URL
         # patterns may not have been fully constructed there yet
         self.widget.attrs["data-ajax-url"] = urlreverse("ajax_select2_search_person_email", kwargs={ "model_name": self.model.__name__.lower() })
+        query_args = {}
         if self.only_users:
-            self.widget.attrs["data-ajax-url"] += "?user=1" # require a Datatracker account
+            query_args["user"] = "1"
+        if self.all_emails:
+            query_args["a"] = "1"
+        if query_args:    
+            self.widget.attrs["data-ajax-url"] += "?%s" % urlencode(query_args)
 
         return u",".join(str(p.pk) for p in value)
 
@@ -124,4 +146,24 @@ class SearchableEmailField(SearchableEmailsField):
     def clean(self, value):
         return super(SearchableEmailField, self).clean(value).first()
 
+
+class PersonEmailChoiceField(forms.ModelChoiceField):
+    """ModelChoiceField targeting Email and displaying choices with the
+    person name as well as the email address. Needs further
+    restrictions, e.g. on role, to useful."""
+    def __init__(self, *args, **kwargs):
+        if not "queryset" in kwargs:
+            kwargs["queryset"] = Email.objects.select_related("person")
+
+        self.label_with = kwargs.pop("label_with", None)
+
+        super(PersonEmailChoiceField, self).__init__(*args, **kwargs)
+
+    def label_from_instance(self, email):
+        if self.label_with == "person":
+            return unicode(email.person)
+        elif self.label_with == "email":
+            return email.address
+        else:
+            return u"{} <{}>".format(email.person, email.address)
 

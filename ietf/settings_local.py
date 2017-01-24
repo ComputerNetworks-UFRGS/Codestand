@@ -71,21 +71,21 @@ EMAIL_HOST_PASSWORD = None
 # You can get a local copy of idnits using the download link at
 # http://tools.ietf.org/tools/idnits/
 
-ARCHIVE_PATH = '<local path to where you want to keep the files below>'
-INTERNET_DRAFT_PATH = '%s/devsync/ietf-ftp/internet-drafts' % ARCHIVE_PATH
-INTERNET_DRAFT_ARCHIVE_DIR = INTERNET_DRAFT_PATH
-IDSUBMIT_REPOSITORY_PATH = INTERNET_DRAFT_PATH
-RFC_PATH = '%s/devsync/ietf-ftp/rfc/' % ARCHIVE_PATH
-IESG_WG_EVALUATION_DIR = '%s/devsync/www6/iesg/evaluation' % ARCHIVE_PATH
-IETFWG_DESCRIPTIONS_PATH = '%s/devsync/www6s/wg-descriptions' % ARCHIVE_PATH
-IPR_DOCUMENT_PATH = '%s/devsync/ietf-ftp/ietf/IPR' % ARCHIVE_PATH
-AGENDA_PATH = '%s/devsync/www6s/proceedings' % ARCHIVE_PATH
-AGENDA_PATH_PATTERN = AGENDA_PATH + '/%(meeting)s/agenda/%(wg)s.%(ext)s'
-CHARTER_PATH = '%s/devsync/ietf-ftp/charter/' % ARCHIVE_PATH
-STATUS_CHANGE_PATH = '%s/devsync/ietf-ftp/status-changes/' % ARCHIVE_PATH
-CONFLICT_REVIEW_PATH = '%s/devsync/ietf-ftp/conflict-reviews' % ARCHIVE_PATH
-NOMCOM_PUBLIC_KEYS_DIR = '%s/nomcom_keys/public_keys' % ARCHIVE_PATH
-IDSUBMIT_IDNITS_BINARY = '<path to a local copy of idnits>'
+# ARCHIVE_PATH = '<local path to where you want to keep the files below>'
+# INTERNET_DRAFT_PATH = '%s/devsync/ietf-ftp/internet-drafts' % ARCHIVE_PATH
+# INTERNET_DRAFT_ARCHIVE_DIR = INTERNET_DRAFT_PATH
+# IDSUBMIT_REPOSITORY_PATH = INTERNET_DRAFT_PATH
+# RFC_PATH = '%s/devsync/ietf-ftp/rfc/' % ARCHIVE_PATH
+# IESG_WG_EVALUATION_DIR = '%s/devsync/www6/iesg/evaluation' % ARCHIVE_PATH
+# IETFWG_DESCRIPTIONS_PATH = '%s/devsync/www6s/wg-descriptions' % ARCHIVE_PATH
+# IPR_DOCUMENT_PATH = '%s/devsync/ietf-ftp/ietf/IPR' % ARCHIVE_PATH
+# AGENDA_PATH = '%s/devsync/www6s/proceedings' % ARCHIVE_PATH
+# AGENDA_PATH_PATTERN = AGENDA_PATH + '/%(meeting)s/agenda/%(wg)s.%(ext)s'
+# CHARTER_PATH = '%s/devsync/ietf-ftp/charter/' % ARCHIVE_PATH
+# STATUS_CHANGE_PATH = '%s/devsync/ietf-ftp/status-changes/' % ARCHIVE_PATH
+# CONFLICT_REVIEW_PATH = '%s/devsync/ietf-ftp/conflict-reviews' % ARCHIVE_PATH
+# NOMCOM_PUBLIC_KEYS_DIR = '%s/nomcom_keys/public_keys' % ARCHIVE_PATH
+# IDSUBMIT_IDNITS_BINARY = '<path to a local copy of idnits>'
 
 """ Codestand Settings """
 
@@ -108,7 +108,10 @@ IDSUBMIT_IDNITS_BINARY = '<path to a local copy of idnits>'
 # (eg. codestand-dev - CODESTAND_PREFIX="/codestand-dev/")
 CODESTAND_PREFIX = ""
 # (eg. codestand-dev - STATIC_URL="/static/") 
-STATIC_URL = CODESTAND_PREFIX + "/../"
+STATIC_URL = CODESTAND_PREFIX + "/static/"
+import os
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+STATIC_ROOT = os.path.abspath(BASE_DIR + "/../static/")
 
 CODESTAND_DEBUG = True
 

@@ -2,10 +2,14 @@ import re
 import datetime
 
 from django.db import models
+import jsonfield
+
+import debug                            # pyflakes:ignore
 
 from ietf.doc.models import Document
 from ietf.person.models import Person
 from ietf.group.models import Group
+from ietf.message.models import Message
 from ietf.name.models import DraftSubmissionStateName
 from ietf.utils.accesstoken import generate_random_key, generate_access_token
 
@@ -44,18 +48,24 @@ class Submission(models.Model):
 
     submitter = models.CharField(max_length=255, blank=True, help_text="Name and email of submitter, e.g. \"John Doe &lt;john@example.org&gt;\".")
 
-    idnits_message = models.TextField(blank=True)
+    draft = models.ForeignKey(Document, null=True, blank=True)
 
     def __unicode__(self):
         return u"%s-%s" % (self.name, self.rev)
 
     def authors_parsed(self):
-        res = []
-        for line in self.authors.replace("\r", "").split("\n"):
-            line = line.strip()
-            if line:
-                res.append(parse_email_line(line))
-        return res
+        if not hasattr(self, '_cached_authors_parsed'):
+            from ietf.submit.utils import ensure_person_email_info_exists
+            res = []
+            for line in self.authors.replace("\r", "").split("\n"):
+                line = line.strip()
+                if line:
+                    parsed = parse_email_line(line)
+                    if not parsed["email"]:
+                        parsed["email"] = ensure_person_email_info_exists(**parsed).address
+                    res.append(parsed)
+            self._cached_authors_parsed = res
+        return self._cached_authors_parsed
 
     def submitter_parsed(self):
         return parse_email_line(self.submitter)
@@ -65,6 +75,24 @@ class Submission(models.Model):
 
     def existing_document(self):
         return Document.objects.filter(name=self.name).first()
+
+class SubmissionCheck(models.Model):
+    time = models.DateTimeField(auto_now=True)
+    submission = models.ForeignKey(Submission, related_name='checks')
+    checker = models.CharField(max_length=256, blank=True)
+    passed = models.NullBooleanField(default=False)
+    message = models.TextField(null=True, blank=True)
+    errors = models.IntegerField(null=True, blank=True, default=None)
+    warnings = models.IntegerField(null=True, blank=True, default=None)
+    items = jsonfield.JSONField(null=True, blank=True, default='{}')
+    symbol = models.CharField(max_length=64, default='')
+    #
+    def __unicode__(self):
+        return "%s submission check: %s: %s" % (self.checker, 'Passed' if self.passed else 'Failed', self.message[:48]+'...')
+    def has_warnings(self):
+        return self.warnings != '[]'
+    def has_errors(self):
+        return self.errors != '[]'
 
 class SubmissionEvent(models.Model):
     submission = models.ForeignKey(Submission)
@@ -87,3 +115,15 @@ class Preapproval(models.Model):
 
     def __unicode__(self):
         return self.name
+
+class SubmissionEmailEvent(SubmissionEvent):
+    message     = models.ForeignKey(Message, null=True, blank=True,related_name='manualevents')
+    msgtype     = models.CharField(max_length=25)
+    in_reply_to = models.ForeignKey(Message, null=True, blank=True,related_name='irtomanual')
+
+    def __unicode__(self):
+        return u"%s %s by %s at %s" % (self.submission.name, self.desc, self.by.plain_name() if self.by else "(unknown)", self.time)
+
+    class Meta:
+        ordering = ['-time', '-id']
+

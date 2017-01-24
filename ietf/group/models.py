@@ -53,6 +53,12 @@ class GroupInfo(models.Model):
             kwargs["group_type"] = self.type_id
         return urlreverse(self.features.about_page, kwargs=kwargs)
 
+    def interim_approval_roles(self):
+        return list(set([ role for role in self.parent.role_set.filter(name__in=['ad', 'chair']) ]))
+
+    def is_bof(self):
+        return (self.state.slug in ["bof", "bof-conc"])
+
     class Meta:
         abstract = True
 
@@ -80,8 +86,13 @@ class Group(GroupInfo):
             role_names = [role_names]
         return user.is_authenticated() and self.role_set.filter(name__in=role_names, person__user=user).exists()
 
-    def is_bof(self):
-        return (self.state.slug in ["bof", "bof-conc"])
+    def is_decendant_of(self, sought_parent):
+        p = self.parent
+        while ((p != None) and (p != self)):
+            if p.acronym == sought_parent:
+                return True
+            p = p.parent
+        return False
 
     def get_chair(self):
         chair = self.role_set.filter(name__slug='chair')[:1]
@@ -146,6 +157,14 @@ class Group(GroupInfo):
                     return self.role_set.filter(**role_kwargs)
         return self.role_set.none()
 
+    def status_for_meeting(self,meeting):
+        end_date = meeting.end_date()+datetime.timedelta(days=1)
+        previous_meeting = meeting.previous_meeting()
+        status_events = self.groupevent_set.filter(type='status_update',time__lte=end_date).order_by('-time')
+        if previous_meeting:
+            status_events = status_events.filter(time__gte=previous_meeting.end_date()+datetime.timedelta(days=1))
+        return status_events.first()
+
 class GroupHistory(GroupInfo):
     group = models.ForeignKey(Group, related_name='history_set')
     acronym = models.CharField(max_length=40)
@@ -203,7 +222,8 @@ GROUP_EVENT_CHOICES = [
     ("info_changed", "Changed metadata"),
     ("requested_close", "Requested closing group"),
     ("changed_milestone", "Changed milestone"),
-    ("sent_notification", "Sent notification")
+    ("sent_notification", "Sent notification"),
+    ("status_update", "Status update"),
     ]
 
 class GroupEvent(models.Model):

@@ -35,7 +35,7 @@ class DocumentChangesFeed(Feed):
 	return events
 
     def item_title(self, item):
-        return u"[%s] %s [rev. %s]" % (item.by, truncatewords(strip_tags(item.desc), 15), item.rev)
+        return u"[%s] %s [rev. %s]" % (item.by, truncatewords(strip_tags(item.desc), 15), item.get_rev())
 
     def item_description(self, item):
         return truncatewords_html(format_textarea(item.desc), 20)
@@ -88,14 +88,17 @@ class Rss201WithNamespacesFeed(Rss201rev2Feed):
     def add_item_elements(self, handler, item):
         super(Rss201WithNamespacesFeed, self).add_item_elements(handler, item)
 
-        for element_name in ['abstract','accessRights', 'format', ]:
+        for element_name in ['abstract','accessRights', 'format', 'publisher',]:
             dc_item_name = 'dcterms_%s' % element_name
             dc_element_name = 'dcterms:%s' % element_name
+            attrs= {'xsi:type':'dcterms:local'} if element_name == 'publisher' else {}
             if dc_item_name in item and item[dc_item_name] is not None:
-                handler.addQuickElement(dc_element_name,item[dc_item_name])
+                handler.addQuickElement(dc_element_name,item[dc_item_name],attrs)
 
         if 'doi' in item and item['doi'] is not None:
            handler.addQuickElement('dcterms:identifier',item['doi'],{'xsi:type':'dcterms:doi'})
+        if 'doiuri' in item and item['doiuri'] is not None:
+           handler.addQuickElement('dcterms:identifier',item['doiuri'],{'xsi:type':'dcterms:uri'})
 
         if 'media_content' in item and item['media_content'] is not None:
             handler.startElement('media:content',{'url':item['media_content']['url'],'type':'text/plain'})
@@ -117,10 +120,10 @@ class RfcFeed(Feed):
         return [doc for doc,time in results]
     
     def item_title(self, item):
-        return item.canonical_name()
+        return "%s : %s" % (item.canonical_name(),item.title)
 
     def item_description(self, item):
-        return item.title
+        return item.abstract
 
     def item_link(self, item):
         return "https://rfc-editor.org/info/%s"%item.canonical_name()
@@ -130,17 +133,18 @@ class RfcFeed(Feed):
 
     def item_extra_kwargs(self, item):
         extra = super(RfcFeed, self).item_extra_kwargs(item)
-        extra.update({'dcterms_abstract': item.abstract})
         extra.update({'dcterms_accessRights': 'gratis'})
         extra.update({'dcterms_format': 'text/html'})
         extra.update({'media_content': {'url': 'https://rfc-editor.org/rfc/%s.txt' % item.canonical_name(),
                                         'link_url': self.item_link(item) 
                                        }
                      })
-        extra.update({'doi':'http://dx.doi.org/10.17487/%s' % item.canonical_name().upper()})
+        extra.update({'doi':'10.17487/%s' % item.canonical_name().upper()})
+        extra.update({'doiuri':'http://dx.doi.org/10.17487/%s' % item.canonical_name().upper()})
 
         #TODO 
         # R104 Publisher (Mandatory - but we need a string from them first)
+        extra.update({'dcterms_publisher':'rfc-editor.org'})
 
         #TODO MAYBE (Optional stuff)
         # R108 License

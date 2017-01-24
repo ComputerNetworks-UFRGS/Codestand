@@ -184,7 +184,10 @@ changes=$( sed -n "/^$PROJ ($VER.*)/,/^ -- /p" changelog )
 [ "$changes" ] || die "No changelog information for $VER found"
 #note "$changes"
 
-note "Checking that we don't have any model changes that haven't been captured in migrations ..."
+note "Upgrading the python library modules before checking migrations and running tests ..."
+pip install --upgrade -r requirements.txt
+
+note "Checking that all model changes have been captured in migrations ..."
 ietf/manage.py makemigrations | tee /dev/stderr | grep -q "^No changes detected$" || die "Model changes without migrations found."
 
 note "Running the tests suite and writing release coverage data ..."
@@ -192,6 +195,11 @@ $do ietf/manage.py test --settings=ietf.settings_releasetest --save-version-cove
 
 note "Committing the release coverage data ..."
 $do svn commit release-coverage.json.gz -m "Code coverage data for release $VER"
+
+if [ -d ../coverage ]; then
+    cp .coverage ../coverage/$VER.coverage
+    rsync -a ietf/static/coverage/ ../coverage/$VER/
+fi
 
 contributors=$(echo "$changes" | sed 's/\.[ \t\n]/ /'| tr -c "a-z0-9.@-" "\n" | sort | uniq | grep '@' | sed -r -e 's/^\.+//' -e 's/\.+$//' -e 's/^/-c /' || true)
 
@@ -243,6 +251,7 @@ $do svn cp $REPO/$SRC $REPO/tags/dev/$DEV -m "Creating new tag 'tags/dev/$DEV' f
 
 $do svn update -q
 
+[ -d ~/src/db/mail ] || mkdir ~/src/db/mail
 echo "
 Hi,
 
@@ -254,21 +263,22 @@ Release notes:
 $changes
 
 The new version is available for installation through SVN checkout, with
-  'svn checkout http://svn.tools.ietf.org/svn/tools/$PROJ/tags/$VER'
+  'svn checkout https://svn.tools.ietf.org/svn/tools/$PROJ/tags/$VER'
 
-For development, check out the new development version instead:
-  'svn checkout http://svn.tools.ietf.org/svn/tools/$PROJ/tags/dev/$DEV'
+For development, copy the new development version instead:
+  'svn copy https://svn.tools.ietf.org/svn/tools/$PROJ/tags/dev/$DEV' <YOURBRANCH>
 
 Regards,
 
 	Henrik
 	(via the mkrelease script)
-" > ~/src/db/release-mail-v$VER.txt
+" > ~/src/db/mail/release-mail-v$VER.txt
 
-cat ~/src/db/release-mail-v$VER.txt | $do mail -s "New datatracker release: v$VER" housley@vigilsec.com rjs@nostrum.com henrik@levkowetz.com -c glen@amsl.com -c fenner@fenron.net -c cmorgan@amsl.com -c avezza@amsl.com -c amorris@amsl.com -c smccammon@amsl.com -c kmoreland@amsl.com -c olau@iola.dk -c mlarson@amsl.com $contributors
+cat ~/src/db/mail/release-mail-v$VER.txt | $do mail -s "New datatracker release: v$VER" housley@vigilsec.com rjs@nostrum.com henrik@levkowetz.com -c glen@amsl.com -c fenner@fenron.net -c cmorgan@amsl.com -c avezza@amsl.com -c amorris@amsl.com -c smccammon@amsl.com -c kmoreland@amsl.com -c olau@iola.dk -c mlarson@amsl.com $contributors
 
-cat ~/src/db/release-mail-v$VER.txt | $do mail -s "New datatracker release: v$VER" iesg@ietf.org wgchairs@ietf.org codesprints@ietf.org -b henrik@levkowetz.com
+cat ~/src/db/mail/release-mail-v$VER.txt | $do mail -s "New datatracker release: v$VER" iesg@ietf.org wgchairs@ietf.org codesprints@ietf.org -b henrik@levkowetz.com
 
 
 $do toolsfeed control changelog /www/tools.ietf.org/tools/atomfeed.xml
 $do toolpush /www/tools.ietf.org/tools/atomfeed.xml
+

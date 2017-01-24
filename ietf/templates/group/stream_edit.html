@@ -16,8 +16,6 @@
   {% origin %}
   <h1>Manage {{ group.name }} RFC stream</h1>
 
-  {% bootstrap_messages %}
-
   <p>
     <b>Chair{{ chairs|pluralize }}:</b>
     {% for chair in chairs %}
@@ -29,7 +27,7 @@
   <p>
     Delegates can be assigned with permission to do the tasks of the
     chair{{ chairs|pluralize }}. Note that in order to actually do so, the delegates need a
-    datatracker account. New accounts can be <a href="{% url "create_account" %}">created here</a>.
+    datatracker account. New accounts can be <a href="{% url "ietf.ietfauth.views.create_account" %}">created here</a>.
   </p>
 
   <form method="post">

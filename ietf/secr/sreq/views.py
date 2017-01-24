@@ -498,7 +498,7 @@ def main(request):
             return redirect('sessions_new', acronym=request.POST['group'])
 
     meeting = get_meeting()
-    scheduled_groups,unscheduled_groups = groups_by_session(request.user, meeting)
+    scheduled_groups,unscheduled_groups = groups_by_session(request.user, meeting, types=['wg','rg','ag'])
 
     # warn if there are no associated groups
     if not scheduled_groups and not unscheduled_groups:
@@ -616,7 +616,7 @@ def no_session(request, acronym):
                       meeting=meeting,
                       requested=datetime.datetime.now(),
                       requested_by=login,
-                      requested_duration=0,
+                      requested_duration=datetime.timedelta(0),
                       status=SessionStatusName.objects.get(slug='notmeet'),
                       type_id='session',
                       )

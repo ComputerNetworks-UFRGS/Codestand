@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-import os, sys, re, datetime, argparse, traceback, tempfile, json, subprocess
+import os, sys, re, datetime, argparse, traceback, json, subprocess
 import html5lib
 import random
 
@@ -43,18 +43,20 @@ os.environ.setdefault("DJANGO_SETTINGS_MODULE", args.settings or "ietf.settings_
 import django
 import django.test
 import django.core.checks
+from django.conf import settings
 
 django.setup()
+
 
 # This needs to come after we set up sys path to include the local django
 import debug    # pyflakes:ignore
 
 # prevent memory from leaking when settings.DEBUG=True
-from django.db import connection
-class DontSaveQueries(object):
-    def append(self, x):
-        pass
-connection.queries = DontSaveQueries()
+# from django.db import connection
+# class DontSaveQueries(list):
+#     def append(self, x):
+#         pass
+# connection.queries = DontSaveQueries()
 
 from ietf.name.models import DocTypeName
 
@@ -72,6 +74,9 @@ def note(s):
 def strip_url(url):
     if url.startswith("http://testserver"):
         url = url[len("http://testserver"):]
+    fragment_url = re.search("^(.+)#[a-z_.-]+$", url)
+    if fragment_url:
+        url = fragment_url.group(1)
     return url
 
 def extract_html_urls(content):
@@ -118,11 +123,10 @@ def check_html_valid(url, response, args):
     key = url
     if not args.validate_all:
         # derive a key for urls like this by replacing primary keys
-        key = re.sub("\?.*$",       "", key)
         key = re.sub("#.*$",       "", key)
         key = re.sub("/.+@.+/",    "/x@x.org/", key)
-        key = re.sub("/[0-9.]+/",   "/nnnn/", key)
         key = re.sub("/[0-9.]+/",   "/mmmm/", key)
+        key = re.sub("/[0-9.]+/",   "/nnnn/", key)
         key = re.sub("/ag/[a-z0-9-]+/",   "/ag/foo/", key)
         key = re.sub("/area/[a-z0-9-]+/",   "/area/foo/", key)
         key = re.sub("/bcp[0-9]+/",   "/bcpnnn/", key)
@@ -131,6 +135,7 @@ def check_html_valid(url, response, args):
         key = re.sub("/draft-[a-z0-9-]+/",   "/draft-foo/", key)
         key = re.sub("/group/[a-z0-9-]+/",   "/group/foo/", key)
         key = re.sub("/ipr/search/.*",   "/ipr/search/", key)
+        key = re.sub("/meeting/[-0-9a-z]+/agenda/[0-9a-z]+/",   "/meeting/nn/agenda/foo/", key)
         key = re.sub("/release/[0-9dev.]+/",   "/release/n.n.n/", key)
         key = re.sub("/rfc[0-9]+/",   "/rfcnnnn/", key)
         key = re.sub("/rg/[a-z0-9-]+/",   "/rg/foo/", key)
@@ -142,6 +147,7 @@ def check_html_valid(url, response, args):
         key = re.sub("/submit/status/nnnn/[0-9a-f]+/", "/submit/status/nnnn/bar/", key)
         key = re.sub("/team/[a-z0-9-]+/",   "/team/foo/", key)
         key = re.sub("/wg/[a-z0-9-]+/",   "/wg/foo/", key)
+        key = re.sub("\?.*$",       "", key)
 
         for slug in doc_types:
             key = re.sub("/%s-.*/"%slug, "/%s-nnnn/"%slug, key)
@@ -189,6 +195,12 @@ def skip_url(url):
     for pattern in (
             "^/community/[0-9]+/remove_document/",
             "^/community/personal/",
+            # Skip most of the slow pdf composite generation urls and svg urls
+            "^/meeting/[0-9]+/agenda/[0-9b-z].*-drafts\\.pdf",
+            "^/wg/[a-z0-9-]+/deps/svg/",
+            # This bad url occurs in an uploaded html agenda:
+            r"/site/ietfdhcwg/_/rsrc/1311005436000/system/app/css/overlay.css\?cb=simple100%250150goog-ws-left",
+            r"/dir/tsvdir/reviews/",
         ):
         if re.search(pattern, url):
             return True
@@ -241,7 +253,9 @@ for url in initial_urls:
 
 parser = html5lib.HTMLParser(strict=True)
 
-validated_urls = {}
+# initialise validated_urls with some patterns we don't want to check,
+# because they aren't under our control, such as uploaded group agendas.
+validated_urls = {'/meeting/nn/agenda/foo/': True, }
 
 doc_types = [ t.slug for t in DocTypeName.objects.all() ]
 
@@ -272,6 +286,13 @@ if __name__ == "__main__":
 
     # Run django system checks and checks from ietf.checks:
     error_list = django.core.checks.run_checks()
+    silenced = []
+    for i in range(len(error_list)):
+        if error_list[i].id in settings.SILENCED_SYSTEM_CHECKS:
+            silenced.append(i)
+        silenced.sort(reverse=True)
+        for i in silenced:
+            del error_list[i]
     if error_list:
         print("")
         for entry in error_list:
@@ -291,15 +312,24 @@ if __name__ == "__main__":
         if skip_url(url):
             continue
 
+        timestamp = datetime.datetime.now()
+        acc_time = (timestamp - start_time).total_seconds()
+        acc_secs = (timestamp - start_time).total_seconds()
+        hrs = acc_secs // (60*60)
+        min = (acc_secs % (60*60)) // 60
+        sec = acc_secs % 60
+
         try:
-            timestamp = datetime.datetime.now()
+            request_start = datetime.datetime.now()
             r = client.get(url, secure=True, follow=True)
-            elapsed = datetime.datetime.now() - timestamp
+            elapsed = datetime.datetime.now() - request_start
         except KeyboardInterrupt:
             log(" ... was fetching %s" % url)
             sys.exit(1)
         except:
-            log("500 %.3fs %s FAIL (from: [ %s ])" % ((datetime.datetime.now() - timestamp).total_seconds(), url, (",\n\t".join(get_referrers(url)))))
+            elapsed = datetime.datetime.now() - request_start
+            tags = [ u"FAIL  (from [ %s ])" % (",\n\t".join(get_referrers(url))) ]
+            log("%2d:%02d:%02d %7d %6d  %s %6.3fs %s %s" % (hrs,min,sec, len(visited), len(urls), 500, elapsed.total_seconds(), url, " ".join(tags)))
             log("=============")
             log(traceback.format_exc())
             log("=============")

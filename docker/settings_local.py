@@ -1,3 +1,5 @@
+import os
+
 SECRET_KEY = 'jzv$o93h_lzw4a0%0oz-5t5lk+ai=3f8x@uo*9ahu8w4i300o6'
 
 DATABASES = {
@@ -14,3 +16,8 @@ DATABASE_TEST_OPTIONS = {
     }
 
 IDSUBMIT_IDNITS_BINARY = "/usr/local/bin/idnits"
+IDSUBMIT_REPOSITORY_PATH = "test/id/"
+IDSUBMIT_STAGING_PATH = "test/staging/"
+INTERNET_DRAFT_ARCHIVE_DIR = "test/archive/"
+
+AGENDA_PATH = 'test/data/proceedings/'

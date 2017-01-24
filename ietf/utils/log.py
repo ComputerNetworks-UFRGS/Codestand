@@ -10,10 +10,9 @@ except ImportError:                     # import syslog will fail on Windows box
 
     pass
     
-import sys
 import inspect
 import os.path
-import ietf
+
 from django.conf import settings
 
 def getclass(frame):
@@ -26,11 +25,14 @@ def getclass(frame):
 
 def getcaller():
     parent, pfile, pline, pfunction, lines, index = inspect.stack()[2]
-    pmodule = inspect.getmoduleinfo(pfile)[0]
+    moduleinfo = inspect.getmoduleinfo(pfile)
+    pmodule = moduleinfo[0] if moduleinfo else None
     pclass = getclass(parent)
     return (pmodule, pclass, pfunction, pfile, pline)
 
 def log(msg):
+    if settings.SERVER_MODE == 'test':
+        return
     if isinstance(msg, unicode):
         msg = msg.encode('unicode_escape')
     try:
@@ -45,4 +47,4 @@ def log(msg):
         file, line, where = "/<UNKNOWN>", 0, ""
     logger("ietf%s(%d)%s: %s" % (file, line, where, msg))
 
-log("IETFdb v%s started (as %s)" % (ietf.__version__,sys.argv[0]))
+

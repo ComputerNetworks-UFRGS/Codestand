@@ -2,16 +2,16 @@ from django.core.urlresolvers import reverse as urlreverse
 from django.contrib import admin
 
 
-from ietf.submit.models import Preapproval, Submission
+from ietf.submit.models import Preapproval, Submission, SubmissionEvent, SubmissionCheck, SubmissionEmailEvent
 
 class SubmissionAdmin(admin.ModelAdmin):
-    list_display = ['id', 'draft_link', 'status_link', 'submission_date',]
+    list_display = ['id', 'rev', 'draft_link', 'status_link', 'submission_date',]
     ordering = [ '-id' ]
     search_fields = ['name', ]
-    raw_id_fields = ['group']
+    raw_id_fields = ['group', 'draft']
 
     def status_link(self, instance):
-        url = urlreverse('submit_submission_status_by_hash',
+        url = urlreverse('ietf.submit.views.submission_status',
                          kwargs=dict(submission_id=instance.pk,
                                      access_token=instance.access_token()))
         return '<a href="%s">%s</a>' % (url, instance.state)
@@ -23,10 +23,25 @@ class SubmissionAdmin(admin.ModelAdmin):
         else:
             return instance.name
     draft_link.allow_tags = True
-
 admin.site.register(Submission, SubmissionAdmin)
+
+class SubmissionEventAdmin(admin.ModelAdmin):
+    list_display = ['id', 'submission', 'rev', 'time', 'by', 'desc', ]
+    search_fields = ['submission__name']
+    def rev(self, instance):
+        return instance.submission.rev
+admin.site.register(SubmissionEvent, SubmissionEventAdmin)
+
+class SubmissionCheckAdmin(admin.ModelAdmin):
+    list_display = ['submission', 'time', 'checker', 'passed', 'errors', 'warnings', 'items']
+    raw_id_fields = ['submission']
+    search_fields = ['submission__name']
+admin.site.register(SubmissionCheck, SubmissionCheckAdmin)
 
 class PreapprovalAdmin(admin.ModelAdmin):
     pass
 admin.site.register(Preapproval, PreapprovalAdmin)
 
+class SubmissionEmailEventAdmin(admin.ModelAdmin):
+    list_display = ['id', 'submission', 'time', 'by', 'message', 'desc', ]
+admin.site.register(SubmissionEmailEvent, SubmissionEmailEventAdmin)    

@@ -13,8 +13,9 @@ class NominationAdmin(admin.ModelAdmin):
 
 
 class NomineeAdmin(admin.ModelAdmin):
-    list_display = ('email',)
-
+    list_display = ('email', 'person', 'duplicated', 'nomcom')
+    search_fields = ('email__address', 'person__name', )
+    list_filter = ('nomcom', )
 
 class NomineePositionAdmin(admin.ModelAdmin):
     pass
@@ -23,7 +24,7 @@ class NomineePositionAdmin(admin.ModelAdmin):
 
 
 class PositionAdmin(admin.ModelAdmin):
-    list_display = ('name', 'nomcom', 'is_open', 'incumbent')
+    list_display = ('name', 'nomcom', 'is_open')
     list_filter = ('nomcom',)
 
 

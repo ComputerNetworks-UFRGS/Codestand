@@ -5,11 +5,12 @@ debug.debug = True
 
 from django.core.urlresolvers import reverse
 
-from tastypie.test import ResourceTestCase
+from tastypie.test import ResourceTestCaseMixin
 
 from ietf.utils.test_data import make_test_data
+from ietf.utils.test_utils import TestCase
 
-class RestApi(ResourceTestCase):
+class RestApi(ResourceTestCaseMixin, TestCase):
     def list_recursively(self, resource, format):
         """
         Recurse down all the app trees, retrieving all the data available.  This ensures

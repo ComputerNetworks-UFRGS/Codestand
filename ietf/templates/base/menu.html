@@ -1,5 +1,5 @@
 {# Copyright The IETF Trust 2015, All Rights Reserved #}{% load origin %}{% origin %}
-{% load ietf_filters community_tags wg_menu streams_menu active_groups_menu %}
+{% load ietf_filters managed_groups wg_menu streams_menu active_groups_menu %}
 
 {% if flavor != "top" %}
   {% include "base/menu_user.html" %}
@@ -14,9 +14,9 @@
     <ul class="dropdown-menu" role="menu">
   {% endif %}
 
-  <li><a href="{% url "ietf.group.info.active_groups" group_type="wg" %}">Active WGs</a></li>
-  <li><a href="{% url "ietf.group.info.active_groups" group_type="rg" %}">Active RGs</a></li>
-  <li class="dropdown-submenu group-menu"><a href="{% url "ietf.group.info.active_groups" %}">Other</a>{% active_groups_menu %} </li>
+  <li><a href="{% url "ietf.group.views.active_groups" group_type="wg" %}">Active WGs</a></li>
+  <li><a href="{% url "ietf.group.views.active_groups" group_type="rg" %}">Active RGs</a></li>
+  <li class="dropdown-submenu group-menu"><a href="{% url "ietf.group.views.active_groups" %}">Other</a>{% active_groups_menu %} </li>
 
   {% if flavor == "top" %}<li class="divider hidden-xs"></li>{% endif %}
   <li {%if flavor == "top" %}class="dropdown-header visible-lg-block"{% else %}class="nav-header hidden-nojs"{% endif %}>By area/parent</li>
@@ -25,12 +25,12 @@
 
   {% if flavor == "top" %}<li class="divider hidden-xs"></li>{% endif %}
   <li {%if flavor == "top" %}class="dropdown-header hidden-xs"{% else %}class="nav-header"{% endif %}>New work</li>
-  <li><a href="{% url "ietf.group.info.chartering_groups" %}">Chartering groups</a></li>
-  <li><a href="{% url "ietf.group.info.bofs" group_type="wg" %}">BOFs</a></li>
+  <li><a href="{% url "ietf.group.views.chartering_groups" %}">Chartering groups</a></li>
+  <li><a href="{% url "ietf.group.views.bofs" group_type="wg" %}">BOFs</a></li>
 
   {% if flavor == "top" %}<li class="divider hidden-xs"></li>{% endif %}
   <li {%if flavor == "top" %}class="dropdown-header hidden-xs"{% else %}class="nav-header"{% endif %}>Other groups</li>
-  <li><a href="{% url "ietf.group.info.concluded_groups" %}">Concluded groups</a></li>
+  <li><a href="{% url "ietf.group.views.concluded_groups" %}">Concluded groups</a></li>
   <li><a href="https://www.ietf.org/list/nonwg.html">Non-WG lists</a></li>
 
 {% if flavor == "top" %}</ul>{% endif %}
@@ -43,22 +43,33 @@
     </a>
     <ul class="dropdown-menu" role="menu">
   {% endif %}
-  <li><a href="{% url "submit_upload_submission" %}">Submit a draft</a></li>
+  <li><a href="{% url "ietf.submit.views.upload_submission" %}">Draft submission</a></li>
 
-  {% if user|has_role:"WG Chair" %}
-    {% if flavor == "top" %}<li class="divider hidden-xs"></li>{% endif %}
-    <li {%if flavor == "top" %}class="dropdown-header hidden-xs"{% else %}class="nav-header"{% endif %}>WG chair</li>
-    <li><a href="{% url "submit_approvals" %}">Approve a draft</a></li>
+  {% if user and user.is_authenticated %}
+    <li><a href="{% url "ietf.community.views.view_list" user.username %}">My tracked docs</a></li>
+  {% else %}
+    <li><a rel="nofollow" href="/accounts/login/?next={{ request.get_full_path|urlencode }}">Sign in to track docs</a></li>
   {% endif %}
 
-  {% get_user_managed_lists user as community_lists %}
-  {% if community_lists %}
-    <li><a href="{{ community_lists.personal.get_manage_url }}">My tracked docs</a></li>
-    {% for cl in community_lists.group %}
-      <li><a href="{{ cl.get_manage_url }}">{{ cl.short_name }} {{cl.group.type.slug}} docs</a></li>
+  {% if user|has_role:"WG Chair,RG Chair" %}
+    {% if flavor == "top" %}<li class="divider hidden-xs"></li>{% endif %}
+    <li {%if flavor == "top" %}class="dropdown-header hidden-xs"{% else %}class="nav-header"{% endif %}>WG chair</li>
+    <li><a href="{% url "ietf.submit.views.approvals" %}">Approve a draft</a></li>
+
+    {% for g in user|managed_groups %}
+      <li><a href="{% url "group_docs" g.acronym %}">{{ g.acronym }} {{ g.type.slug }} docs</a></li>
     {% endfor %}
-  {% else %}
-    <li><a rel="nofollow" href="/accounts/login/?next={{request.get_full_path|urlencode}}">Sign in to track docs</a></li>
+    {% for g in user|managed_groups %}
+      <li><a href="{% url "ietf.group.views.meetings" g.acronym %}">{{ g.acronym }} {{ g.type.slug }} meetings</a></li>
+    {% endfor %}
+  {% endif %}
+
+  {% if user|has_role:"Review Team Secretary" %}
+    {% if flavor == "top" %}<li class="divider hidden-xs"></li>{% endif %}
+    <li {%if flavor == "top" %}class="dropdown-header hidden-xs"{% else %}class="nav-header"{% endif %}>Review Teams</li>
+    {% for g in user|managed_review_groups %}
+      <li><a href="{% url "ietf.group.views_review.review_requests" g.acronym %}">{{ g.acronym }} reviews</a></li>
+    {% endfor %}
   {% endif %}
 
   {% if user|has_role:"Area Director,Secretariat" %}
@@ -85,7 +96,8 @@
   <li><a href="/meeting/agenda/">Agenda</a></li>
   <li><a href="/meeting/">Materials</a></li>
   <li><a href="https://www.ietf.org/meeting/proceedings.html">Past proceedings</a></li>
-  <li><a href="https://www.ietf.org/meeting/upcoming.html">Upcoming</a></li>
+  <li><a href="/meeting/upcoming">Upcoming</a></li>
+  <li><a href="/meeting/past">Past</a></li>
   <li><a href="/secr/sreq/">Request a session</a></li>
   <li><a href="/meeting/requests">Session requests</a></li>
 {% if flavor == "top" %}</ul>{% endif %}
@@ -102,9 +114,10 @@
   <li><a href="/ipr/">IPR disclosures</a></li>
   <li><a href="/liaison/">Liaison statements</a></li>
   <li><a href="/iesg/agenda/">IESG agenda</a></li>
+  <li><a href="{% url "ietf.stats.views.stats_index" %}">Statistics</a></li>
   <li><a href="/group/edu/materials/">Tutorials</a></li>
   {% if flavor == "top" %}<li class="divider hidden-xs"></li>{% endif %}
-  <li><a href="https://tools.ietf.org/tools/ietfdb/newticket"><span class="fa fa-bug llarge"></span> Report a bug</a></li>
+  <li><a href="https://tools.ietf.org/tools/ietfdb/newticket"><span class="fa fa-bug"></span> Report a bug</a></li>
 {% if flavor == "top" %}</ul>{% endif %}
 
 {% if flavor == "top" %}

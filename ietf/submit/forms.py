@@ -1,9 +1,11 @@
 import os
 import re
 import datetime
+import email
 import pytz
 import xml2rfc
 import tempfile
+from unidecode import unidecode
 
 from django import forms
 from django.conf import settings
@@ -16,7 +18,9 @@ from ietf.doc.models import Document
 from ietf.group.models import Group
 from ietf.ietfauth.utils import has_role
 from ietf.doc.fields import SearchableDocAliasesField
+from ietf.ipr.mail import utc_from_string
 from ietf.meeting.models import Meeting
+from ietf.message.models import Message
 from ietf.submit.models import Submission, Preapproval
 from ietf.submit.utils import validate_submission_rev, validate_submission_document_date
 from ietf.submit.parsers.pdf_parser import PDFParser
@@ -118,12 +122,6 @@ class SubmissionUploadForm(forms.Form):
         if self.shutdown and not has_role(self.request.user, "Secretariat"):
             raise forms.ValidationError('The submission tool is currently shut down')
 
-        # sanity check that paths exist (for development servers)
-        for s in ("IDSUBMIT_STAGING_PATH", "IDSUBMIT_IDNITS_BINARY",
-                  "IDSUBMIT_REPOSITORY_PATH", "INTERNET_DRAFT_ARCHIVE_DIR"):
-            if not os.path.exists(getattr(settings, s)):
-                raise forms.ValidationError('%s defined in settings.py does not exist' % s)
-
         for ext in ['txt', 'pdf', 'xml', 'ps']:
             f = self.cleaned_data.get(ext, None)
             if not f:
@@ -173,8 +171,12 @@ class SubmissionUploadForm(forms.Form):
                 else:
                     self.revision = None
                     self.filename = draftname
-                self.title = self.xmlroot.findtext('front/title')
-                self.abstract = self.xmlroot.findtext('front/abstract')
+                self.title = self.xmlroot.findtext('front/title').strip()
+                if type(self.title) is unicode:
+                    self.title = unidecode(self.title)
+                self.abstract = self.xmlroot.findtext('front/abstract').strip()
+                if type(self.abstract) is unicode:
+                    self.abstract = unidecode(self.abstract)
                 self.author_list = []
                 author_info = self.xmlroot.findall('front/author')
                 for author in author_info:
@@ -229,9 +231,9 @@ class SubmissionUploadForm(forms.Form):
             self.group = self.deduce_group()
 
             # check existing
-            existing = Submission.objects.filter(name=self.filename, rev=self.revision).exclude(state__in=("posted", "cancel"))
+            existing = Submission.objects.filter(name=self.filename, rev=self.revision).exclude(state__in=("posted", "cancel", "waiting-for-draft"))
             if existing:
-                raise forms.ValidationError(mark_safe('A submission with same name and revision is currently being processed. <a href="%s">Check the status here.</a>' % urlreverse("submit_submission_status", kwargs={ 'submission_id': existing[0].pk })))
+                raise forms.ValidationError(mark_safe('A submission with same name and revision is currently being processed. <a href="%s">Check the status here.</a>' % urlreverse("ietf.submit.views.submission_status", kwargs={ 'submission_id': existing[0].pk })))
 
             # cut-off
             if self.revision == '00' and self.in_first_cut_off:
@@ -325,6 +327,9 @@ class NameEmailForm(forms.Form):
     """For validating supplied submitter and author information."""
     name = forms.CharField(required=True)
     email = forms.EmailField(label=u'Email address')
+
+    #Fields for secretariat only
+    approvals_received = forms.BooleanField(label=u'Approvals received', required=False, initial=False)
 
     def __init__(self, *args, **kwargs):
         email_required = kwargs.pop("email_required", True)
@@ -427,3 +432,86 @@ class PreapprovalForm(forms.Form):
             raise forms.ValidationError("A draft with this name has already been submitted and accepted. A pre-approval would not make any difference.")
 
         return n
+
+
+class SubmissionEmailForm(forms.Form):
+    '''
+    Used to add a message to a submission or to create a new submission.
+    This message is NOT a reply to a previous message but has arrived out of band
+    
+    if submission_pk is None we are startign a new submission and name
+    must be unique. Otehrwise the name must match the submission.name.
+    '''
+    name = forms.CharField(required=True, max_length=255, label="Draft name")
+    submission_pk = forms.IntegerField(required=False, widget=forms.HiddenInput())
+    direction = forms.ChoiceField(choices=(("incoming", "Incoming"), ("outgoing", "Outgoing")),
+                                  widget=forms.RadioSelect)
+    message = forms.CharField(required=True, widget=forms.Textarea,
+                              help_text="Copy the entire message including headers. To do so, view the source, select all, copy then paste into the text area above")
+    #in_reply_to = MessageModelChoiceField(queryset=Message.objects,label="In Reply To",required=False)
+
+    def __init__(self, *args, **kwargs):
+        super(SubmissionEmailForm, self).__init__(*args, **kwargs)
+
+    def clean_message(self):
+        '''Returns a ietf.message.models.Message object'''
+        self.message_text = self.cleaned_data['message']
+        try:
+            message = email.message_from_string(self.message_text)
+        except Exception as e:
+            self.add_error('message', e)
+            return None
+            
+        for field in ('to','from','subject','date'):
+            if not message[field]:
+                raise forms.ValidationError('Error parsing email: {} field not found.'.format(field))
+        date = utc_from_string(message['date'])
+        if not isinstance(date,datetime.datetime):
+            raise forms.ValidationError('Error parsing email date field')
+        return message
+
+    def clean(self):
+        if any(self.errors):
+            return self.cleaned_data
+        super(SubmissionEmailForm, self).clean()
+        name = self.cleaned_data['name']
+        match = re.search(r"(draft-[a-z0-9-]*)-(\d\d)", name)
+        if not match:
+            self.add_error('name', 
+                           "Submission name {} must start with 'draft-' and only contain digits, lowercase letters and dash characters and end with revision.".format(name))
+        else:
+            self.draft_name = match.group(1)    
+            self.revision = match.group(2)
+
+            error = validate_submission_rev(self.draft_name, self.revision)
+            if error:
+                raise forms.ValidationError(error)
+
+        #in_reply_to = self.cleaned_data['in_reply_to']
+        #message = self.cleaned_data['message']
+        direction = self.cleaned_data['direction']
+        if direction != 'incoming' and direction != 'outgoing':
+            self.add_error('direction', "Must be one of 'outgoing' or 'incoming'")
+
+        #if in_reply_to:
+        #    if direction != 'incoming':
+        #        raise forms.ValidationError('Only incoming messages can have In Reply To selected')
+        #    date = utc_from_string(message['date'])
+        #    if date < in_reply_to.time:
+        #        raise forms.ValidationError('The incoming message must have a date later than the message it is replying to')
+
+        return self.cleaned_data
+
+class MessageModelForm(forms.ModelForm):
+    in_reply_to_id = forms.CharField(required=False, widget=forms.HiddenInput())
+    
+    class Meta:
+        model = Message
+        fields = ['to','frm','cc','bcc','reply_to','subject','body']
+        exclude = ['time','by','content_type','related_groups','related_docs']
+
+    def __init__(self, *args, **kwargs):
+        super(MessageModelForm, self).__init__(*args, **kwargs)
+        self.fields['frm'].label='From'
+        self.fields['frm'].widget.attrs['readonly'] = 'True'
+        self.fields['reply_to'].widget.attrs['readonly'] = 'True'

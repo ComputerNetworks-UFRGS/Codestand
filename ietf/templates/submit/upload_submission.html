@@ -8,8 +8,6 @@
 
 {% block submit_content %}
   {% origin %}
-  {% bootstrap_messages %}
-
   {% if form.shutdown and user|has_role:"Secretariat" %}
   <p class="bg-warning">WARNING: currently in draft submission blackout period</p>
   {% endif %}
@@ -52,6 +50,7 @@
 
       <form method="post" enctype="multipart/form-data">
         {% csrf_token %}
+
         {% bootstrap_form form %}
 
         {% buttons %}

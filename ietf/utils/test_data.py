@@ -6,13 +6,15 @@ from django.contrib.auth.models import User
 
 import debug                            # pyflakes:ignore
 
-from ietf.doc.models import Document, DocAlias, State, DocumentAuthor, BallotType, DocEvent, BallotDocEvent, RelatedDocument
+from ietf.doc.models import Document, DocAlias, State, DocumentAuthor, BallotType, DocEvent, BallotDocEvent, RelatedDocument, NewRevisionDocEvent
 from ietf.group.models import Group, GroupHistory, Role, RoleHistory
 from ietf.iesg.models import TelechatDate
 from ietf.ipr.models import HolderIprDisclosure, IprDocRel, IprDisclosureStateName, IprLicenseTypeName
 from ietf.meeting.models import Meeting
 from ietf.name.models import StreamName, DocRelationshipName
 from ietf.person.models import Person, Email
+from ietf.group.utils import setup_default_community_list_for_group
+from ietf.review.models import (ReviewRequest, ReviewerSettings, ReviewResultName, ReviewTypeName, ReviewTeamSettings )
 
 def create_person(group, role_name, name=None, username=None, email_address=None, password=None):
     """Add person/user/email and role."""
@@ -31,9 +33,11 @@ def create_person(group, role_name, name=None, username=None, email_address=None
     person = Person.objects.create(name=name, ascii=name, user=user)
     email = Email.objects.create(address=email_address, person=person)
     Role.objects.create(group=group, name_id=role_name, person=person, email=email)
+    return person
 
 def create_group(**kwargs):
-    return Group.objects.create(state_id="active", **kwargs)
+    group, created = Group.objects.get_or_create(state_id="active", **kwargs)
+    return group
 
 def make_immutable_base_data():
     """Some base data (groups, etc.) that doesn't need to be modified by
@@ -89,6 +93,13 @@ def make_immutable_base_data():
     area = create_group(name="Far Future", acronym="farfut", type_id="area", parent=ietf)
     create_person(area, "ad", name="Areað Irector", username="ad", email_address="aread@ietf.org")
 
+    # second area
+    opsarea = create_group(name="Operations", acronym="ops", type_id="area", parent=ietf)
+    create_person(opsarea, "ad")
+    sops = create_group(name="Server Operations", acronym="sops", type_id="wg", parent=opsarea)
+    create_person(sops, "chair", name="Sops Chairman", username="sopschairman")
+    create_person(sops, "secr", name="Sops Secretary", username="sopssecretary")
+
     # create a bunch of ads for swarm tests
     for i in range(1, 10):
         u = User.objects.create(username="ad%s" % i)
@@ -116,6 +127,7 @@ def make_immutable_base_data():
 def make_test_data():
     area = Group.objects.get(acronym="farfut")
     ad = Person.objects.get(user__username="ad")
+    irtf = Group.objects.get(acronym='irtf')
 
     # mars WG
     group = Group.objects.create(
@@ -141,6 +153,8 @@ def make_test_data():
         name=charter.name,
         document=charter
         )
+    setup_default_community_list_for_group(group)
+
     # ames WG
     group = Group.objects.create(
         name="Asteroid Mining Equipment Standardization Group",
@@ -165,6 +179,31 @@ def make_test_data():
         )
     group.charter = charter
     group.save()
+    setup_default_community_list_for_group(group)
+
+    # irg RG
+    irg_rg = Group.objects.create(
+        name="Internet Research Group",
+        acronym="irg",
+        state_id="active",
+        type_id="rg",
+        parent=irtf,
+        list_email="irg-rg@ietf.org",
+        )
+    #charter = Document.objects.create(
+    #    name="charter-ietf-" + group.acronym,
+    #    type_id="charter",
+    #    title=group.name,
+    #    group=group,
+    #    rev="00",
+    #    )
+    #charter.set_state(State.objects.get(used=True, slug="infrev", type="charter"))
+    #DocAlias.objects.create(
+    #    name=charter.name,
+    #    document=charter
+    #    )
+    #group.charter = charter
+    #group.save()
 
     # plain IETF'er
     u = User.objects.create(username="plain")
@@ -176,13 +215,18 @@ def make_test_data():
     # group personnel
     create_person(mars_wg, "chair", name="WG Cháir Man", username="marschairman")
     create_person(mars_wg, "delegate", name="WG Dèlegate", username="marsdelegate")
+    create_person(mars_wg, "secr", name="Miss Secretary", username="marssecretary")
+
     mars_wg.role_set.get_or_create(name_id='ad',person=ad,email=ad.role_email('ad'))
     mars_wg.save()
 
-    create_person(ames_wg, "chair", name="WG Cháir Man", username="ameschairman")
-    create_person(ames_wg, "delegate", name="WG Dèlegate", username="amesdelegate")
+    create_person(ames_wg, "chair", name="Ames Chair Man", username="ameschairman")
+    create_person(ames_wg, "delegate", name="Ames Delegate", username="amesdelegate")
+    create_person(ames_wg, "secr", name="Mr Secretary", username="amessecretary")
     ames_wg.role_set.get_or_create(name_id='ad',person=ad,email=ad.role_email('ad'))
     ames_wg.save()
+
+    create_person(irg_rg, "chair", name="Irg Chair Man", username="irgchairman")
 
     # old draft
     old_draft = Document.objects.create(
@@ -244,11 +288,12 @@ def make_test_data():
         desc="Started IESG process",
         )
 
-    DocEvent.objects.create(
+    NewRevisionDocEvent.objects.create(
         type="new_revision",
         by=ad,
         doc=draft,
         desc="New revision available",
+        rev="01",
         )
 
     BallotDocEvent.objects.create(
@@ -294,7 +339,7 @@ def make_test_data():
 
     # interim meeting
     Meeting.objects.create(
-        number="interim-2015-mars-1",
+        number="interim-2015-mars-01",
         type_id='interim',
         date=datetime.date(2015,1,1),
         city="New York",
@@ -307,10 +352,8 @@ def make_test_data():
     DocAlias.objects.create(name=doc.name, document=doc)
 
     # an irtf submission mid review
-    doc = Document.objects.create(name='draft-imaginary-irtf-submission', type_id='draft',rev='00')
+    doc = Document.objects.create(name='draft-imaginary-irtf-submission', type_id='draft',rev='00', stream=StreamName.objects.get(slug='irtf'))
     docalias = DocAlias.objects.create(name=doc.name, document=doc)
-    doc.stream = StreamName.objects.get(slug='irtf')
-    doc.save()
     doc.set_state(State.objects.get(type="draft", slug="active"))
     crdoc = Document.objects.create(name='conflict-review-imaginary-irtf-submission', type_id='conflrev', rev='00', notify="fsm@ietf.org")
     DocAlias.objects.create(name=crdoc.name, document=crdoc)
@@ -321,15 +364,12 @@ def make_test_data():
     iesg = Group.objects.get(acronym='iesg')
     doc = Document.objects.create(name='status-change-imaginary-mid-review',type_id='statchg', rev='00', notify="fsm@ietf.org",group=iesg)
     doc.set_state(State.objects.get(slug='needshep',type__slug='statchg'))
-    doc.save()
     docalias = DocAlias.objects.create(name='status-change-imaginary-mid-review',document=doc)
 
     # Some things for a status change to affect
     def rfc_for_status_change_test_factory(name,rfc_num,std_level_id):
-        target_rfc = Document.objects.create(name=name, type_id='draft', std_level_id=std_level_id)
+        target_rfc = Document.objects.create(name=name, type_id='draft', std_level_id=std_level_id, notify="%s@ietf.org"%name)
         target_rfc.set_state(State.objects.get(slug='rfc',type__slug='draft'))
-        target_rfc.notify = "%s@ietf.org"%name
-        target_rfc.save()
         docalias = DocAlias.objects.create(name=name,document=target_rfc)
         docalias = DocAlias.objects.create(name='rfc%d'%rfc_num,document=target_rfc) # pyflakes:ignore
         return target_rfc
@@ -339,14 +379,58 @@ def make_test_data():
 
     # Instances of the remaining document types 
     # (Except liaison, liai-att, and recording  which the code in ietf.doc does not use...)
-    def other_doc_factory(type_id,name):
-        doc = Document.objects.create(type_id=type_id,name=name,rev='00',group=mars_wg)
-        DocAlias.objects.create(name=name,document=doc)
-        doc.set_state(State.objects.get(type__slug=doc.type.slug,slug='active'))
-        if type_id=='slides':
-            doc.set_state(State.objects.get(type='reuse_policy',slug='single'))
-    other_doc_factory('agenda','agenda-42-mars')
-    other_doc_factory('minutes','minutes-42-mars')
-    other_doc_factory('slides','slides-42-mars-1')
+    # Meeting-related documents are created in make_meeting_test_data, and
+    # associated with a session
 
     return draft
+
+def make_review_data(doc):
+    team1 = create_group(acronym="reviewteam", name="Review Team", type_id="dir", list_email="reviewteam@ietf.org", parent=Group.objects.get(acronym="farfut"))
+    team2 = create_group(acronym="reviewteam2", name="Review Team 2", type_id="dir", list_email="reviewteam2@ietf.org", parent=Group.objects.get(acronym="farfut"))
+    team3 = create_group(acronym="reviewteam3", name="Review Team 3", type_id="dir", list_email="reviewteam2@ietf.org", parent=Group.objects.get(acronym="farfut"))
+    for team in (team1, team2, team3):
+        ReviewTeamSettings.objects.create(group=team)
+        for r in ReviewResultName.objects.filter(slug__in=["issues", "ready-issues", "ready", "not-ready"]):
+            team.reviewteamsettings.review_results.add(r)
+        for t in ReviewTypeName.objects.filter(slug__in=["early", "lc", "telechat"]):
+            team.reviewteamsettings.review_types.add(t)
+
+    u = User.objects.create(username="reviewer")
+    u.set_password("reviewer+password")
+    u.save()
+    reviewer = Person.objects.create(name=u"Some Réviewer", ascii="Some Reviewer", user=u)
+    email = Email.objects.create(address="reviewer@example.com", person=reviewer)
+
+    for team in (team1, team2, team3):
+        Role.objects.create(name_id="reviewer", person=reviewer, email=email, group=team)
+        ReviewerSettings.objects.create(team=team, person=reviewer, min_interval=14, skip_next=0)
+
+    review_req = ReviewRequest.objects.create(
+        doc=doc,
+        team=team1,
+        type_id="early",
+        deadline=datetime.datetime.now() + datetime.timedelta(days=20),
+        state_id="accepted",
+        requested_by=reviewer,
+        reviewer=email,
+    )
+
+    p = Person.objects.get(user__username="marschairman")
+    Role.objects.create(name_id="reviewer", person=p, email=p.email_set.first(), group=team1)
+
+    u = User.objects.create(username="reviewsecretary")
+    u.set_password("reviewsecretary+password")
+    u.save()
+    reviewsecretary = Person.objects.create(name=u"Réview Secretary", ascii="Review Secretary", user=u)
+    reviewsecretary_email = Email.objects.create(address="reviewsecretary@example.com", person=reviewsecretary)
+    Role.objects.create(name_id="secr", person=reviewsecretary, email=reviewsecretary_email, group=team1)
+
+    u = User.objects.create(username="reviewsecretary3")
+    u.set_password("reviewsecretary3+password")
+    u.save()
+    reviewsecretary3 = Person.objects.create(name=u"Réview Secretary3", ascii="Review Secretary3", user=u)
+    reviewsecretary3_email = Email.objects.create(address="reviewsecretary3@example.com", person=reviewsecretary)
+    Role.objects.create(name_id="secr", person=reviewsecretary3, email=reviewsecretary3_email, group=team3)
+    
+    return review_req
+

@@ -1,9 +1,9 @@
 # Copyright The IETF Trust 2007, All Rights Reserved
 
-from email.Utils import make_msgid, formatdate, formataddr, parseaddr, getaddresses
-from email.MIMEText import MIMEText
-from email.MIMEMessage import MIMEMessage
-from email.MIMEMultipart import MIMEMultipart
+from email.utils import make_msgid, formatdate, formataddr, parseaddr, getaddresses
+from email.mime.text import MIMEText
+from email.mime.message import MIMEMessage
+from email.mime.multipart import MIMEMultipart
 from email.header import Header
 from email import message_from_string
 from email import charset as Charset
@@ -187,7 +187,7 @@ def encode_message(txt):
 def send_mail_text(request, to, frm, subject, txt, cc=None, extra=None, toUser=False, bcc=None):
     """Send plain text message."""
     msg = encode_message(txt)
-    send_mail_mime(request, to, frm, subject, msg, cc, extra, toUser, bcc)
+    return send_mail_mime(request, to, frm, subject, msg, cc, extra, toUser, bcc)
         
 def condition_message(to, frm, subject, msg, cc, extra):
     if isinstance(frm, tuple):
@@ -284,6 +284,8 @@ def send_mail_mime(request, to, frm, subject, msg, cc=None, extra=None, toUser=F
             build_warning_message(request, e)
             send_error_email(e)
 
+    return msg
+
 def parse_preformatted(preformatted, extra={}, override={}):
     """Parse preformatted string containing mail with From:, To:, ...,"""
     msg = message_from_string(preformatted.encode("utf-8"))
@@ -323,8 +325,8 @@ def send_mail_message(request, message, extra={}):
     if message.reply_to:
         e['Reply-to'] = message.reply_to
 
-    send_mail_text(request, message.to, message.frm, message.subject,
-                   message.body, cc=message.cc, bcc=message.bcc, extra=e)
+    return send_mail_text(request, message.to, message.frm, message.subject,
+                          message.body, cc=message.cc, bcc=message.bcc, extra=e)
 
 def exception_components(e):
     # See if it's a non-smtplib exception that we faked
@@ -345,6 +347,7 @@ def log_smtp_exception(e):
     if isinstance(e,SMTPSomeRefusedRecipients):
         log("     SomeRefused: %s"%(e.summary_refusals()))
     log("     Traceback: %s" % tb) 
+    return (extype, value, tb)
 
 def build_warning_message(request, e):
     (extype, value, tb) = exception_components(e)

@@ -11,7 +11,7 @@ from pyquery import PyQuery
 
 from ietf.doc.models import DocEvent, BallotDocEvent, BallotPositionDocEvent, TelechatDocEvent
 from ietf.doc.models import Document, DocAlias, State, RelatedDocument
-from ietf.group.models import Group, GroupMilestone
+from ietf.group.models import Group, GroupMilestone, Role
 from ietf.iesg.agenda import get_agenda_date, agenda_data
 from ietf.iesg.models import TelechatDate
 from ietf.name.models import StreamName
@@ -66,13 +66,21 @@ class IESGTests(TestCase):
         self.assertEqual(r.status_code, 200)
         self.assertTrue(draft.name in unicontent(r))
 
+    def test_photos(self):
+        url = urlreverse("ietf.iesg.views.photos")
+        r = self.client.get(url)
+        self.assertEqual(r.status_code, 200)
+        q = PyQuery(r.content)
+        ads = Role.objects.filter(group__type='area', group__state='active', name_id='ad')
+        self.assertEqual(len(q('div.photo-thumbnail img')), ads.count())
+        
 class IESGAgendaTests(TestCase):
     def setUp(self):
         make_test_data()
 
         ise_draft = Document.objects.get(name="draft-imaginary-independent-submission")
         ise_draft.stream = StreamName.objects.get(slug="ise")
-        ise_draft.save()
+        ise_draft.save_with_history([DocEvent(doc=ise_draft, type="changed_stream", by=Person.objects.get(user__username="secretary"), desc="Test")])
 
         self.telechat_docs = {
             "ietf_draft": Document.objects.get(name="draft-ietf-mars-test"),
@@ -88,6 +96,7 @@ class IESGAgendaTests(TestCase):
         self.draft_dir = os.path.abspath("tmp-agenda-draft-dir")
         if not os.path.exists(self.draft_dir):
             os.mkdir(self.draft_dir)
+        self.saved_internet_draft_path = settings.INTERNET_DRAFT_PATH
         settings.INTERNET_DRAFT_PATH = self.draft_dir
 
         for d in self.telechat_docs.values():
@@ -99,6 +108,7 @@ class IESGAgendaTests(TestCase):
 
 
     def tearDown(self):
+        settings.INTERNET_DRAFT_PATH = self.saved_internet_draft_path
         shutil.rmtree(self.draft_dir)
 
     def test_fill_in_agenda_docs(self):
@@ -121,7 +131,7 @@ class IESGAgendaTests(TestCase):
         # 2.1 protocol WG submissions
         draft.intended_std_level_id = "ps"
         draft.group = Group.objects.get(acronym="mars")
-        draft.save()
+        draft.save_with_history([DocEvent.objects.create(doc=draft, type="changed_group", by=Person.objects.get(user__username="secretary"), desc="Test")])
         draft.set_state(State.objects.get(type="draft-iesg", slug="iesg-eva"))
         self.assertTrue(draft in agenda_data(date_str)["sections"]["2.1.1"]["docs"])
 
@@ -136,7 +146,7 @@ class IESGAgendaTests(TestCase):
 
         # 2.2 protocol individual submissions
         draft.group = Group.objects.get(type="individ")
-        draft.save()
+        draft.save_with_history([DocEvent.objects.create(doc=draft, type="changed_group", by=Person.objects.get(user__username="secretary"), desc="Test")])
         draft.set_state(State.objects.get(type="draft-iesg", slug="iesg-eva"))
         self.assertTrue(draft in agenda_data(date_str)["sections"]["2.2.1"]["docs"])
 
@@ -152,7 +162,7 @@ class IESGAgendaTests(TestCase):
         # 3.1 document WG submissions
         draft.intended_std_level_id = "inf"
         draft.group = Group.objects.get(acronym="mars")
-        draft.save()
+        draft.save_with_history([DocEvent.objects.create(doc=draft, type="changed_group", by=Person.objects.get(user__username="secretary"), desc="Test")])
         draft.set_state(State.objects.get(type="draft-iesg", slug="iesg-eva"))
         self.assertTrue(draft in agenda_data(date_str)["sections"]["3.1.1"]["docs"])
 
@@ -167,7 +177,7 @@ class IESGAgendaTests(TestCase):
 
         # 3.2 document individual submissions
         draft.group = Group.objects.get(type="individ")
-        draft.save()
+        draft.save_with_history([DocEvent.objects.create(doc=draft, type="changed_group", by=Person.objects.get(user__username="secretary"), desc="Test")])
         draft.set_state(State.objects.get(type="draft-iesg", slug="iesg-eva"))
         self.assertTrue(draft in agenda_data(date_str)["sections"]["3.2.1"]["docs"])
 
@@ -190,7 +200,7 @@ class IESGAgendaTests(TestCase):
             relationship_id="tohist")
 
         statchg.group = Group.objects.get(acronym="mars")
-        statchg.save()
+        statchg.save_with_history([DocEvent.objects.create(doc=statchg, type="changed_group", by=Person.objects.get(user__username="secretary"), desc="Test")])
         statchg.set_state(State.objects.get(type="statchg", slug="iesgeval"))
         self.assertTrue(statchg in agenda_data(date_str)["sections"]["2.3.1"]["docs"])
 
@@ -208,7 +218,7 @@ class IESGAgendaTests(TestCase):
         relation.save()
 
         statchg.group = Group.objects.get(acronym="mars")
-        statchg.save()
+        statchg.save_with_history([DocEvent.objects.create(doc=statchg, type="changed_group", by=Person.objects.get(user__username="secretary"), desc="Test")])
         statchg.set_state(State.objects.get(type="statchg", slug="iesgeval"))
         self.assertTrue(statchg in agenda_data(date_str)["sections"]["3.3.1"]["docs"])
 
@@ -226,7 +236,7 @@ class IESGAgendaTests(TestCase):
         telechat_event.save()
 
         conflrev.group = Group.objects.get(acronym="mars")
-        conflrev.save()
+        conflrev.save_with_history([DocEvent.objects.create(doc=conflrev, type="changed_group", by=Person.objects.get(user__username="secretary"), desc="Test")])
         conflrev.set_state(State.objects.get(type="conflrev", slug="iesgeval"))
         self.assertTrue(conflrev in agenda_data(date_str)["sections"]["3.4.1"]["docs"])
 
@@ -245,7 +255,7 @@ class IESGAgendaTests(TestCase):
         telechat_event.save()
 
         charter.group = Group.objects.get(acronym="mars")
-        charter.save()
+        charter.save_with_history([DocEvent.objects.create(doc=charter, type="changed_group", by=Person.objects.get(user__username="secretary"), desc="Test")])
 
         charter.group.state_id = "bof"
         charter.group.save()

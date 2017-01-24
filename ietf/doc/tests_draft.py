@@ -26,6 +26,47 @@ from ietf.utils.test_utils import TestCase
 
 
 class ChangeStateTests(TestCase):
+    def test_ad_approved(self):
+        # get a draft in iesg evaluation, point raised
+        draft = make_test_data()
+        draft.set_state(State.objects.get(used=True, type="draft-iesg", slug="iesg-eva"))
+        draft.tags.add("point")
+
+        url = urlreverse('doc_change_state', kwargs=dict(name=draft.name))
+        login_testing_unauthorized(self, "ad", url)
+	
+        # normal get
+        r = self.client.get(url)
+        self.assertEqual(r.status_code, 200)
+        q = PyQuery(r.content)
+        self.assertEqual(len(q('form select[name=state]')), 1)
+        
+        events_before = draft.docevent_set.count()
+        mailbox_before = len(outbox)
+        
+        # set it to approved with no substate
+        r = self.client.post(url,
+                             dict(state=State.objects.get(used=True, type="draft-iesg", slug="approved").pk,
+                                  substate="",
+                                  comment="Test comment"))
+        self.assertEqual(r.status_code, 302)
+
+        draft = Document.objects.get(name=draft.name)
+        
+        # should now be in approved with no substate
+        self.assertEqual(draft.get_state_slug("draft-iesg"), "approved")
+        self.assertTrue(not draft.tags.filter(slug="approved"))
+        self.assertFalse(draft.tags.exists())
+        self.assertEqual(draft.docevent_set.count(), events_before + 2)
+        self.assertTrue("Test comment" in draft.docevent_set.all()[0].desc)
+        self.assertTrue("IESG state changed" in draft.docevent_set.all()[1].desc)
+        
+        # should have sent two emails, the second one to the iesg with approved message
+        self.assertEqual(len(outbox), mailbox_before + 2)
+        self.assertTrue("Approved: " in outbox[-1]['Subject'])
+        self.assertTrue(draft.name in outbox[-1]['Subject'])
+        self.assertTrue('iesg@' in outbox[-1]['To'])
+        
     def test_change_state(self):
         draft = make_test_data()
         draft.set_state(State.objects.get(used=True, type="draft-iesg", slug="ad-eval"))
@@ -371,9 +412,9 @@ class EditInfoTests(TestCase):
         self.assertEqual(draft.ad, ad)
         self.assertEqual(draft.note, "This is a note")
         self.assertTrue(not draft.latest_event(TelechatDocEvent, type="scheduled_for_telechat"))
-        self.assertEqual(draft.docevent_set.count(), events_before + 3)
+        self.assertEqual(draft.docevent_set.count(), events_before + 4)
         events = list(draft.docevent_set.order_by('time', 'id'))
-        self.assertEqual(events[-3].type, "started_iesg_process")
+        self.assertEqual(events[-4].type, "started_iesg_process")
         self.assertEqual(len(outbox), mailbox_before+1)
         self.assertTrue('IESG processing' in outbox[-1]['Subject'])
         self.assertTrue('draft-ietf-mars-test2@' in outbox[-1]['To']) 
@@ -382,7 +423,7 @@ class EditInfoTests(TestCase):
         draft.unset_state('draft-iesg')
         draft.set_state(State.objects.get(type='draft-stream-ietf',slug='writeupw'))
         draft.stream = StreamName.objects.get(slug='ietf')
-        draft.save()
+        draft.save_with_history([DocEvent.objects.create(doc=draft, type="changed_stream", by=Person.objects.get(user__username="secretary"), desc="Test")])
         r = self.client.post(url,
                              dict(intended_std_level=str(draft.intended_std_level_id),
                                   ad=ad.pk,
@@ -414,6 +455,21 @@ class EditInfoTests(TestCase):
         self.assertEqual(draft.latest_event(ConsensusDocEvent, type="changed_consensus").consensus, True)
 
         # reset
+        e = DocEvent(doc=draft,by=Person.objects.get(name="(System)"),type='changed_document')
+        e.desc = u"Intended Status changed to <b>%s</b> from %s"% (draft.intended_std_level_id, 'bcp')
+        e.save()
+
+        draft.intended_std_level_id = 'bcp'
+        draft.save_with_history([e])
+        r = self.client.post(url, dict(consensus="Unknown"))
+        self.assertEqual(r.status_code, 403) # BCPs must have a consensus
+
+        e = DocEvent(doc=draft,by=Person.objects.get(name="(System)"),type='changed_document')
+        e.desc = u"Intended Status changed to <b>%s</b> from %s"% (draft.intended_std_level_id, 'inf')
+        e.save()
+
+        draft.intended_std_level_id = 'inf'
+        draft.save_with_history([e])
         r = self.client.post(url, dict(consensus="Unknown"))
         self.assertEqual(r.status_code, 302)
 
@@ -491,6 +547,8 @@ class ResurrectTests(TestCase):
 
 class ExpireIDsTests(TestCase):
     def setUp(self):
+        self.saved_id_dir = settings.INTERNET_DRAFT_PATH
+        self.saved_archive_dir = settings.INTERNET_DRAFT_ARCHIVE_DIR
         self.id_dir = os.path.abspath("tmp-id-dir")
         self.archive_dir = os.path.abspath("tmp-id-archive")
         if not os.path.exists(self.id_dir):
@@ -507,6 +565,8 @@ class ExpireIDsTests(TestCase):
     def tearDown(self):
         shutil.rmtree(self.id_dir)
         shutil.rmtree(self.archive_dir)
+        settings.INTERNET_DRAFT_PATH = self.saved_id_dir
+        settings.INTERNET_DRAFT_ARCHIVE_DIR = self.saved_archive_dir
 
     def write_draft_file(self, name, size):
         f = open(os.path.join(self.id_dir, name), 'w')
@@ -538,7 +598,7 @@ class ExpireIDsTests(TestCase):
         # hack into expirable state
         draft.unset_state("draft-iesg")
         draft.expires = datetime.datetime.now() + datetime.timedelta(days=10)
-        draft.save()
+        draft.save_with_history([DocEvent.objects.create(doc=draft, type="changed_document", by=Person.objects.get(user__username="secretary"), desc="Test")])
 
         self.assertEqual(len(list(get_soon_to_expire_drafts(14))), 1)
         
@@ -562,7 +622,7 @@ class ExpireIDsTests(TestCase):
         # hack into expirable state
         draft.unset_state("draft-iesg")
         draft.expires = datetime.datetime.now()
-        draft.save()
+        draft.save_with_history([DocEvent.objects.create(doc=draft, type="changed_document", by=Person.objects.get(user__username="secretary"), desc="Test")])
 
         self.assertEqual(len(list(get_expired_drafts())), 1)
 
@@ -625,7 +685,6 @@ class ExpireIDsTests(TestCase):
         
         # RFC draft
         draft.set_state(State.objects.get(used=True, type="draft", slug="rfc"))
-        draft.save()
 
         txt = "%s-%s.txt" % (draft.name, draft.rev)
         self.write_draft_file(txt, 5000)
@@ -643,7 +702,7 @@ class ExpireIDsTests(TestCase):
         # expire draft
         draft.set_state(State.objects.get(used=True, type="draft", slug="expired"))
         draft.expires = datetime.datetime.now() - datetime.timedelta(days=1)
-        draft.save()
+        draft.save_with_history([DocEvent.objects.create(doc=draft, type="changed_document", by=Person.objects.get(user__username="secretary"), desc="Test")])
 
         e = DocEvent()
         e.doc = draft
@@ -863,7 +922,7 @@ class IndividualInfoFormsTests(TestCase):
 
     def test_doc_change_shepherd(self):
         self.doc.shepherd = None
-        self.doc.save()
+        self.doc.save_with_history([DocEvent.objects.create(doc=self.doc, type="changed_shepherd", by=Person.objects.get(user__username="secretary"), desc="Test")])
 
         url = urlreverse('doc_edit_shepherd',kwargs=dict(name=self.docname))
         
@@ -915,19 +974,19 @@ class IndividualInfoFormsTests(TestCase):
 
     def test_doc_change_shepherd_email(self):
         self.doc.shepherd = None
-        self.doc.save()
+        self.doc.save_with_history([DocEvent.objects.create(doc=self.doc, type="changed_shepherd", by=Person.objects.get(user__username="secretary"), desc="Test")])
 
         url = urlreverse('doc_change_shepherd_email',kwargs=dict(name=self.docname))
         r = self.client.get(url)
         self.assertEqual(r.status_code, 404)
 
         self.doc.shepherd = Email.objects.get(person__user__username="ad1")
-        self.doc.save()
+        self.doc.save_with_history([DocEvent.objects.create(doc=self.doc, type="changed_shepherd", by=Person.objects.get(user__username="secretary"), desc="Test")])
 
         login_testing_unauthorized(self, "plain", url)
 
         self.doc.shepherd = Email.objects.get(person__user__username="plain")
-        self.doc.save()
+        self.doc.save_with_history([DocEvent.objects.create(doc=self.doc, type="changed_shepherd", by=Person.objects.get(user__username="secretary"), desc="Test")])
 
         new_email = Email.objects.create(address="anotheremail@example.com", person=self.doc.shepherd.person)
 
@@ -962,7 +1021,7 @@ class IndividualInfoFormsTests(TestCase):
         # Try again when no longer a shepherd.
 
         self.doc.shepherd = None
-        self.doc.save()
+        self.doc.save_with_history([DocEvent.objects.create(doc=self.doc, type="changed_shepherd", by=Person.objects.get(user__username="secretary"), desc="Test")])
         r = self.client.get(url)
         self.assertEqual(r.status_code,200)
         q = PyQuery(r.content)
@@ -1071,7 +1130,7 @@ class RequestPublicationTests(TestCase):
         draft.stream = StreamName.objects.get(slug="iab")
         draft.group = Group.objects.get(acronym="iab")
         draft.intended_std_level = IntendedStdLevelName.objects.get(slug="inf")
-        draft.save()
+        draft.save_with_history([DocEvent.objects.create(doc=draft, type="changed_document", by=Person.objects.get(user__username="secretary"), desc="Test")])
         draft.set_state(State.objects.get(used=True, type="draft-stream-iab", slug="approved"))
 
         url = urlreverse('doc_request_publication', kwargs=dict(name=draft.name))
@@ -1111,8 +1170,8 @@ class AdoptDraftTests(TestCase):
         draft = make_test_data()
         draft.stream = None
         draft.group = Group.objects.get(type="individ")
-        draft.save()
         draft.unset_state("draft-stream-ietf")
+        draft.save_with_history([DocEvent.objects.create(doc=draft, type="changed_document", by=Person.objects.get(user__username="secretary"), desc="Test")])
 
         url = urlreverse('doc_adopt_draft', kwargs=dict(name=draft.name))
         login_testing_unauthorized(self, "marschairman", url)
@@ -1188,6 +1247,40 @@ class ChangeStreamStateTests(TestCase):
         self.assertTrue("mars-chairs@ietf.org" in unicode(outbox[-1]))
         self.assertTrue("marsdelegate@ietf.org" in unicode(outbox[-1]))
         self.assertTrue("plain@example.com" in unicode(outbox[-1]))
+
+    def test_set_initial_state(self):
+        draft = make_test_data()
+        draft.unset_state("draft-stream-%s"%draft.stream_id)
+
+        url = urlreverse('doc_change_stream_state', kwargs=dict(name=draft.name, state_type="draft-stream-ietf"))
+        login_testing_unauthorized(self, "marschairman", url)
+        
+        # set a state when no state exists
+        old_state = draft.get_state("draft-stream-%s" % draft.stream_id )
+        self.assertEqual(old_state,None)
+        new_state = State.objects.get(used=True, type="draft-stream-%s" % draft.stream_id, slug="parked")
+        empty_outbox()
+        events_before = draft.docevent_set.count()
+
+        r = self.client.post(url,
+                             dict(new_state=new_state.pk,
+                                  comment="some comment",
+                                  weeks="10",
+                                  tags=[t.pk for t in draft.tags.filter(slug__in=get_tags_for_stream_id(draft.stream_id))],
+                                  ))
+        self.assertEqual(r.status_code, 302)
+
+        draft = Document.objects.get(pk=draft.pk)
+        self.assertEqual(draft.get_state("draft-stream-%s" % draft.stream_id), new_state)
+        self.assertEqual(draft.docevent_set.count() - events_before, 2)
+        reminder = DocReminder.objects.filter(event__doc=draft, type="stream-s")
+        self.assertEqual(len(reminder), 1)
+        due = datetime.datetime.now() + datetime.timedelta(weeks=10)
+        self.assertTrue(due - datetime.timedelta(days=1) <= reminder[0].due <= due + datetime.timedelta(days=1))
+        self.assertEqual(len(outbox), 1)
+        self.assertTrue("state changed" in outbox[0]["Subject"].lower())
+        self.assertTrue("mars-chairs@ietf.org" in unicode(outbox[0]))
+        self.assertTrue("marsdelegate@ietf.org" in unicode(outbox[0]))
 
     def test_set_state(self):
         draft = make_test_data()
@@ -1268,6 +1361,7 @@ class ChangeReplacesTests(TestCase):
             expires=datetime.datetime.now() + datetime.timedelta(days=settings.INTERNET_DRAFT_DAYS_TO_EXPIRE),
             group=mars_wg,
         )
+        self.basea.documentauthor_set.create(author=Email.objects.create(address="basea_author@example.com"),order=1)
 
         self.baseb = Document.objects.create(
             name="draft-test-base-b",
@@ -1278,6 +1372,7 @@ class ChangeReplacesTests(TestCase):
             expires=datetime.datetime.now() - datetime.timedelta(days = 365 - settings.INTERNET_DRAFT_DAYS_TO_EXPIRE),
             group=mars_wg,
         )
+        self.baseb.documentauthor_set.create(author=Email.objects.create(address="baseb_author@example.com"),order=1)
 
         self.replacea = Document.objects.create(
             name="draft-test-replace-a",
@@ -1288,6 +1383,7 @@ class ChangeReplacesTests(TestCase):
             expires=datetime.datetime.now() + datetime.timedelta(days = settings.INTERNET_DRAFT_DAYS_TO_EXPIRE),
             group=mars_wg,
         )
+        self.replacea.documentauthor_set.create(author=Email.objects.create(address="replacea_author@example.com"),order=1)
  
         self.replaceboth = Document.objects.create(
             name="draft-test-replace-both",
@@ -1298,6 +1394,7 @@ class ChangeReplacesTests(TestCase):
             expires=datetime.datetime.now() + datetime.timedelta(days = settings.INTERNET_DRAFT_DAYS_TO_EXPIRE),
             group=mars_wg,
         )
+        self.replaceboth.documentauthor_set.create(author=Email.objects.create(address="replaceboth_author@example.com"),order=1)
  
         self.basea.set_state(State.objects.get(used=True, type="draft", slug="active"))
         self.baseb.set_state(State.objects.get(used=True, type="draft", slug="expired"))
@@ -1332,8 +1429,8 @@ class ChangeReplacesTests(TestCase):
         self.assertTrue(not RelatedDocument.objects.filter(relationship='possibly-replaces', source=self.replacea))
         self.assertEqual(len(outbox), 1)
         self.assertTrue('replacement status updated' in outbox[-1]['Subject'])
-        self.assertTrue('base-a@' in outbox[-1]['To'])
-        self.assertTrue('replace-a@' in outbox[-1]['To'])
+        self.assertTrue('replacea_author@' in outbox[-1]['To'])
+        self.assertTrue('basea_author@' in outbox[-1]['To'])
 
         empty_outbox()
         # Post that says replaceboth replaces both base a and base b
@@ -1344,9 +1441,9 @@ class ChangeReplacesTests(TestCase):
         self.assertEqual(Document.objects.get(name='draft-test-base-a').get_state().slug,'repl')
         self.assertEqual(Document.objects.get(name='draft-test-base-b').get_state().slug,'repl')
         self.assertEqual(len(outbox), 1)
-        self.assertTrue('base-a@' in outbox[-1]['To'])
-        self.assertTrue('base-b@' in outbox[-1]['To'])
-        self.assertTrue('replace-both@' in outbox[-1]['To'])
+        self.assertTrue('basea_author@' in outbox[-1]['To'])
+        self.assertTrue('baseb_author@' in outbox[-1]['To'])
+        self.assertTrue('replaceboth_author@' in outbox[-1]['To'])
 
         # Post that undoes replaceboth
         empty_outbox()
@@ -1355,9 +1452,9 @@ class ChangeReplacesTests(TestCase):
         self.assertEqual(Document.objects.get(name='draft-test-base-a').get_state().slug,'repl') # Because A is still also replaced by replacea
         self.assertEqual(Document.objects.get(name='draft-test-base-b').get_state().slug,'expired')
         self.assertEqual(len(outbox), 1)
-        self.assertTrue('base-a@' in outbox[-1]['To'])
-        self.assertTrue('base-b@' in outbox[-1]['To'])
-        self.assertTrue('replace-both@' in outbox[-1]['To'])
+        self.assertTrue('basea_author@' in outbox[-1]['To'])
+        self.assertTrue('baseb_author@' in outbox[-1]['To'])
+        self.assertTrue('replaceboth_author@' in outbox[-1]['To'])
 
         # Post that undoes replacea
         empty_outbox()
@@ -1365,8 +1462,8 @@ class ChangeReplacesTests(TestCase):
         r = self.client.post(url, dict(replaces=""))
         self.assertEqual(r.status_code, 302)
         self.assertEqual(Document.objects.get(name='draft-test-base-a').get_state().slug,'active')
-        self.assertTrue('base-a@' in outbox[-1]['To'])
-        self.assertTrue('replace-a@' in outbox[-1]['To'])
+        self.assertTrue('basea_author@' in outbox[-1]['To'])
+        self.assertTrue('replacea_author@' in outbox[-1]['To'])
 
 
     def test_review_possibly_replaces(self):

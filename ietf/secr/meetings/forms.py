@@ -5,9 +5,8 @@ from django import forms
 
 from ietf.group.models import Group
 from ietf.meeting.models import Meeting, Room, TimeSlot, Session, SchedTimeSessAssignment
-from ietf.meeting.timedeltafield import TimedeltaFormField, TimedeltaWidget
 from ietf.name.models import TimeSlotTypeName
-
+import ietf.utils.fields
 
 DAYS_CHOICES = ((-1,'Saturday'),
                 (0,'Sunday'),
@@ -88,10 +87,19 @@ class TimeChoiceField(forms.ChoiceField):
 # Forms
 #----------------------------------------------------------
 class MeetingModelForm(forms.ModelForm):
+    idsubmit_cutoff_time_utc     = ietf.utils.fields.DurationField()
+    idsubmit_cutoff_warning_days = ietf.utils.fields.DurationField()
     class Meta:
         model = Meeting
         exclude = ('type', 'agenda', 'session_request_lock_message')
         
+
+    def __init__(self,*args,**kwargs):
+        super(MeetingModelForm, self).__init__(*args,**kwargs)
+        if 'instance' in kwargs:
+            for f in [ 'idsubmit_cutoff_warning_days', 'idsubmit_cutoff_time_utc', ]:
+                self.fields[f].help_text = kwargs['instance']._meta.get_field(f).help_text
+
     def clean_number(self):
         number = self.cleaned_data['number']
         if not number.isdigit():
@@ -152,7 +160,8 @@ class NonSessionEditForm(forms.Form):
     name = forms.CharField(help_text='Name that appears on the agenda')
     short = forms.CharField(max_length=32,label='Short Name',help_text='Enter an abbreviated session name (used for material file names)')
     location = forms.ModelChoiceField(queryset=Room.objects)
-    group = forms.ModelChoiceField(queryset=Group.objects.filter(acronym__in=('edu','ietf','iepg','tools','iesg','iab','iaoc')),
+    group = forms.ModelChoiceField(
+        queryset=Group.objects.filter(type__in=['ietf','team'],state='active'),
         help_text='''Select a group to associate with this session.  For example:<br>
                      Tutorials = Education,<br>
                      Code Sprint = Tools Team,<br>
@@ -174,13 +183,16 @@ class NonSessionEditForm(forms.Form):
 class TimeSlotForm(forms.Form):
     day = forms.ChoiceField(choices=DAYS_CHOICES)
     time = forms.TimeField()
-    duration = TimedeltaFormField(widget=TimedeltaWidget(attrs={'inputs':['hours','minutes']}))
+    duration = ietf.utils.fields.DurationField()
     name = forms.CharField(help_text='Name that appears on the agenda')
     
 class NonSessionForm(TimeSlotForm):
     short = forms.CharField(max_length=32,label='Short Name',help_text='Enter an abbreviated session name (used for material file names)',required=False)
     type = forms.ModelChoiceField(queryset=TimeSlotTypeName.objects.filter(used=True).exclude(slug__in=('session',)),empty_label=None)
-    group = forms.ModelChoiceField(queryset=Group.objects.filter(acronym__in=('edu','ietf','iepg','tools','iesg','iab','iaoc')),help_text='Required for Session types: other, plenary',required=False)
+    group = forms.ModelChoiceField(
+        queryset=Group.objects.filter(type__in=['ietf','team'],state='active'),
+        help_text='Required for Session types: other, plenary',
+        required=False)
     show_location = forms.BooleanField(required=False)
 
     def clean(self):

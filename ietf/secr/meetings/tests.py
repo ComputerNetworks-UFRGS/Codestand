@@ -4,6 +4,8 @@ import shutil
 from pyquery import PyQuery
 from StringIO import StringIO
 
+import debug         # pyflakes:ignore
+
 from django.conf import settings
 from django.core.urlresolvers import reverse
 
@@ -13,21 +15,24 @@ from ietf.meeting.test_data import make_meeting_test_data
 from ietf.person.models import Person
 from ietf.secr.meetings.forms import get_times
 from ietf.utils.mail import outbox
-from ietf.utils.test_utils import TestCase
+from ietf.utils.test_utils import TestCase 
 
 
-class MainTestCase(TestCase):
+class SecrMeetingTestCase(TestCase):
     def setUp(self):
         self.proceedings_dir = os.path.abspath("tmp-proceedings-dir")
         if not os.path.exists(self.proceedings_dir):
             os.mkdir(self.proceedings_dir)
+        self.saved_secr_proceedings_dir = settings.SECR_PROCEEDINGS_DIR
         settings.SECR_PROCEEDINGS_DIR = self.proceedings_dir
+        self.saved_agenda_path = settings.AGENDA_PATH
         settings.AGENDA_PATH = self.proceedings_dir
         
         self.bluesheet_dir = os.path.abspath(settings.TEST_BLUESHEET_DIR)
         self.bluesheet_path = os.path.join(self.bluesheet_dir,'blue_sheet.rtf')
         if not os.path.exists(self.bluesheet_dir):
             os.mkdir(self.bluesheet_dir)
+        self.saved_secr_blue_sheet_path = settings.SECR_BLUE_SHEET_PATH
         settings.SECR_BLUE_SHEET_PATH = self.bluesheet_path
 
         self.materials_dir = os.path.abspath(settings.TEST_MATERIALS_DIR)
@@ -35,6 +40,9 @@ class MainTestCase(TestCase):
             os.mkdir(self.materials_dir)
         
     def tearDown(self):
+        settings.SECR_PROCEEDINGS_DIR = self.saved_secr_proceedings_dir
+        settings.AGENDA_PATH = self.saved_agenda_path
+        settings.SECR_BLUE_SHEET_PATH = self.saved_secr_blue_sheet_path
         shutil.rmtree(self.proceedings_dir)
         shutil.rmtree(self.bluesheet_dir)
         shutil.rmtree(self.materials_dir)
@@ -54,7 +62,7 @@ class MainTestCase(TestCase):
         response = self.client.get(url)
         self.assertEqual(response.status_code, 200)
         q = PyQuery(response.content)
-        self.assertEqual(len(q('#id_schedule_selector option')),2)
+        self.assertEqual(len(q('#id_schedule_selector option')),3)
          
     def test_add_meeting(self):
         "Add Meeting"
@@ -69,6 +77,9 @@ class MainTestCase(TestCase):
                          idsubmit_cutoff_day_offset_01=20,
                          idsubmit_cutoff_time_utc     =datetime.timedelta(hours=23, minutes=59, seconds=59),
                          idsubmit_cutoff_warning_days =datetime.timedelta(days=21),
+                         submission_start_day_offset=90,
+                         submission_cutoff_day_offset=26,
+                         submission_correction_day_offset=50,
                      )
         self.client.login(username='secretary', password='secretary+password')
         response = self.client.post(url, post_data, follow=True)
@@ -87,6 +98,9 @@ class MainTestCase(TestCase):
                          idsubmit_cutoff_day_offset_01=20,
                          idsubmit_cutoff_time_utc     =datetime.timedelta(hours=23, minutes=59, seconds=59),
                          idsubmit_cutoff_warning_days =datetime.timedelta(days=21),
+                         submission_start_day_offset=90,
+                         submission_cutoff_day_offset=26,
+                         submission_correction_day_offset=50,
                     )
         self.client.login(username="secretary", password="secretary+password")
         response = self.client.post(url, post_data,follow=True)
@@ -118,7 +132,7 @@ class MainTestCase(TestCase):
         meeting = make_meeting_test_data()
         url = reverse('meetings_blue_sheet_generate',kwargs={'meeting_id':meeting.number})
         self.client.login(username="secretary", password="secretary+password")
-        response = self.client.get(url)
+        response = self.client.post(url)
         self.assertEqual(response.status_code, 302)
         self.assertTrue(os.path.exists(self.bluesheet_path))
         
@@ -175,6 +189,7 @@ class MainTestCase(TestCase):
         # test delete
         # first unschedule sessions so we can delete
         SchedTimeSessAssignment.objects.filter(schedule=meeting.agenda).delete()
+        SchedTimeSessAssignment.objects.filter(schedule=meeting.unofficial_schedule).delete()
         self.client.login(username="secretary", password="secretary+password")
         post_dict = {
             'room-TOTAL_FORMS':  q('input[name="room-TOTAL_FORMS"]').val(),
@@ -214,7 +229,7 @@ class MainTestCase(TestCase):
     def test_meetings_times_edit(self):
         meeting = make_meeting_test_data()
         timeslot = TimeSlot.objects.filter(meeting=meeting,type='session').first()
-        url = reverse('meetings_times_edit',kwargs={
+        url = reverse('ietf.secr.meetings.views.times_edit',kwargs={
             'meeting_id':42,
             'schedule_name':'test-agenda',
             'time':timeslot.time.strftime("%Y:%m:%d:%H:%M")
@@ -223,8 +238,7 @@ class MainTestCase(TestCase):
         response = self.client.post(url, {
             'day':'1',
             'time':'08:00',
-            'duration_hours':'1',
-            'duration_minutes':'0',
+            'duration':'1 0:0:0',
             'name':'Testing'
         })
         self.assertEqual(response.status_code, 302)

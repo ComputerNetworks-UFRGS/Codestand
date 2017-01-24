@@ -22,8 +22,8 @@ def clean_duplicates(addrlist):
 class MailTrigger(models.Model):
     slug = models.CharField(max_length=32, primary_key=True)
     desc = models.TextField(blank=True)
-    to   = models.ManyToManyField('Recipient', null=True, blank=True, related_name='used_in_to')
-    cc   = models.ManyToManyField('Recipient', null=True, blank=True, related_name='used_in_cc')
+    to   = models.ManyToManyField('Recipient', blank=True, related_name='used_in_to')
+    cc   = models.ManyToManyField('Recipient', blank=True, related_name='used_in_cc')
 
     class Meta:
         ordering = ["slug"]
@@ -110,13 +110,13 @@ class Recipient(models.Model):
         addrs = []
         if 'doc' in kwargs:
             for reldoc in kwargs['doc'].related_that_doc(['conflrev']):
-                if reldoc.document.stream_id=='irsg':
-                    addrs.append('"Internet Research Steering Group" <irsg@ietf.org>')
+                if reldoc.document.stream_id=='irtf':
+                    addrs.append('"Internet Research Steering Group" <irsg@irtf.org>')
         return addrs
 
     def gather_group_steering_group(self,**kwargs):
         addrs = []
-        sg_map = dict( wg='"The IESG" <iesg@ietf.org>', rg='"Internet Research Steering Group" <irsg@ietf.org>' )
+        sg_map = dict( wg='"The IESG" <iesg@ietf.org>', rg='"Internet Research Steering Group" <irsg@irtf.org>' )
         if 'group' in kwargs and kwargs['group'].type_id in sg_map:
             addrs.append(sg_map[kwargs['group'].type_id])
         return addrs 
@@ -157,6 +157,14 @@ class Recipient(models.Model):
                 addrs.extend(Recipient.objects.get(slug='stream_managers').gather(**{'streams':['irtf']}))
         return addrs
 
+    def gather_group_secretaries(self, **kwargs):
+        addrs = []
+        if 'group' in kwargs:
+            group = kwargs['group']
+            if not group.acronym=='none':
+                addrs.extend(group.role_set.filter(name='secr').values_list('email__address',flat=True))
+        return addrs
+
     def gather_doc_group_responsible_directors(self, **kwargs):
         addrs = []
         if 'doc' in kwargs:
@@ -174,7 +182,7 @@ class Recipient(models.Model):
 
     def gather_submission_group_chairs(self, **kwargs):
         addrs = []
-        if 'submission' in kwargs:
+        if 'submission' in kwargs: 
             submission = kwargs['submission']
             if submission.group: 
                 addrs.extend(Recipient.objects.get(slug='group_chairs').gather(**{'group':submission.group}))
@@ -182,7 +190,8 @@ class Recipient(models.Model):
 
     def gather_submission_confirmers(self, **kwargs):
         """If a submitted document is revising an existing document, the confirmers 
-           are the authors of that existing document. Otherwise, the confirmers
+           are the authors of that existing document, and the chairs if the document is
+           a working group document and the author list has changed. Otherwise, the confirmers
            are the authors and submitter of the submitted document."""
 
         addrs=[]
@@ -190,7 +199,18 @@ class Recipient(models.Model):
             submission = kwargs['submission']
             doc=submission.existing_document()
             if doc:
-                addrs.extend([i.author.formatted_email() for i in doc.documentauthor_set.all() if not i.author.invalid_address()])
+                old_authors = [i.author.formatted_email() for i in doc.documentauthor_set.all() if not i.author.invalid_address()]
+                new_authors = [u'"%s" <%s>' % (author["name"], author["email"]) for author in submission.authors_parsed() if author["email"]]
+                addrs.extend(old_authors)
+                if doc.group and set(old_authors)!=set(new_authors):
+                    if doc.group.type_id in ['wg','rg','ag']:
+                        addrs.extend(Recipient.objects.get(slug='group_chairs').gather(**{'group':doc.group}))
+                    elif doc.group.type_id in ['area']:
+                        addrs.extend(Recipient.objects.get(slug='group_responsible_directors').gather(**{'group':doc.group}))
+                    else:
+                        pass
+                    if doc.stream_id and doc.stream_id not in ['ietf']:
+                        addrs.extend(Recipient.objects.get(slug='stream_managers').gather(**{'streams':[doc.stream_id]}))
             else:
                 addrs.extend([u"%s <%s>" % (author["name"], author["email"]) for author in submission.authors_parsed() if author["email"]])
                 if submission.submitter_parsed()["email"]: 

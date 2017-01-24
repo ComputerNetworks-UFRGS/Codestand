@@ -15,9 +15,11 @@ class IndexTests(TestCase):
         self.id_dir = os.path.abspath("tmp-id-dir")
         if not os.path.exists(self.id_dir):
             os.mkdir(self.id_dir)
+        self.saved_internet_draft_path = settings.INTERNET_DRAFT_PATH
         settings.INTERNET_DRAFT_PATH = self.id_dir
 
     def tearDown(self):
+        settings.INTERNET_DRAFT_PATH = self.saved_internet_draft_path
         shutil.rmtree(self.id_dir)
         
     def write_draft_file(self, name, size):
@@ -99,7 +101,7 @@ class IndexTests(TestCase):
         author = draft.documentauthor_set.order_by("order").get()
         self.assertEqual(t[14], u"%s <%s>" % (author.author.person.name, author.author.address))
         self.assertEqual(t[15], u"%s <%s>" % (draft.shepherd.person.name, draft.shepherd.address))
-        self.assertEqual(t[16], u"%s <%s>" % (draft.ad, draft.ad.email_address()))
+        self.assertEqual(t[16], u"%s <%s>" % (draft.ad.plain_ascii(), draft.ad.email_address()))
 
 
         # test RFC

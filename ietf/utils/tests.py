@@ -1,7 +1,11 @@
 # -*- coding: utf-8 -*-
 import os.path
-#import json
-#from pathlib import Path
+import types
+import shutil
+from StringIO import StringIO
+from pipe import pipe
+from unittest import skipIf
+from fnmatch import fnmatch
 
 from textwrap import dedent
 from email.mime.text import MIMEText
@@ -9,12 +13,31 @@ from email.mime.image import MIMEImage
 from email.mime.multipart import MIMEMultipart
 
 from django.conf import settings
-from django.test import TestCase
+from django.core.management import call_command
+from django.template import Context
+from django.template.defaulttags import URLNode
+from django.template.loader import get_template
+from django.templatetags.static import StaticNode
 
 import debug                            # pyflakes:ignore
 
+import ietf.urls
 from ietf.utils.management.commands import pyflakes
 from ietf.utils.mail import send_mail_text, send_mail_mime, outbox 
+from ietf.utils.test_data import make_test_data
+from ietf.utils.test_runner import get_template_paths, set_coverage_checking
+from ietf.utils.test_utils import TestCase
+from ietf.group.models import Group
+
+skip_wiki_glue_testing = False
+skip_message = ""
+try:
+    import svn                          # pyflakes:ignore
+except ImportError as e:
+    import sys
+    skip_wiki_glue_testing = True
+    skip_message = "Skipping trac tests: %s" % e
+    sys.stderr.write("     "+skip_message+'\n')
 
 class PyFlakesTestCase(TestCase):
 
@@ -65,7 +88,180 @@ class TestSMTPServer(TestCase):
         self.assertEqual(len(outbox),len_before+2)
 
 
+def get_callbacks(urllist):
+    callbacks = set()
+    for entry in urllist:
+        if hasattr(entry, 'url_patterns'):
+            callbacks.update(get_callbacks(entry.url_patterns))
+        else:
+            if hasattr(entry, '_callback_str'):
+                callbacks.add(unicode(entry._callback_str))
+            if (hasattr(entry, 'callback') and entry.callback
+                and type(entry.callback) in [types.FunctionType, types.MethodType ]):
+                callbacks.add("%s.%s" % (entry.callback.__module__, entry.callback.__name__))
+            if hasattr(entry, 'name') and entry.name:
+                callbacks.add(unicode(entry.name))
+            # There are some entries we don't handle here, mostly clases
+            # (such as Feed subclasses)
 
+    return list(callbacks)
+
+class TemplateChecksTestCase(TestCase):
+
+    paths = []
+    templates = {}
+
+    def setUp(self):
+        set_coverage_checking(False)
+        self.paths = list(get_template_paths())
+        self.paths.sort()
+        for path in self.paths:
+            try:
+                self.templates[path] = get_template(path).template
+            except Exception:
+                pass
+
+    def tearDown(self):
+        set_coverage_checking(True)
+        pass
+
+    def test_parse_templates(self):
+        errors = []
+        for path in self.paths:
+            for pattern in settings.TEST_TEMPLATE_IGNORE:
+                if fnmatch(path, pattern):
+                    continue
+            if not path in self.templates:
+
+                try:
+                    get_template(path)
+                except Exception as e:
+                    errors.append((path, e))
+        if errors:
+            messages = [ "Parsing template '%s' failed with error: %s" % (path, ex) for (path, ex) in errors ]
+            raise self.failureException("Template parsing failed for %s templates:\n  %s" % (len(errors), "\n  ".join(messages)))
+
+    def apply_template_test(self, func, node_type, msg, *args, **kwargs):
+        errors = []
+        for path, template in self.templates.items():
+            origin = str(template.origin).replace(settings.BASE_DIR, '')
+            for node in template:
+                for child in node.get_nodes_by_type(node_type):
+                    errors += func(child, origin, *args, **kwargs)
+        if errors:
+            errors = list(set(errors))
+            errors.sort()
+            messages = [ msg % (k, v) for (k, v) in errors ]
+            raise self.failureException("Found %s errors when trying to %s:\n  %s" %(len(errors), func.__name__.replace('_',' '), "\n  ".join(messages)))
+
+    def test_template_url_lookup(self):
+        """
+        This test doesn't do full url resolving, using the appropriate contexts, as it
+        simply doesn't have any context to use.  It only looks if there exists a URL
+        pattern with the appropriate callback, callback string, or name.  If no matching
+        urlconf can be found, a full resolution would also fail.
+        """
+        #
+        def check_that_url_tag_callbacks_exists(node, origin, callbacks):
+            """
+            Check that an URLNode's callback is in callbacks.
+            """
+            cb = node.view_name.token.strip("\"'")
+            if cb in callbacks:
+                return []
+            else:
+                return [ (origin, cb), ]
+        #
+
+        callbacks = get_callbacks(ietf.urls.urlpatterns)
+        self.apply_template_test(check_that_url_tag_callbacks_exists, URLNode, 'In %s: Could not find urlpattern for "%s"', callbacks)
+
+    def test_template_statics_exists(self):
+        """
+        This test checks that every static template tag found in the template files found
+        by utils.test_runner.get_template_paths() actually resolves to a file that can be
+        served.  If collectstatic is correctly set up and used, the results should apply
+        to both development and production mode.
+        """
+        #
+        def check_that_static_tags_resolve(node, origin, checked):
+            """
+            Check that a StaticNode resolves to an url that can be served.
+            """
+            url = node.render(Context((), {}))
+            if url in checked:
+                return []
+            else:
+                r = self.client.get(url)
+                if r.status_code == 200:
+                    checked[url] = origin
+                    return []
+                else:
+                    return [(origin, url), ]
+        #
+        checked = {}
+        # the test client will only return static files when settings.DEBUG is True:
+        saved_debug = settings.DEBUG
+        settings.DEBUG = True
+        self.apply_template_test(check_that_static_tags_resolve, StaticNode, 'In %s: Could not find static file for "%s"', checked)
+        settings.DEBUG = saved_debug
+
+
+@skipIf(skip_wiki_glue_testing, skip_message)
+class TestWikiGlueManagementCommand(TestCase):
+
+    def setUp(self):
+        # We create temporary wiki and svn directories, and provide them to the management
+        # command through command line switches.  We have to do it this way because the
+        # management command reads in its own copy of settings.py in its own python
+        # environment, so we can't modify it here.
+        self.wiki_dir_pattern = os.path.abspath('tmp-wiki-dir-root/%s')
+        if not os.path.exists(os.path.dirname(self.wiki_dir_pattern)):
+            os.mkdir(os.path.dirname(self.wiki_dir_pattern))
+        self.svn_dir_pattern = os.path.abspath('tmp-svn-dir-root/%s')
+        if not os.path.exists(os.path.dirname(self.svn_dir_pattern)):
+            os.mkdir(os.path.dirname(self.svn_dir_pattern))
+
+    def tearDown(self):
+        shutil.rmtree(os.path.dirname(self.wiki_dir_pattern))
+        shutil.rmtree(os.path.dirname(self.svn_dir_pattern))
+
+    def test_wiki_create_output(self):
+        make_test_data()
+        groups = Group.objects.filter(
+                        type__slug__in=['wg','rg','area'],
+                        state__slug='active'
+                    ).order_by('acronym')
+        out = StringIO()
+        err = StringIO()
+        call_command('create_group_wikis', stdout=out, stderr=err, verbosity=2,
+            wiki_dir_pattern=self.wiki_dir_pattern,
+            svn_dir_pattern=self.svn_dir_pattern,
+        )
+        command_output = out.getvalue()
+        command_errors = err.getvalue()
+        self.assertEqual("", command_errors)
+        for group in groups:
+            self.assertIn("Processing group '%s'" % group.acronym, command_output)
+            # Do a bit of verification using trac-admin, too
+            admin_code, admin_output, admin_error = pipe(
+                'trac-admin %s permission list' % (self.wiki_dir_pattern % group.acronym))
+            self.assertEqual(admin_code, 0)
+            roles = group.role_set.filter(name_id__in=['chair', 'secr', 'ad'])
+            for role in roles:
+                user = role.email.address.lower()
+                self.assertIn("Granting admin permission for %s" % user, command_output)
+                self.assertIn(user, admin_output)
+            docs = group.document_set.filter(states__slug='active', type_id='draft')
+            for doc in docs:
+                name = doc.name
+                name = name.replace('draft-','')
+                name = name.replace(doc.stream_id+'-', '')
+                name = name.replace(group.acronym+'-', '')
+                self.assertIn("Adding component %s"%name, command_output)
+        for page in settings.TRAC_WIKI_PAGES_TEMPLATES:
+            self.assertIn("Adding page %s" % os.path.basename(page), command_output)
+        self.assertIn("Indexing default repository", command_output)
 
 ## One might think that the code below would work, but it doesn't ...
 

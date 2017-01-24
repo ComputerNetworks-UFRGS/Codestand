@@ -10,15 +10,14 @@
   {% origin %}
   <h1>Begin RFC status change review</h1>
 
-  {% bootstrap_messages %}
-
   <p><a class="btn btn-default" href="{% url "state_help" type="status-change"  %}">Help on states</a></p>
 
   <form class="start-rfc-status-change-review" method="post">
     {% csrf_token %}
 
-    <label class="control-label">Affected RFCs</label>
-
+    <div class="row">
+      <label class="control-label col-md-5">Affected RFCs</label>
+    </div>
     {% include "doc/status_change/edit_related_rows.html" %}
 
     <div class="row">

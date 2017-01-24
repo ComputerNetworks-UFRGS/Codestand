@@ -3,6 +3,7 @@
 import datetime, os
 
 from django.db import models
+from django.core import checks
 from django.core.exceptions import ValidationError
 from django.core.urlresolvers import reverse as urlreverse
 from django.core.validators import URLValidator
@@ -14,7 +15,7 @@ import debug                            # pyflakes:ignore
 
 from ietf.group.models import Group
 from ietf.name.models import ( DocTypeName, DocTagName, StreamName, IntendedStdLevelName, StdLevelName,
-    DocRelationshipName, DocReminderTypeName, BallotPositionName )
+    DocRelationshipName, DocReminderTypeName, BallotPositionName, ReviewRequestStateName )
 from ietf.person.models import Email, Person
 from ietf.utils.admin import admin_link
 
@@ -25,6 +26,20 @@ class StateType(models.Model):
 
     def __unicode__(self):
         return self.slug
+
+@checks.register('db-consistency')
+def check_statetype_slugs(app_configs, **kwargs):
+    errors = []
+    state_type_slugs = [ t.slug for t in StateType.objects.all() ]
+    for type in DocTypeName.objects.all():
+        if not type.slug in state_type_slugs:
+            errors.append(checks.Error(
+                "The document type '%s (%s)' does not have a corresponding entry in the doc.StateType table" % (type.name, type.slug),
+                hint="You should add a doc.StateType entry with a slug '%s' to match the DocTypeName slug."%(type.slug),
+                obj=type,
+                id='datatracker.doc.E0015',
+            ))
+    return errors
 
 class State(models.Model):
     type = models.ForeignKey(StateType)
@@ -53,14 +68,14 @@ class DocumentInfo(models.Model):
     title = models.CharField(max_length=255)
 
     states = models.ManyToManyField(State, blank=True) # plain state (Active/Expired/...), IESG state, stream state
-    tags = models.ManyToManyField(DocTagName, blank=True, null=True) # Revised ID Needed, ExternalParty, AD Followup, ...
+    tags = models.ManyToManyField(DocTagName, blank=True) # Revised ID Needed, ExternalParty, AD Followup, ...
     stream = models.ForeignKey(StreamName, blank=True, null=True) # IETF, IAB, IRTF, Independent Submission
     group = models.ForeignKey(Group, blank=True, null=True) # WG, RG, IAB, IESG, Edu, Tools
 
     abstract = models.TextField(blank=True)
     rev = models.CharField(verbose_name="revision", max_length=16, blank=True)
     pages = models.IntegerField(blank=True, null=True)
-    order = models.IntegerField(default=1, blank=True)
+    order = models.IntegerField(default=1, blank=True) # This is probably obviated by SessionPresentaion.order
     intended_std_level = models.ForeignKey(IntendedStdLevelName, verbose_name="Intended standardization level", blank=True, null=True)
     std_level = models.ForeignKey(StdLevelName, verbose_name="Standardization level", blank=True, null=True)
     ad = models.ForeignKey(Person, verbose_name="area director", related_name='ad_%(class)s_set', blank=True, null=True)
@@ -80,7 +95,8 @@ class DocumentInfo(models.Model):
         if self.type_id == "draft":
             return settings.INTERNET_DRAFT_PATH
         elif self.type_id in ("agenda", "minutes", "slides", "bluesheets") and self.meeting_related():
-            meeting = self.session_set.first().meeting
+            doc = self.doc if isinstance(self, DocHistory) else self
+            meeting = doc.session_set.first().meeting
             return os.path.join(meeting.get_materials_path(), self.type_id) + "/"
         elif self.type_id == "charter":
             return settings.CHARTER_PATH
@@ -91,38 +107,58 @@ class DocumentInfo(models.Model):
         else:
             return settings.DOCUMENT_PATH_PATTERN.format(doc=self)
 
-    def href(self):
+    def href(self, meeting=None):
+        """
+        Returns an url to the document text.  This differs from .get_absolute_url(),
+        which returns an url to the datatracker page for the document.   
+        """
         # If self.external_url truly is an url, use it.  This is a change from
         # the earlier resulution order, but there's at the moment one single
         # instance which matches this (with correct results), so we won't
         # break things all over the place.
         # XXX TODO: move all non-URL 'external_url' values into a field which is
         # better named, or regularize the filename based on self.name
-        validator = URLValidator()
-        try:
-            validator(self.external_url)
-            return self.external_url
-        except ValidationError:
-            pass
+        if not hasattr(self, '_cached_href'):
+            validator = URLValidator()
+            if self.external_url and self.external_url.split(':')[0] in validator.schemes:
+                try:
+                    validator(self.external_url)
+                    return self.external_url
+                except ValidationError:
+                    pass
 
-        meeting_related = self.meeting_related()
 
-        settings_var = settings.DOC_HREFS
-        if meeting_related:
-            settings_var = settings.MEETING_DOC_HREFS
+            if self.type_id in settings.DOC_HREFS and self.type_id in settings.MEETING_DOC_HREFS:
+                if self.meeting_related():
+                    self.is_meeting_related = True
+                    format = settings.MEETING_DOC_HREFS[self.type_id]
+                else:
+                    self.is_meeting_related = False
+                    format = settings.DOC_HREFS[self.type_id]
+            elif self.type_id in settings.DOC_HREFS:
+                self.is_meeting_related = False
+                format = settings.DOC_HREFS[self.type_id]
+            elif self.type_id in settings.MEETING_DOC_HREFS:
+                self.is_meeting_related = True
+                format = settings.MEETING_DOC_HREFS[self.type_id]
+            else:
+                if len(self.external_url):
+                    return self.external_url
+                else:
+                    return None
 
-        try:
-            format = settings_var[self.type_id]
-        except KeyError:
-            if len(self.external_url):
-                return self.external_url
-            return None
+            if self.is_meeting_related:
+                if not meeting:
+                    # we need to do this because DocHistory items don't have
+                    # any session_set entry:
+                    doc = self.doc if isinstance(self, DocHistory) else self
+                    meeting = doc.session_set.first().meeting
+                info = dict(doc=self, meeting=meeting)
+            else:
+                info = dict(doc=self)
 
-        meeting = None
-        if meeting_related:
-            meeting = self.name.split("-")[1]
-
-        return format.format(doc=self,meeting=meeting)
+            self._cached_href = format.format(**info)
+        return self._cached_href
 
     def set_state(self, state):
         """Switch state type implicit in state to state. This just
@@ -232,9 +268,13 @@ class DocumentInfo(models.Model):
         else:
             return None
 
+    def has_rfc_editor_note(self):
+        e = self.latest_event(WriteupDocEvent, type="changed_rfc_editor_note_text")
+        return e != None and (e.text != "")
+
     def meeting_related(self):
         answer = False
-        if self.type_id in ("agenda","minutes","bluesheets","slides"):
+        if self.type_id in ("agenda","minutes","bluesheets","slides","recording"):
             answer =  (self.name.split("-")[1] == "interim"
                        or (self if isinstance(self, Document) else self.doc).session_set.exists())
             if self.type_id in ("slides",):
@@ -252,7 +292,7 @@ class DocumentInfo(models.Model):
         if isinstance(self, Document):
             return RelatedDocument.objects.filter(target__document=self, relationship__in=relationship).select_related('source')
         elif isinstance(self, DocHistory):
-            return RelatedDocHistory.objects.filter(target__document=self, relationship__in=relationship).select_related('source')
+            return RelatedDocHistory.objects.filter(target__document=self.doc, relationship__in=relationship).select_related('source')
         else:
             return RelatedDocument.objects.none()
 
@@ -304,6 +344,9 @@ class DocumentInfo(models.Model):
     def all_related_that_doc(self, relationship, related=None):
         return list(set([x.target for x in self.all_relations_that_doc(relationship)]))
 
+    def replaced_by(self):
+        return [ r.document for r in self.related_that("replaces") ]
+
     class Meta:
         abstract = True
 
@@ -324,7 +367,7 @@ class RelatedDocument(models.Model):
             return None
 
         if self.source.get_state().slug == 'rfc':
-            source_lvl = self.source.std_level.slug
+            source_lvl = self.source.std_level.slug if self.source.std_level else None
         elif self.source.intended_std_level:
             source_lvl = self.source.intended_std_level.slug
         else:
@@ -373,26 +416,25 @@ class Document(DocumentInfo):
         return self.name
 
     def get_absolute_url(self):
+        """
+        Returns an url to the document view.  This differs from .href(),
+        which returns an url to the document content.
+        """
         name = self.name
         if self.type_id == "draft" and self.get_state_slug() == "rfc":
             name = self.canonical_name()
-        elif self.type_id in ('slides','agenda','minutes','bluesheets'):
+        elif self.type_id in ('slides','agenda','minutes','bluesheets','recording'):
             session = self.session_set.first()
             if session:
                 meeting = session.meeting
-                if self.type_id in ('agenda','minutes'):
-                    filename = os.path.splitext(self.external_url)[0]
+                if self.type_id == 'recording':
+                    url = self.external_url
                 else:
-                    filename = self.external_url
-                if meeting.type_id == 'ietf':
-                    url = '%sproceedings/%s/%s/%s' % (settings.MEDIA_URL,meeting.number,self.type_id,filename)
-                elif meeting.type_id == 'interim':
-                    url = "%sproceedings/interim/%s/%s/%s/%s" % (
-                        settings.MEDIA_URL,
-                        meeting.date.strftime('%Y/%m/%d'),
-                        session.group.acronym,
-                        self.type_id,
-                        filename)
+                    if self.type_id in ('agenda','minutes'):
+                        filename = os.path.splitext(self.external_url)[0]
+                    else:
+                        filename = self.external_url
+                    url = '%sproceedings/%s/%s/%s' % (settings.IETF_HOST_URL,meeting.number,self.type_id,filename)
                 return url
         return urlreverse('doc_view', kwargs={ 'name': name }, urlconf="ietf.urls")
 
@@ -413,15 +455,21 @@ class Document(DocumentInfo):
         return e[0] if e else None
 
     def canonical_name(self):
-        name = self.name
-        if self.type_id == "draft" and self.get_state_slug() == "rfc":
-            a = self.docalias_set.filter(name__startswith="rfc")
-            if a:
-                name = a[0].name
-        elif self.type_id == "charter":
-            from ietf.doc.utils_charter import charter_name_for_group
-            return charter_name_for_group(self.chartered_group)
-        return name
+        if not hasattr(self, '_canonical_name'):
+            name = self.name
+            if self.type_id == "draft" and self.get_state_slug() == "rfc":
+                a = self.docalias_set.filter(name__startswith="rfc")
+                if a:
+                    name = a[0].name
+            elif self.type_id == "charter":
+                from ietf.doc.utils_charter import charter_name_for_group # Imported locally to avoid circular imports
+                try:
+                    name = charter_name_for_group(self.chartered_group)
+                except Group.DoesNotExist:
+                    pass
+            self._canonical_name = name
+        return self._canonical_name
+
 
     def canonical_docalias(self):
         return self.docalias_set.get(name=self.name)
@@ -432,11 +480,38 @@ class Document(DocumentInfo):
             name = name.upper()
         return name
 
+    def save_with_history(self, events):
+        """Save document and put a snapshot in the history models where they
+        can be retrieved later. You must pass in at least one event
+        with a description of what happened."""
+
+        assert events, "You must always add at least one event to describe the changes in the history log"
+        self.time = max(self.time, events[0].time)
+
+        self._has_an_event_so_saving_is_allowed = True
+        self.save()
+        del self._has_an_event_so_saving_is_allowed
+
+        from ietf.doc.utils import save_document_in_history
+        save_document_in_history(self)
+
+    def save(self, *args, **kwargs):
+        # if there's no primary key yet, we can allow the save to go
+        # through to break the cycle between the document and any
+        # events
+        assert kwargs.get("force_insert", False) or getattr(self, "_has_an_event_so_saving_is_allowed", None), "Use .save_with_history to save documents"
+        super(Document, self).save(*args, **kwargs)
 
     def telechat_date(self, e=None):
+        if hasattr(self, '_telechat_date'):
+            return self._telechat_date
         if not e:
             e = self.latest_event(TelechatDocEvent, type="scheduled_for_telechat")
         return e.telechat_date if e and e.telechat_date and e.telechat_date >= datetime.date.today() else None
+
+    def past_telechat_date(self):
+        e = self.latest_event(TelechatDocEvent, type="scheduled_for_telechat")
+        return e.telechat_date if e and e.telechat_date and e.telechat_date < datetime.date.today() else None
 
     def area_acronym(self):
         g = self.group
@@ -514,6 +589,21 @@ class Document(DocumentInfo):
         else:
             return None
 
+    def submission(self):
+        s = self.submission_set.filter(rev=self.rev)
+        s = s.first()
+        return s
+
+    def pub_date(self):
+        """This is the rfc publication date (datetime) for RFCs, 
+        and the new-revision datetime for other documents."""
+        if self.get_state_slug() == "rfc":
+            event = self.latest_event(type='published_rfc')
+        else:
+            event = self.latest_event(type='new_revision')
+        return event.time
+        
+
 class RelatedDocHistory(models.Model):
     source = models.ForeignKey('DocHistory')
     target = models.ForeignKey('DocAlias', related_name="reversely_related_document_history_set")
@@ -544,6 +634,8 @@ class DocHistory(DocumentInfo):
         return unicode(self.doc.name)
 
     def canonical_name(self):
+        if hasattr(self, '_canonical_name'):
+            return self._canonical_name
         return self.name
 
     def latest_event(self, *args, **kwargs):
@@ -567,50 +659,6 @@ class DocHistory(DocumentInfo):
     class Meta:
         verbose_name = "document history"
         verbose_name_plural = "document histories"
-
-def save_document_in_history(doc):
-    """This should be called before saving changes to a Document instance,
-    so that the DocHistory entries contain all previous states, while
-    the Group entry contain the current state.  XXX TODO: Call this
-    directly from Document.save(), and add event listeners for save()
-    on related objects so we can save as needed when they change, too.
-    """
-    def get_model_fields_as_dict(obj):
-        return dict((field.name, getattr(obj, field.name))
-                    for field in obj._meta.fields
-                    if field is not obj._meta.pk)
-
-    # copy fields
-    fields = get_model_fields_as_dict(doc)
-    fields["doc"] = doc
-    fields["name"] = doc.canonical_name()
-    
-    dochist = DocHistory(**fields)
-    dochist.save()
-
-    # copy many to many
-    for field in doc._meta.many_to_many:
-        if field.rel.through and field.rel.through._meta.auto_created:
-            setattr(dochist, field.name, getattr(doc, field.name).all())
-
-    # copy remaining tricky many to many
-    def transfer_fields(obj, HistModel):
-        mfields = get_model_fields_as_dict(item)
-        # map doc -> dochist
-        for k, v in mfields.iteritems():
-            if v == doc:
-                mfields[k] = dochist
-        HistModel.objects.create(**mfields)
-
-    for item in RelatedDocument.objects.filter(source=doc):
-        transfer_fields(item, RelatedDocHistory)
-
-    for item in DocumentAuthor.objects.filter(document=doc):
-        transfer_fields(item, DocHistoryAuthor)
-                
-    return dochist
-        
-
 
 class DocAlias(models.Model):
     """This is used for documents that may appear under multiple names,
@@ -637,8 +685,10 @@ class DocReminder(models.Model):
 EVENT_TYPES = [
     # core events
     ("new_revision", "Added new revision"),
+    ("new_submission", "Uploaded new revision"),
     ("changed_document", "Changed document metadata"),
     ("added_comment", "Added comment"),
+    ("added_message", "Added message"),
 
     ("deleted", "Deleted document"),
 
@@ -675,6 +725,7 @@ EVENT_TYPES = [
     
     ("changed_ballot_approval_text", "Changed ballot approval text"),
     ("changed_ballot_writeup_text", "Changed ballot writeup text"),
+    ("changed_rfc_editor_note_text", "Changed RFC Editor Note text"),
 
     ("changed_last_call_text", "Changed last call text"),
     ("requested_last_call", "Requested last call"),
@@ -693,7 +744,13 @@ EVENT_TYPES = [
 
     # RFC Editor
     ("rfc_editor_received_announcement", "Announcement was received by RFC Editor"),
-    ("requested_publication", "Publication at RFC Editor requested")
+    ("requested_publication", "Publication at RFC Editor requested"),
+    ("sync_from_rfc_editor", "Received updated information from RFC Editor"),
+
+    # review
+    ("requested_review", "Requested review"),
+    ("assigned_review_request", "Assigned review request"),
+    ("closed_review_request", "Closed review request"),
     ]
 
 class DocEvent(models.Model):
@@ -705,13 +762,26 @@ class DocEvent(models.Model):
     desc = models.TextField()
 
     def for_current_revision(self):
-        return self.time >= self.doc.latest_event(NewRevisionDocEvent,type='new_revision').time
+        e = self.doc.latest_event(NewRevisionDocEvent,type='new_revision')
+        return not e or (self.time, self.pk) >= (e.time, e.pk)
 
     def get_dochistory(self):
-        return DocHistory.objects.filter(time__lte=self.time,doc__name=self.doc.name).order_by('-time').first()
+        return DocHistory.objects.filter(time__lte=self.time,doc__name=self.doc.name).order_by('-time', '-pk').first()
 
     def __unicode__(self):
         return u"%s %s by %s at %s" % (self.doc.name, self.get_type_display().lower(), self.by.plain_name(), self.time)
+
+    def get_rev(self):
+        e = self
+        # check subtypes which has a rev attribute
+        for sub in ['newrevisiondocevent', 'submissiondocevent', ]:
+            if hasattr(e, sub):
+                e = getattr(e, sub)
+                break
+        if hasattr(e, 'rev'):
+            return e.rev
+        else:
+            return None
 
     class Meta:
         ordering = ['-time', '-id']
@@ -823,10 +893,25 @@ class TelechatDocEvent(DocEvent):
     telechat_date = models.DateField(blank=True, null=True)
     returning_item = models.BooleanField(default=False)
 
+class ReviewRequestDocEvent(DocEvent):
+    review_request = models.ForeignKey('review.ReviewRequest')
+    state = models.ForeignKey(ReviewRequestStateName, blank=True, null=True)
+
 # charter events
 class InitialReviewDocEvent(DocEvent):
     expires = models.DateTimeField(blank=True, null=True)
 
+class AddedMessageEvent(DocEvent):
+    import ietf.message.models
+    message     = models.ForeignKey(ietf.message.models.Message, null=True, blank=True,related_name='doc_manualevents')
+    msgtype     = models.CharField(max_length=25)
+    in_reply_to = models.ForeignKey(ietf.message.models.Message, null=True, blank=True,related_name='doc_irtomanual')
+
+
+class SubmissionDocEvent(DocEvent):
+    import ietf.submit.models
+    rev = models.CharField(max_length=16)
+    submission = models.ForeignKey(ietf.submit.models.Submission)
 
 # dumping store for removed events
 class DeletedEvent(models.Model):

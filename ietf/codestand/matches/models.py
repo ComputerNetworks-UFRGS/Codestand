@@ -40,7 +40,7 @@ class CodingProject(models.Model):
     title = models.CharField(max_length=200)
     # URL to github or other repository:
     # link_to_implementation = models.URLField(blank=True)
-    links = models.ManyToManyField(Implementation, blank=True, null=True)
+    links = models.ManyToManyField(Implementation, blank=True)
     # Any other text that the coder would like to include as a description
     additional_information = models.CharField(max_length=255)
 
@@ -54,9 +54,9 @@ class CodingProject(models.Model):
     # TODO: this field is integer?
     reputation = models.IntegerField(null=True, blank=True)
 
-    contacts = models.ManyToManyField(ProjectContact, blank=True, null=True)
+    contacts = models.ManyToManyField(ProjectContact, blank=True)
 
-    tags = models.ManyToManyField(ProjectTag, blank=True, null=True)
+    tags = models.ManyToManyField(ProjectTag, blank=True)
     
     is_archived = models.BooleanField(default=False)
 
@@ -90,9 +90,9 @@ class ProjectContainer(models.Model):
     
     codings = models.ManyToManyField(CodingProject)
 
-    tags = models.ManyToManyField(ProjectTag, blank=True, null=True)
+    tags = models.ManyToManyField(ProjectTag, blank=True)
 
-    contacts = models.ManyToManyField(ProjectContact, blank=True, null=True)
+    contacts = models.ManyToManyField(ProjectContact, blank=True)
     
     is_archived = models.BooleanField(default=False)
     

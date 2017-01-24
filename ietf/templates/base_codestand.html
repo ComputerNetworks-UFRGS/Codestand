@@ -18,33 +18,33 @@
     <!-- Analyse whether these stylesheets are used in base file, if not, add it through 'morecss' in the specific page -->
   <!-- Stylesheets -->
       
-  <link href="{% static 'css/bootstrap.css' %}" rel="stylesheet">
+  <link href="{% static 'ietf/css/bootstrap.css' %}" rel="stylesheet">
   <!-- Font awesome icon -->
-  <link rel="stylesheet" href="{% static 'css/font-awesome.min.css' %}">
+  <link rel="stylesheet" href="{% static 'ietf/css/font-awesome.min.css' %}">
   <!-- Ionicons icon -->
-  <link rel="stylesheet" href="{% static 'css/ionicons.min.css' %}">
+  <link rel="stylesheet" href="{% static 'ietf/css/ionicons.min.css' %}">
   <!-- jQuery UI -->
-  <link rel="stylesheet" href="{% static 'css/jquery-ui.css' %}">
+  <link rel="stylesheet" href="{% static 'ietf/css/jquery-ui.css' %}">
   <!-- Calendar -->
-  <link rel="stylesheet" href="{% static 'css/fullcalendar.css' %}">
+  <link rel="stylesheet" href="{% static 'ietf/css/fullcalendar.css' %}">
   <!-- prettyPhoto -->
-  <link rel="stylesheet" href="{% static 'css/prettyPhoto.css' %}">
+  <link rel="stylesheet" href="{% static 'ietf/css/prettyPhoto.css' %}">
   <!-- Star rating -->
-  <link rel="stylesheet" href="{% static 'css/rateit.css' %}">
+  <link rel="stylesheet" href="{% static 'ietf/css/rateit.css' %}">
   <!-- Date picker -->
-  <link rel="stylesheet" href="{% static 'css/bootstrap-datetimepicker.min.css' %}">
+  <link rel="stylesheet" href="{% static 'ietf/css/bootstrap-datetimepicker.min.css' %}">
   <!-- CLEditor -->
-  <link rel="stylesheet" href="{% static 'css/jquery.cleditor.css' %}">
+  <link rel="stylesheet" href="{% static 'ietf/css/jquery.cleditor.css' %}">
   <!-- Data tables -->
-  <link rel="stylesheet" href="{% static 'css/jquery.dataTables.css' %}">
+  <link rel="stylesheet" href="{% static 'ietf/css/jquery.dataTables.css' %}">
   <!-- Bootstrap toggle -->
-  <link rel="stylesheet" href="{% static 'css/jquery.onoff.css' %}">
+  <link rel="stylesheet" href="{% static 'ietf/css/jquery.onoff.css' %}">
   <!-- Main stylesheet -->
-  <link href="{% static 'css/style.css' %}" rel="stylesheet">
+  <link href="{% static 'ietf/css/style.css' %}" rel="stylesheet">
   <!-- Widgets stylesheet -->
-  <link href="{% static 'css/widgets.css' %}" rel="stylesheet">
+  <link href="{% static 'ietf/css/widgets.css' %}" rel="stylesheet">
   <!-- Codestand stylesheet -->    
-  <link href="{% static 'css/codestand.css' %}" rel="stylesheet">    
+  <link href="{% static 'ietf/css/codestand.css' %}" rel="stylesheet">    
     <style>
      {% block morecss %}{% endblock %}
     </style>
@@ -56,11 +56,11 @@
     {% block pagehead %}{% endblock %}
 
     {% if server_mode and server_mode == "production" %}
-    <link rel="shortcut icon" href="{% static 'images/ietf-icon-blue3.png' %}">
+    <link rel="shortcut icon" href="{% static 'ietf/images/ietf-icon-blue3.png' %}">
     {% else %}
-    <link rel="shortcut icon" href="{% static 'images/ietf-icon-red3.png' %}">
+    <link rel="shortcut icon" href="{% static 'ietf/images/ietf-icon-red3.png' %}">
     {% endif %}
-    <link rel="apple-touch-icon" href="{% static 'images/apple-touch-icon.png' %}">
+    <link rel="apple-touch-icon" href="{% static 'ietf/images/apple-touch-icon.png' %}">
   </head>
 
   <body {% block bodyAttrs %}{%endblock%} data-group-menu-data-url="{% url 'group_menu_data' %}" id="body">
@@ -75,7 +75,7 @@
 	      <span class="icon-bar"></span>
 	    </button>
 	    <a class="navbar-brand" href="{% url 'ietf.codestand.views.index' %}" role="button" style="color: white">
-	       <img alt="IETF Logo" src="{% static 'images/ietflogo-small-transparent.png'%}">
+	       <img alt="IETF Logo" src="{% static 'ietf/images/ietflogo-small-transparent.png'%}">
 		  Code<b>Stand</b>
 	    </a>
 	  </div>
@@ -181,35 +181,35 @@
 	<!-- Certainly these js are not necessary to all pages, then, just like css, it must be filtered -->
   
 	<!-- JS -->
-	<script src="{% static 'js/jquery.js' %}"></script> <!-- jQuery -->
-	<script src="{% static 'js/bootstrap.min.js' %}"></script> <!-- Bootstrap -->
-	<script src="{% static 'js/jquery-ui.min.js'%}"></script> <!-- jQuery UI -->
-	<script src="{% static 'js/fullcalendar.min.js' %}"></script> <!-- Full Google Calendar - Calendar -->
-	<script src="{% static 'js/jquery.prettyPhoto.js' %}"></script> <!-- prettyPhoto -->
-	<script src="{% static 'js/jquery.slimscroll.min.js' %}"></script> <!-- jQuery Slim Scroll -->
-	<script src="{% static 'js/jquery.dataTables.min.js' %}"></script> <!-- Data tables -->
+	<script src="{% static 'ietf/js/jquery.js' %}"></script> <!-- jQuery -->
+	<script src="{% static 'ietf/js/bootstrap.min.js' %}"></script> <!-- Bootstrap -->
+	<script src="{% static 'ietf/js/jquery-ui.min.js'%}"></script> <!-- jQuery UI -->
+	<script src="{% static 'ietf/js/fullcalendar.min.js' %}"></script> <!-- Full Google Calendar - Calendar -->
+	<script src="{% static 'ietf/js/jquery.prettyPhoto.js' %}"></script> <!-- prettyPhoto -->
+	<script src="{% static 'ietf/js/jquery.slimscroll.min.js' %}"></script> <!-- jQuery Slim Scroll -->
+	<script src="{% static 'ietf/js/jquery.dataTables.min.js' %}"></script> <!-- Data tables -->
 	
 	<!-- jQuery Flot -->
-	<script src="{% static 'js/excanvas.min.js' %}"></script>
-	<script src="{% static 'js/jquery.flot.js' %}"></script>
-	<script src="{% static 'js/jquery.flot.resize.js' %}"></script>
-	<script src="{% static 'js/jquery.flot.pie.js' %}"></script>
-	<script src="{% static 'js/jquery.flot.stack.js' %}"></script>
+	<script src="{% static 'ietf/js/excanvas.min.js' %}"></script>
+	<script src="{% static 'ietf/js/jquery.flot.js' %}"></script>
+	<script src="{% static 'ietf/js/jquery.flot.resize.js' %}"></script>
+	<script src="{% static 'ietf/js/jquery.flot.pie.js' %}"></script>
+	<script src="{% static 'ietf/js/jquery.flot.stack.js' %}"></script>
 
 	<!-- jQuery Notification - Noty -->
-	<script src="{% static 'js/jquery.noty.js' %}"></script> <!-- jQuery Notify -->
-	<script src="{% static 'js/themes/default.js' %}"></script> <!-- jQuery Notify -->
-	<script src="{% static 'js/layouts/bottom.js' %}"></script> <!-- jQuery Notify -->
-	<script src="{% static 'js/layouts/topRight.js' %}"></script> <!-- jQuery Notify -->
-	<script src="{% static 'js/layouts/top.js' %}"></script> <!-- jQuery Notify -->
+	<script src="{% static 'ietf/js/jquery.noty.js' %}"></script> <!-- jQuery Notify -->
+	<script src="{% static 'ietf/js/themes/default.js' %}"></script> <!-- jQuery Notify -->
+	<script src="{% static 'ietf/js/layouts/bottom.js' %}"></script> <!-- jQuery Notify -->
+	<script src="{% static 'ietf/js/layouts/topRight.js' %}"></script> <!-- jQuery Notify -->
+	<script src="{% static 'ietf/js/layouts/top.js' %}"></script> <!-- jQuery Notify -->
 	<!-- jQuery Notification ends -->
 	
-	<script src="{% static 'js/sparklines.js' %}"></script> <!-- Sparklines -->
-	<script src="{% static 'js/jquery.cleditor.min.js' %}"></script> <!-- CLEditor -->
-	<script src="{% static 'js/bootstrap-datetimepicker.min.js' %}"></script> <!-- Date picker -->
-	<script src="{% static 'js/jquery.onoff.min.js' %}"></script> <!-- Bootstrap Toggle -->
-	<script src="{% static 'js/filter.js' %}"></script> <!-- Filter for support page -->
-	<script src="{% static 'js/charts.js' %}"></script> <!-- Charts & Graphs -->
+	<script src="{% static 'ietf/js/sparklines.js' %}"></script> <!-- Sparklines -->
+	<script src="{% static 'ietf/js/jquery.cleditor.min.js' %}"></script> <!-- CLEditor -->
+	<script src="{% static 'ietf/js/bootstrap-datetimepicker.min.js' %}"></script> <!-- Date picker -->
+	<script src="{% static 'ietf/js/jquery.onoff.min.js' %}"></script> <!-- Bootstrap Toggle -->
+	<script src="{% static 'ietf/js/filter.js' %}"></script> <!-- Filter for support page -->
+	<script src="{% static 'ietf/js/charts.js' %}"></script> <!-- Charts & Graphs -->
 	<!-- end of codestand js prototype -->
       
 	<script src="https://ajax.googleapis.com/ajax/libs/jquery/1.11.2/jquery.min.js"></script>
@@ -220,8 +220,8 @@
 	{% endcomment %}
 	<script>$(".visible-nojs").removeClass("visible-nojs");</script>
 	<script>$(".hidden-nojs").removeClass("hidden-nojs");</script>
-	<script src="{% static 'js/ietf.js' %}"></script>
-    <script src="{% static 'js/codestand.js' %}"></script>
+	<script src="{% static 'ietf/js/ietf.js' %}"></script>
+    <script src="{% static 'ietf/js/codestand.js' %}"></script>
     <script>
       (function(i,s,o,g,r,a,m){i['GoogleAnalyticsObject']=r;i[r]=i[r]||function(){
       (i[r].q=i[r].q||[]).push(arguments)},i[r].l=1*new Date();a=s.createElement(o),

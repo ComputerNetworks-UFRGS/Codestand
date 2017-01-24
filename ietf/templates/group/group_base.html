@@ -2,7 +2,11 @@
 {# Copyright The IETF Trust 2015, All Rights Reserved #}
 {% load origin %}
 
-{% load ietf_filters %}
+{% load ietf_filters staticfiles %}
+
+{% block pagehead %}
+<link rel="stylesheet" href="{% static "jquery.tablesorter/css/theme.bootstrap.min.css" %}">
+{% endblock %}
 
 {% block title %}{{ group.name }} ({{ group.acronym }}) - {% block group_subtitle %}{% endblock %}{% endblock %}
 
@@ -26,15 +30,21 @@
     {% endfor %}
   </ul>
 
-  {% if menu_actions %}
-    <div class="buttonlist">
-      {% for name, url in menu_actions %}
-        <a class="btn {% if name == "Request closing group" %}btn-warning{% else %}btn-default{% endif %}" href="{{ url }}">{{ name }}</a>
-      {% endfor %}
-    </div>
-  {% endif %}
+  <div class="buttonlist">
+    {% block buttonlist %}
+      {% if menu_actions %}
+	{% for name, url in menu_actions %}
+	  <a class="btn {% if name == "Request closing group" %}btn-warning{% else %}btn-default{% endif %}" href="{{ url }}">{{ name }}</a>
+	{% endfor %}
+      {% endif %}
+    {% endblock buttonlist %}
+  </div>
 
   {% block group_content %}
   {% endblock group_content %}
 
 {% endblock content %}
+
+{% block js %}
+<script src="{% static "jquery.tablesorter/js/jquery.tablesorter.combined.min.js" %}"></script>
+{% endblock %}

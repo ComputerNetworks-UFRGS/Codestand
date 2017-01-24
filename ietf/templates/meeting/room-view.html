@@ -132,11 +132,11 @@
    var border = 1;
 
 
-   setInterval("animate()",50);
+   setInterval(animate,50);
 
    function draw_calendar()
    {
-       window.setTimeout("draw_calendar()",1000);
+       window.setTimeout(draw_calendar,1000);
 
        var width = document.body.clientWidth;
        var height = document.body.clientHeight;
@@ -169,7 +169,8 @@
 
        var timelabel_width = width * 0.020;
        var header_height = height * 0.05;
-       var header_offset = $('#daytabs').height();
+       var header_offset = $('#daytabs').outerHeight(true)+$('#mtgheader').outerHeight(true);
+       console.log($('#mtgheader').outerHeight(true))
 
        var num_days = {{days|length}};
        var num_minutes = day_end - day_start;
@@ -581,6 +582,7 @@
   </script>
 </head>
 <body onload="draw_calendar()" onresize="draw_calendar()" id="body">
+  <div id="mtgheader" style="overflow:auto">{% include "meeting/meeting_heading.html" with meeting=schedule.meeting updated=schedule.meeting.updated selected="room-view" title_extra="Room Grid" %}</div>
   <div id="daycontainer" role="tabpanel">
     <ul id="daytabs" class="nav nav-tabs" role="tablist">
     {% for day in days %}

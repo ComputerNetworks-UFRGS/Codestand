@@ -16,7 +16,7 @@ from django.utils.functional import curry
 
 from ietf.ietfauth.utils import role_required
 from ietf.utils.mail import send_mail
-from ietf.meeting.helpers import get_meeting
+from ietf.meeting.helpers import get_meeting, make_materials_directories
 from ietf.meeting.models import Meeting, Session, Room, TimeSlot, SchedTimeSessAssignment, Schedule
 from ietf.group.models import Group, GroupEvent
 from ietf.person.models import Person
@@ -24,7 +24,8 @@ from ietf.secr.meetings.blue_sheets import create_blue_sheets
 from ietf.secr.meetings.forms import ( BaseMeetingRoomFormSet, MeetingModelForm,
     MeetingRoomForm, NewSessionForm, NonSessionEditForm, NonSessionForm, TimeSlotForm,
     UploadBlueSheetForm, get_next_slot )
-from ietf.secr.proceedings.views import build_choices, handle_upload_file, make_directories
+from ietf.secr.proceedings.views import build_choices
+from ietf.secr.proceedings.utils import handle_upload_file
 from ietf.secr.sreq.forms import GroupSelectForm
 from ietf.secr.sreq.views import get_initial_session
 from ietf.secr.utils.meeting import get_session, get_timeslot
@@ -313,8 +314,8 @@ def add(request):
             meeting.session_request_lock_message = previous_meeting.session_request_lock_message
             meeting.save()
 
-            #Create Physical new meeting directory and subdirectories
-            make_directories(meeting)
+            # Create Physical new meeting directory and subdirectories
+            make_materials_directories(meeting)
 
             messages.success(request, 'The Meeting was created successfully!')
             return redirect('meetings')
@@ -369,10 +370,13 @@ def blue_sheet_generate(request, meeting_id):
     '''
     meeting = get_object_or_404(Meeting, number=meeting_id)
 
-    groups = Group.objects.filter(session__meeting=meeting).order_by('acronym')
-    create_blue_sheets(meeting, groups)
+    if request.method == "POST":
+        groups = Group.objects.filter(
+            type__in=['wg','rg'],
+            session__timeslotassignments__schedule=meeting.agenda).order_by('acronym')
+        create_blue_sheets(meeting, groups)
 
-    messages.success(request, 'Blue Sheets generated')
+        messages.success(request, 'Blue Sheets generated')
     return redirect('meetings_blue_sheet', meeting_id=meeting.number)
 
 @role_required('Secretariat')
@@ -454,8 +458,11 @@ def non_session(request, meeting_id, schedule_name):
     
     check_nonsession(meeting,schedule)
 
-    slots = TimeSlot.objects.filter(meeting=meeting,type__in=('break','reg','other','plenary','lead')).order_by('-type__name','time')
-
+    slots = TimeSlot.objects.filter(meeting=meeting)
+    slots = slots.filter(sessionassignments__schedule=schedule)
+    slots = slots.filter(type__in=('break','reg','other','plenary','lead'))
+    slots = slots.order_by('-type__name','time')
+    
     if request.method == 'POST':
         form = NonSessionForm(request.POST)
         if form.is_valid():

@@ -1,6 +1,8 @@
 # Copyright The IETF Trust 2007, All Rights Reserved
 
 import datetime
+from hashids import Hashids
+from unidecode import unidecode
 from urlparse import urljoin
 
 from django.conf import settings
@@ -8,18 +10,28 @@ from django.conf import settings
 from django.db import models
 from django.contrib.auth.models import User
 from django.template.loader import render_to_string
+from django.utils.text import slugify
+
+import debug                            # pyflakes:ignore
 
 from ietf.person.name import name_parts, initials
 from ietf.utils.mail import send_mail_preformatted
+from ietf.utils.storage import NoLocationMigrationFileSystemStorage
 
 class PersonInfo(models.Model):
     time = models.DateTimeField(default=datetime.datetime.now)      # When this Person record entered the system
-    name = models.CharField(max_length=255, db_index=True) # The normal unicode form of the name.  This must be
-                                                        # set to the same value as the ascii-form if equal.
-    ascii = models.CharField(max_length=255)            # The normal ascii-form of the name.
-    ascii_short = models.CharField(max_length=32, null=True, blank=True)      # The short ascii-form of the name.  Also in alias table if non-null
-    address = models.TextField(max_length=255, blank=True)
-    affiliation = models.CharField(max_length=255, blank=True)
+    # The normal unicode form of the name.  This must be
+    # set to the same value as the ascii-form if equal.
+    name = models.CharField("Full Name (Unicode)", max_length=255, db_index=True, help_text="Preferred form of name.")
+    # The normal ascii-form of the name.
+    ascii = models.CharField("Full Name (ASCII)", max_length=255, help_text="Name as rendered in ASCII (Latin, unaccented) characters.")
+    # The short ascii-form of the name.  Also in alias table if non-null
+    ascii_short = models.CharField("Abbreviated Name (ASCII)", max_length=32, null=True, blank=True, help_text="Example: A. Nonymous.  Fill in this with initials and surname only if taking the initials and surname of the ASCII name above produces an incorrect initials-only form. (Blank is OK).")
+    affiliation = models.CharField(max_length=255, blank=True, help_text="Employer, university, sponsor, etc.")
+    address = models.TextField(max_length=255, blank=True, help_text="Postal mailing address.")
+    biography = models.TextField(blank=True, help_text="Short biography for use on leadership pages. Use plain text or reStructuredText markup.")
+    photo = models.ImageField(storage=NoLocationMigrationFileSystemStorage(), upload_to=settings.PHOTOS_DIRNAME, blank=True, default=None)
+    photo_thumb = models.ImageField(storage=NoLocationMigrationFileSystemStorage(), upload_to=settings.PHOTOS_DIRNAME, blank=True, default=None)
 
     def __unicode__(self):
         return self.plain_name()
@@ -34,14 +46,38 @@ class PersonInfo(models.Model):
             prefix, first, middle, last, suffix = self.ascii_parts()
             return (first and first[0]+"." or "")+(middle or "")+" "+last+(suffix and " "+suffix or "")
     def plain_name(self):
-        if self.ascii_short:
-            return self.ascii_short
-        prefix, first, middle, last, suffix = name_parts(self.name)
-        return u" ".join([first, last])
+        if not hasattr(self, '_cached_plain_name'):
+            prefix, first, middle, last, suffix = name_parts(self.name)
+            self._cached_plain_name = u" ".join([first, last])
+        return self._cached_plain_name
+    def ascii_name(self):
+        if not hasattr(self, '_cached_ascii_name'):
+            if self.ascii:
+                # It's possibly overkill with unidecode() here, but needed until
+                # we're validating the content of the ascii field, and have
+                # verified that the field is ascii clean in the database:
+                if not all(ord(c) < 128 for c in self.ascii):
+                    self._cached_ascii_name = unidecode(self.ascii).strip()
+                else:
+                    self._cached_ascii_name = self.ascii
+            else:
+                self._cached_ascii_name = unidecode(self.plain_name()).strip()
+        return self._cached_ascii_name
+    def plain_ascii(self):
+        if not hasattr(self, '_cached_plain_ascii'):
+            if self.ascii:
+                ascii = unidecode(self.ascii).strip()
+            else:
+                ascii = unidecode(self.name).strip()
+            prefix, first, middle, last, suffix = name_parts(ascii)
+            self._cached_plain_ascii = u" ".join([first, last])
+        return self._cached_plain_ascii
     def initials(self):
         return initials(self.ascii or self.name)
     def last_name(self):
         return name_parts(self.name)[3]
+    def first_name(self):
+        return name_parts(self.name)[1]
     def role_email(self, role_name, group=None):
         """Lookup email for role for person, optionally on group which
         may be an object or the group acronym."""
@@ -59,16 +95,21 @@ class PersonInfo(models.Model):
         if e:
             return e[0]
         return None
-    def email_address(self):
+    def email(self):
         e = self.email_set.filter(primary=True).first()
         if not e:
             e = self.email_set.filter(active=True).order_by("-time").first()
+        return e
+    def email_address(self):
+        e = self.email()
         if e:
             return e.address
         else:
             return ""
     def formatted_email(self):
-        e = self.email_set.order_by("-active", "-time").first()
+        e = self.email_set.filter(primary=True).first()
+        if not e:
+            e = self.email_set.order_by("-active", "-time").first()
         if e:
             return e.formatted_email()
         else:
@@ -76,6 +117,27 @@ class PersonInfo(models.Model):
     def full_name_as_key(self):
         # this is mostly a remnant from the old views, needed in the menu
         return self.plain_name().lower().replace(" ", ".")
+
+    def photo_name(self,thumb=False):
+        hasher = Hashids(salt='Person photo name salt',min_length=5)
+        _, first, _, last, _ = name_parts(self.ascii)
+        return u'%s-%s%s' % ( slugify(u"%s %s" % (first, last)), hasher.encode(self.id), '-th' if thumb else '' )
+
+    def has_drafts(self):
+        from ietf.doc.models import Document
+        return Document.objects.filter(authors__person=self, type='draft').exists()
+    def rfcs(self):
+        from ietf.doc.models import Document
+        rfcs = list(Document.objects.filter(authors__person=self, type='draft', states__slug='rfc'))
+        rfcs.sort(key=lambda d: d.canonical_name() )
+        return rfcs
+    def active_drafts(self):
+        from ietf.doc.models import Document
+        return Document.objects.filter(authors__person=self, type='draft', states__slug='active').order_by('-time')
+    def expired_drafts(self):
+        from ietf.doc.models import Document
+        return Document.objects.filter(authors__person=self, type='draft', states__slug__in=['repl', 'expired', 'auth-rm', 'ietf-rm']).order_by('-time')
+
     class Meta:
         abstract = True
 
@@ -93,9 +155,11 @@ class Person(PersonInfo):
                                             settings=settings
                                             ))
                 send_mail_preformatted(None, msg)
-        self.alias_set.get_or_create(name=self.name)
+        if not self.name in [ a.name for a in self.alias_set.filter(name=self.name) ]:
+            self.alias_set.create(name=self.name)
         if self.ascii and self.name != self.ascii:
-            self.alias_set.get_or_create(name=self.ascii)
+            if not self.ascii in [ a.name for a in self.alias_set.filter(name=self.ascii) ]:
+                self.alias_set.create(name=self.ascii)
 
     #this variable, if not None, may be used by url() to keep the sitefqdn.
     default_hostscheme = None
@@ -162,8 +226,8 @@ class Email(models.Model):
         return self.person.plain_name() if self.person else self.address
 
     def formatted_email(self):
-        if self.person and self.person.ascii:
-            return u'"%s" <%s>' % (self.person.ascii, self.address)
+        if self.person:
+            return u'"%s" <%s>' % (self.person.plain_ascii(), self.address)
         else:
             return self.address
 

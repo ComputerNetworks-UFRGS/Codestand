@@ -1,17 +1,19 @@
 # Copyright The IETF Trust 2007, All Rights Reserved
 
-import textwrap
 import re
 import datetime
+import os
 import types
 from email.utils import parseaddr
 
 import debug                            # pyflakes:ignore
 
 from ietf.doc.models import ConsensusDocEvent
+from ietf.doc.utils import get_document_content
+from ietf.utils.text import fill
 from django import template
 from django.conf import settings
-from django.utils.html import escape, fix_ampersands
+from django.utils.html import escape
 from django.template.defaultfilters import truncatewords_html, linebreaksbr, stringfilter, striptags, urlize
 from django.template import resolve_variable
 from django.utils.safestring import mark_safe, SafeData
@@ -21,13 +23,6 @@ register = template.Library()
 
 def collapsebr(html):
     return re.sub('(<(br ?/|/p)>[ \n]*)(<(br) ?/?>[ \n]*)*(<(br|p) ?/?>[ \n]*)', '\\1\\5', html)
-
-@register.filter(name='expand_comma')
-def expand_comma(value):
-    """
-    Adds a space after each comma, to allow word-wrapping of
-    long comma-separated lists."""
-    return value.replace(",", ", ")
 
 @register.filter
 def indent(value, numspaces=2):
@@ -74,7 +69,7 @@ def parse_email_list(value):
             (name, email) = parseaddr(addr)
             if not(name):
                 name = email
-            ret.append('<a href="mailto:%s">%s</a>' % ( fix_ampersands(email), escape(name) ))
+            ret.append('<a href="mailto:%s">%s</a>' % ( email.replace('&', '&amp;'), escape(name) ))
         return mark_safe(", ".join(ret))
     else:
         return value
@@ -116,15 +111,6 @@ def make_one_per_line(value):
         return re.sub(", ?", "\n", value)
     else:
         return value
-
-@register.filter(name='timesum')
-def timesum(value):
-    """
-    Sum the times in a list of dicts; used for sql query debugging info"""
-    sum = 0.0
-    for v in value:
-        sum += float(v['time'])
-    return sum
 
 @register.filter(name='keep_spacing')
 def keep_spacing(value):
@@ -178,23 +164,7 @@ def bracketpos(pos,posslug):
     else:
         return "[   ]"
 
-@register.filter(name='fill')
-def fill(text, width):
-    """Wraps each paragraph in text (a string) so every line
-    is at most width characters long, and returns a single string
-    containing the wrapped paragraph.
-    """
-    width = int(width)
-    paras = text.replace("\r\n","\n").replace("\r","\n").split("\n\n")
-    wrapped = []
-    for para in paras:
-        if para:
-            lines = para.split("\n")
-            maxlen = max([len(line) for line in lines])
-            if maxlen > width:
-                para = textwrap.fill(para, width, replace_whitespace=False)
-            wrapped.append(para)
-    return "\n\n".join(wrapped)
+register.filter('fill', fill)
 
 @register.filter(name='rfcspace')
 def rfcspace(string):
@@ -537,7 +507,7 @@ def pos_to_label(text):
         'Abstain':      'warning',
         'Discuss':      'danger',
         'Block':        'danger',
-        'Recuse':       'default',
+        'Recuse':       'primary',
     }.get(str(text), 'blank')
 
 @register.filter
@@ -590,3 +560,43 @@ def urlize_html(html, autoescape=False):
 def emailwrap(email):
     email = str(email)
     return mark_safe(email.replace('@', '<wbr>@'))
+
+@register.filter
+def document_content(doc):
+    if doc is None:
+        return None
+    path = os.path.join(doc.get_file_path(),doc.filename_with_rev())
+    return get_document_content(doc.name,path,markup=False)
+
+@register.filter
+def session_start_time(session):
+    timeslot = session.official_timeslotassignment().timeslot
+    return timeslot.time
+
+@register.filter
+def session_end_time(session):
+    timeslot = session.official_timeslotassignment().timeslot
+    return timeslot.time + timeslot.duration
+
+@register.filter
+def format_timedelta(timedelta):
+    s = timedelta.seconds
+    hours, remainder = divmod(s, 3600)
+    minutes, seconds = divmod(remainder, 60)
+    return '{hours:02d}:{minutes:02d}'.format(hours=hours,minutes=minutes)
+
+@register.filter()
+def nbsp(value):
+    return mark_safe("&nbsp;".join(value.split(' ')))
+
+@register.filter()
+def comma_separated_list(seq, end_word="and"):
+    if len(seq) < 2:
+        return u"".join(seq)
+    else:
+        return u", ".join(seq[:-1]) + u" %s %s"%(end_word, seq[-1])
+        
+@register.filter()
+def role_names(roles):
+    return list(set([ "%s %s" % (r.group.name, r.name.name) for r in roles ]))
+

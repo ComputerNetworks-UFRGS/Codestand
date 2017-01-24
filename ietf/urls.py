@@ -1,16 +1,17 @@
 # Copyright The IETF Trust 2007, 2009, All Rights Reserved
 
 from django.conf import settings
-from django.conf.urls import patterns, include, handler500, handler404
+from django.conf.urls import patterns, include
+from django.conf.urls.static import static
 from django.contrib import admin
 from django.views.generic import TemplateView
 from django.contrib.staticfiles.urls import staticfiles_urlpatterns
 
+import debug                            # pyflakes:ignore
+
 from ietf.liaisons.sitemaps import LiaisonMap
 from ietf.ipr.sitemaps import IPRMap
 from ietf import api
-
-# import debug_toolbar
 
 admin.autodiscover()
 api.autodiscover()
@@ -35,7 +36,7 @@ urlpatterns = patterns('',
     (r'^$', 'ietf.doc.views_search.frontpage'),
     (r'^accounts/', include('ietf.ietfauth.urls')),
     (r'^admin/', include(admin.site.urls)),
-    (r'^admin/doc/', include('django.contrib.admindocs.urls')),
+    (r'^admin/docs/', include('django.contrib.admindocs.urls')),
     (r'^ann/', include('ietf.nomcom.redirect_ann_urls')),
     (r'^community/', include('ietf.community.urls')),
     (r'^accounts/settings/', include('ietf.cookies.urls')),
@@ -57,9 +58,10 @@ urlpatterns = patterns('',
     (r'^secr/', include('ietf.secr.urls')),
     (r'^sitemap-(?P<section>.+).xml$', 'django.contrib.sitemaps.views.sitemap', {'sitemaps': sitemaps}),
     (r'^sitemap.xml$', 'django.contrib.sitemaps.views.index', { 'sitemaps': sitemaps}),
+    (r'^stats/', include('ietf.stats.urls')),
+    (r'^stream/', include('ietf.group.urls_stream')),
     (r'^submit/', include('ietf.submit.urls')),
     (r'^sync/', include('ietf.sync.urls')),
-    (r'^stream/', include('ietf.group.urls_stream')),
     (r'^templates/', include('ietf.dbtemplate.urls')),
     (r'^(?P<group_type>(wg|rg|ag|team|dir|area))/', include('ietf.group.urls_info')),
 
@@ -77,17 +79,11 @@ if settings.IS_CODESTAND_APP:
     (r'^codestand/requests/', include('ietf.codestand.requests.urls')),
     (r'^codestand/accounts/', include('ietf.codestand.accounts.urls')),
 )
-# if settings.DEBUG:
-#     urlpatterns += patterns('',
-#     (r'^codestand/__debug__/', include(debug_toolbar.urls)),
-# )
-
 
 # Endpoints for Tastypie's REST API
 urlpatterns += patterns('',
     (r'^api/v1/?$', api.top_level),
 )
-
 for n,a in api._api_list:
     urlpatterns += patterns('',
         (r'^api/v1/', include(a.urls)),
@@ -95,11 +91,15 @@ for n,a in api._api_list:
 
 # This is needed to serve files during testing
 if settings.SERVER_MODE in ('development', 'test'):
-    urlpatterns += ( staticfiles_urlpatterns()
-        + patterns('',
+    save_debug = settings.DEBUG
+    settings.DEBUG = True
+    urlpatterns += staticfiles_urlpatterns()
+    urlpatterns += patterns('',
             (r'^_test500/$', lambda x: None),
             (r'^environment/$', 'ietf.help.views.environment'),
             ## maybe preserve some static legacy URLs ?
             (r'^(?P<path>(?:images|css|js)/.*)$', 'django.views.static.serve', {'document_root': settings.STATIC_ROOT+'ietf/'}),
         )
-    )
+    urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
+    settings.DEBUG = save_debug
+

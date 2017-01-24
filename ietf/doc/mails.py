@@ -28,7 +28,18 @@ def email_state_changed(request, doc, text, mailtrigger_id=None):
               dict(text=text,
                    url=settings.IDTRACKER_BASE_URL + doc.get_absolute_url()),
               cc=cc)
-
+    
+def email_ad_approved_doc(request, doc, text):
+	to = "iesg@iesg.org"
+	bcc = "iesg-secretary@ietf.org"
+	frm = request.user.person.formatted_email()
+	send_mail(request, to, frm,
+			  "Approved: %s" % doc.filename_with_rev(),
+			  "doc/mail/ad_approval_email.txt",
+			  dict(text=text,
+				   docname=doc.filename_with_rev()),
+			  bcc=bcc)
+    
 def email_stream_changed(request, doc, old_stream, new_stream, text=""):
     """Email the change text to the notify group and to the stream chairs"""
     streams = []
@@ -78,6 +89,21 @@ def email_iesg_processing_document(request, doc, changes):
 def html_to_text(html):
     return strip_tags(html.replace("&lt;", "<").replace("&gt;", ">").replace("&amp;", "&").replace("<br>", "\n"))
     
+def email_update_telechat(request, doc, text):
+    (to, cc) = gather_address_lists('doc_telechat_details_changed',doc=doc)
+
+    if not to:
+        return
+    
+    text = strip_tags(text)
+    send_mail(request, to, None,
+              "Telechat update notice: %s" % doc.file_tag(),
+              "doc/mail/update_telechat.txt",
+              dict(text=text,
+                   url=settings.IDTRACKER_BASE_URL + doc.get_absolute_url()),
+              cc=cc)
+
+
 def generate_ballot_writeup(request, doc):
     e = doc.latest_event(type="iana_review")
     iana = e.desc if e else ""
@@ -88,17 +114,28 @@ def generate_ballot_writeup(request, doc):
     e.doc = doc
     e.desc = u"Ballot writeup was generated"
     e.text = unicode(render_to_string("doc/mail/ballot_writeup.txt", {'iana': iana}))
+
+    # caller is responsible for saving, if necessary
+    return e
+    
+def generate_ballot_rfceditornote(request, doc):
+    e = WriteupDocEvent()
+    e.type = "changed_ballot_rfceditornote_text"
+    e.by = request.user.person
+    e.doc = doc
+    e.desc = u"RFC Editor Note for ballot was generated"
+    e.text = unicode(render_to_string("doc/mail/ballot_rfceditornote.txt"))
     e.save()
     
     return e
-    
+
 def generate_last_call_announcement(request, doc):
     expiration_date = datetime.date.today() + datetime.timedelta(days=14)
     if doc.group.type_id in ("individ", "area"):
         group = "an individual submitter"
         expiration_date += datetime.timedelta(days=14)
     else:
-        group = "the %s WG (%s)" % (doc.group.name, doc.group.acronym)
+        group = "the %s %s (%s)" % (doc.group.name, doc.group.type.name, doc.group.acronym)
 
     doc.filled_title = textwrap.fill(doc.title, width=70, subsequent_indent=" " * 3)
     
@@ -109,6 +146,7 @@ def generate_last_call_announcement(request, doc):
     else:
         ipr_links = None
 
+    downrefs = [rel for rel in doc.relateddocument_set.all() if rel.is_downref()]
 
     addrs = gather_address_lists('last_call_issued',doc=doc).as_strings()
     mail = render_to_string("doc/mail/last_call_announcement.txt",
@@ -121,6 +159,7 @@ def generate_last_call_announcement(request, doc):
                                  docs=[ doc ],
                                  urls=[ settings.IDTRACKER_BASE_URL + doc.get_absolute_url() ],
                                  ipr_links=ipr_links,
+                                 downrefs=downrefs,
                                  )
                             )
 
@@ -130,8 +169,8 @@ def generate_last_call_announcement(request, doc):
     e.doc = doc
     e.desc = u"Last call announcement was generated"
     e.text = unicode(mail)
-    e.save()
 
+    # caller is responsible for saving, if necessary
     return e
     
 
@@ -149,8 +188,8 @@ def generate_approval_mail(request, doc):
     e.doc = doc
     e.desc = u"Ballot approval text was generated"
     e.text = unicode(mail)
-    e.save()
 
+    # caller is responsible for saving, if necessary
     return e
 
 def generate_approval_mail_approved(request, doc):
@@ -162,7 +201,7 @@ def generate_approval_mail_approved(request, doc):
 
     # the second check catches some area working groups (like
     # Transport Area Working Group)
-    if doc.group.type_id not in ("area", "individ", "ag") and not doc.group.name.endswith("Working Group"):
+    if doc.group.type_id not in ("area", "individ", "ag", "rg") and not doc.group.name.endswith("Working Group"):
         doc.group.name_with_wg = doc.group.name + " Working Group"
     else:
         doc.group.name_with_wg = doc.group.name
@@ -232,6 +271,9 @@ def generate_publication_request(request, doc):
         approving_body = str(doc.stream)
         consensus_body = approving_body
 
+    e = doc.latest_event(WriteupDocEvent, type="changed_rfc_editor_note_text")
+    rfcednote = e.text if e else ""
+
     return render_to_string("doc/mail/publication_request.txt",
                             dict(doc=doc,
                                  doc_url=settings.IDTRACKER_BASE_URL + doc.get_absolute_url(),
@@ -239,6 +281,7 @@ def generate_publication_request(request, doc):
                                  approving_body=approving_body,
                                  consensus_body=consensus_body,
                                  consensus=consensus,
+                                 rfc_editor_note=rfcednote,
                                  )
                             )
 
@@ -346,7 +389,9 @@ def extra_automation_headers(doc):
     return extra
 
 def email_last_call_expired(doc):
-    text = "IETF Last Call has ended, and the state has been changed to\n%s." % doc.get_state("draft-iesg").name
+    if not doc.type_id in ['draft','statchg']:
+        return
+    text = "IETF Last Call has ended, and the state has been changed to\n%s." % doc.get_state("draft-iesg" if doc.type_id == 'draft' else "statchg").name
     addrs = gather_address_lists('last_call_expired',doc=doc)
     
     send_mail(None,
@@ -467,14 +512,18 @@ def email_charter_internal_review(request, charter):
                         markup=False,
                    )
     send_mail(request, addrs.to, settings.DEFAULT_FROM_EMAIL,
-              'Internal WG Review: %s (%s)'%(charter.group.name,charter.group.acronym),
+              'Internal %s Review: %s (%s)'%(charter.group.type.name,charter.group.name,charter.group.acronym),
               'doc/mail/charter_internal_review.txt',
               dict(charter=charter,
-                   chairs=charter.group.role_set.filter(name='chair').values_list('person__name',flat=True),
-                   ads=charter.group.role_set.filter(name='ad').values_list('person__name',flat=True),
                    charter_text=charter_text,
-                   milestones=charter.group.groupmilestone_set.filter(state="charter"),
                    review_type = "new" if charter.group.state_id == "proposed" else "recharter",
+                   charter_url=settings.IDTRACKER_BASE_URL + charter.get_absolute_url(),
+                   chairs=charter.group.role_set.filter(name="chair"),
+                   secr=charter.group.role_set.filter(name="secr"),
+                   ads=charter.group.role_set.filter(name='ad'),
+                   parent_ads=charter.group.parent.role_set.filter(name='ad'),
+                   techadv=charter.group.role_set.filter(name="techadv"),
+                   milestones=charter.group.groupmilestone_set.filter(state="charter"),
               ),
               cc=addrs.cc,
               extra={'Reply-To':"iesg@ietf.org"},

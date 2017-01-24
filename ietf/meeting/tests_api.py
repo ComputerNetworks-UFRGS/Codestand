@@ -4,6 +4,8 @@ from urlparse import urlsplit
 
 from django.core.urlresolvers import reverse as urlreverse
 
+import debug                            # pyflakes:ignore
+
 from ietf.group.models import Group
 from ietf.meeting.models import Schedule, TimeSlot, Session, SchedTimeSessAssignment, Meeting, Constraint
 from ietf.meeting.test_data import make_meeting_test_data
@@ -19,10 +21,10 @@ class ApiTests(TestCase):
         mars_session = Session.objects.filter(meeting=meeting, group__acronym="mars").first()
         ames_session = Session.objects.filter(meeting=meeting, group__acronym="ames").first()
     
-        mars_scheduled = SchedTimeSessAssignment.objects.get(session=mars_session)
+        mars_scheduled = SchedTimeSessAssignment.objects.get(session=mars_session,schedule__name='test-agenda')
         mars_slot = mars_scheduled.timeslot 
 
-        ames_scheduled = SchedTimeSessAssignment.objects.get(session=ames_session)
+        ames_scheduled = SchedTimeSessAssignment.objects.get(session=ames_session,schedule__name='test-agenda')
         ames_slot = ames_scheduled.timeslot 
 
         def do_unschedule(assignment):
@@ -88,16 +90,16 @@ class ApiTests(TestCase):
         r = do_extend(schedule,mars_scheduled)
         self.assertEqual(r.status_code, 201)
         self.assertTrue("error" not in json.loads(r.content))
-        self.assertEqual(mars_session.timeslotassignments.count(),2)
+        self.assertEqual(mars_session.timeslotassignments.filter(schedule__name='test-agenda').count(),2)
 
         # Unschedule mars 
         r = do_unschedule(mars_scheduled)
         self.assertEqual(r.status_code, 200)
         self.assertTrue("error" not in json.loads(r.content))
         # Make sure it got both the original and extended session
-        self.assertEqual(mars_session.timeslotassignments.count(),0)
+        self.assertEqual(mars_session.timeslotassignments.filter(schedule__name='test-agenda').count(),0)
 
-        self.assertEqual(SchedTimeSessAssignment.objects.get(session=ames_session).timeslot, mars_slot)
+        self.assertEqual(SchedTimeSessAssignment.objects.get(session=ames_session,schedule__name='test-agenda').timeslot, mars_slot)
 
 
     def test_constraints_json(self):
@@ -180,7 +182,7 @@ class ApiTests(TestCase):
         make_meeting_test_data()
         group = Group.objects.get(acronym="mars")
 
-        url = urlreverse("ietf.group.ajax.group_json", kwargs=dict(acronym=group.acronym))
+        url = urlreverse("ietf.group.views_ajax.group_json", kwargs=dict(acronym=group.acronym))
         r = self.client.get(url)
         self.assertEqual(r.status_code, 200)
         info = json.loads(r.content)

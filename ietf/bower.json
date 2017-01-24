@@ -4,13 +4,46 @@
   "ignore": [],
   "main": [],
   "dependencies": {
-    "bootstrap-datepicker": "1.3.1",
-    "font-awesome": "4.3.0",
-    "jquery": "1.11.2",
-    "jquery.cookie": "1.4.1",
-    "qunit": "1.12.0",
-    "select2": "3.5.2",
-    "select2-bootstrap-css": "1.4.6"
+    "bootstrap-datepicker": "~1",
+    "d3": "~3",
+    "font-awesome": "~4",
+    "html5shiv": "~3",
+    "highcharts": "~4.2", 
+    "jquery": "~1",
+    "jquery.cookie": "~1",
+    "jquery.tablesorter": "~2",
+    "respond": "~1",
+    "select2": "~3",
+    "select2-bootstrap-css": "~1",
+    "spin.js": "~2"
   },
-  "devDependencies": {}
+  "devDependencies": {},
+  "overrides": {
+    "font-awesome": {
+      "main": [
+        "./css/font-awesome.min.css",
+        "./fonts/*"
+      ]
+    },
+    "tablesorter": {
+        "main": [
+            "dist/js/jquery.tablesorter.combined.js",
+            "dist/css/theme.bootstrap.min.css"
+        ]
+    },
+    "respond": {
+      "main": "dest/respond.min.js"
+    },
+    "highcharts": {
+	"main": [
+	  "highcharts.js",
+	  "highcharts-more.js",
+	  "highstock.js",
+	  "highmaps.js",
+	  "modules/exporting.js",
+	  "modules/offline-exporting.js",
+	  "modules/map.js"
+	]
+    }
+  }
 }

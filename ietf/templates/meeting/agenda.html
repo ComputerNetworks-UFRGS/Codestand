@@ -1,8 +1,9 @@
 {% extends "base.html" %}
 {# Copyright The IETF Trust 2015, All Rights Reserved #}
 {% load origin %}
-
+{% load staticfiles %}
 {% load ietf_filters %}
+{% load textfilters %}
 
 {% block title %}
   IETF {{ schedule.meeting.number }} meeting agenda
@@ -31,27 +32,17 @@
   {% origin %}
 
   <div class="row">
-    <div class="col-md-10">
+    <div class="col-md-12">
+      {% if "-utc" in request.path %}
+        {% include "meeting/meeting_heading.html" with meeting=schedule.meeting updated=updated selected="agenda-utc" title_extra="(UTC)" %}
+      {% else %}
+        {% include "meeting/meeting_heading.html" with meeting=schedule.meeting updated=updated selected="agenda"     title_extra="" %}
+      {% endif %}
 
-      {% include "meeting/meeting_heading.html" with meeting=schedule.meeting updated=updated %}
-
-      <p class="noprint h6 text-center panel panel-heading ">
-        {% if "-utc" in request.path %}
-          <a href="{% url 'ietf.meeting.views.agenda' num=schedule.meeting.number %}">Agenda in local timezone</a> |
-        {% else %}
-          {% comment %}<a href="{% url 'ietf.meeting.views.agenda' base='agenda-utc' %}">Agenda in UTC timezone</a> | {% endcomment %}
-          <a href="/meeting/agenda-utc">Agenda in UTC timezone</a> |
-        {% endif %}
-        <a href="{% url 'ietf.meeting.views.agenda' num=schedule.meeting.number ext='.txt' %}">Plaintext agenda</a> | 
-        <a href="https://tools.ietf.org/agenda/{{schedule.meeting.number}}/">Tools-style agenda</a>
-        {% if user|has_role:"Secretariat,Area Director,IAB" %}
-          |
-          <a href="{% url 'ietf.meeting.views.agenda_by_room' num=schedule.meeting.number%}">List by Room</a> |
-          <a href="{% url 'ietf.meeting.views.agenda_by_type' num=schedule.meeting.number%}">List by Type</a> |
-          <a href="{% url 'ietf.meeting.views.room_view' num=schedule.meeting.number%}">Room Grid</a>
-        {% endif %}
-      </p>
-
+    </div>
+  </div>
+  <div class="row">
+     <div class="col-md-10">
       {# cache this part for 5 minutes -- it takes 3-6 seconds to generate #}
       {% load cache %}
       {% cache 300 ietf_meeting_agenda_utc schedule.meeting.number request.path %}
@@ -203,12 +194,26 @@
 	          </td>
                   <td colspan="3">
                     {% if item.timeslot.show_location and item.timeslot.get_location %}
-                      <a href="https://tools.ietf.org/agenda/{{schedule.meeting.number}}/venue/?room={{ item.timeslot.get_location|slugify }}">{{item.timeslot.get_location|split:"/"|join:"/<wbr>"}}</a>
+		      {% if schedule.meeting.number|add:"0" < 96 %}
+                      <a href="https://tools.ietf.org/agenda/{{schedule.meeting.number}}/venue/?room={{ item.timeslot.get_location|xslugify }}">{{item.timeslot.get_location|split:"/"|join:"/<wbr>"}}</a>
+		      {% else %}
+		      <a href="{% url 'ietf.meeting.views.floor_plan' num=schedule.meeting.number %}?room={{ item.timeslot.get_location|xslugify }}">{{item.timeslot.get_location|split:"/"|join:"/<wbr>"}}</a>
+		      {% endif %}
 	            {% endif %}
 	          </td>
-                  <td colspan="2">
+                  <td>
 	            {{item.timeslot.name}}
 	          </td>
+		  <td class="col-md-2">
+		    <span class="hidden-xs">
+		      {% if item.timeslot.type.slug == 'other' %}
+			{% for slide in item.session.slides %}
+			  <a href="{{slide.get_absolute_url}}">{{ slide.title|clean_whitespace }}</a>
+			  <br>
+			{% endfor %}
+		      {% endif %}
+		    </span>
+		  </td>
                 </tr>
             {% endif %}
 
@@ -225,7 +230,11 @@
 		    </th>
 		    <td colspan="3">
 		      {% if item.timeslot.show_location and item.timeslot.get_location %}
-			<a href="https://tools.ietf.org/agenda/{{schedule.meeting.number}}/venue/?room={{ item.timeslot.get_location|slugify }}">{{item.timeslot.get_location|split:"/"|join:"/<wbr>"}}</a>
+			{% if schedule.meeting.number|add:"0" < 96 %}
+			<a href="https://tools.ietf.org/agenda/{{schedule.meeting.number}}/venue/?room={{ item.timeslot.get_location|xslugify }}">{{item.timeslot.get_location|split:"/"|join:"/<wbr>"}}</a>
+			{% else %}
+			<a href="{% url 'ietf.meeting.views.floor_plan' num=schedule.meeting.number %}?room={{ item.timeslot.get_location|xslugify }}">{{item.timeslot.get_location|split:"/"|join:"/<wbr>"}}</a>
+			{% endif %}
 		      {% endif %}
 		    </td>
 
@@ -234,7 +243,11 @@
 
                     <td>
                       {% if item.timeslot.show_location and item.timeslot.get_location %}
-                        <a href="https://tools.ietf.org/agenda/{{schedule.meeting.number}}/venue/?room={{ item.timeslot.get_location|slugify }}">{{item.timeslot.get_location|split:"/"|join:"/<wbr>"}}</a>
+			{% if schedule.meeting.number|add:"0" < 96 %}
+			<a href="https://tools.ietf.org/agenda/{{schedule.meeting.number}}/venue/?room={{ item.timeslot.get_location|xslugify }}">{{item.timeslot.get_location|split:"/"|join:"/<wbr>"}}</a>
+			{% else %}
+			<a href="{% url 'ietf.meeting.views.floor_plan' num=schedule.meeting.number %}?room={{ item.timeslot.get_location|xslugify }}">{{item.timeslot.get_location|split:"/"|join:"/<wbr>"}}</a>
+			{% endif %}
                       {% endif %}
                     </td>
 
@@ -251,7 +264,7 @@
 
                   <td>
                     {% if item.session.agenda %}
-                      <a href="/meeting/{{ schedule.meeting.number }}/agenda/{{ item.session.historic_group.acronym }}/">
+		      <a href="{{ item.session.agenda.href }}">
                     {% endif %}
                     {% if item.timeslot.type.slug == 'plenary' %}
                       {{item.timeslot.name}}
@@ -262,8 +275,12 @@
                       </a>
                     {% endif %}
 
-                    {% if item.session.historic_group.state_id = "bof" %}
+                    {% if item.session.historic_group.state_id == "bof" %}
                       <span class="label label-success pull-right">BOF</span>
+                    {% endif %}
+
+                    {% if item.session.status.slug == 'canceled' %}
+                      <span class="label label-danger pull-right">CANCELLED</span>
                     {% endif %}
 
                     {% if item.session.agenda_note %}
@@ -314,14 +331,99 @@
 		      </div>
 		    </div>
 		  </td>
-		  <td class="text-nowrap">
+		  <td class="text-nowrap text-right">
 		  <span class="hidden-xs">
 		    {% if item.session.agenda %}
-		      <button class="btn btn-default btn-xs" data-toggle="modal" data-target="#modal-{{item.slug}}"><span class="fa fa-arrows-alt" title="Show meeting materials"></span></button>
+		      <button class="btn btn-default btn-xs" data-toggle="modal" data-target="#modal-{{item.slug}}" title="Show meeting materials"><span class="fa fa-arrows-alt"></span></button>
 		      <a class="btn btn-default btn-xs" href="/meeting/{{schedule.meeting.number}}/agenda/{{item.session.historic_group.acronym}}-drafts.tgz" title="Download meeting materials as .tar archive"><span class="fa fa-file-archive-o"></span></a>
 		      <a class="btn btn-default btn-xs" href="/meeting/{{ schedule.meeting.number }}/agenda/{{item.session.historic_group.acronym}}-drafts.pdf" title="Download meeting materials as PDF file"><span class="fa fa-file-pdf-o"></span></a>
 		    {% endif %}
-		    </span>
+		      {% if item.timeslot.type.slug == 'plenary' %}
+		        <a class="btn btn-default btn-xs" href="http://etherpad.tools.ietf.org:9000/p/notes-ietf-{{ schedule.meeting.number }}-plenary?useMonospaceFont=true" title="Etherpad for note-takers"><span class="fa fa-edit"></span></a>
+		      {% else %}
+		        <a class="btn btn-default btn-xs" href="http://etherpad.tools.ietf.org:9000/p/notes-ietf-{{ schedule.meeting.number }}-{{item.session.historic_group.acronym}}?useMonospaceFont=true" title="Etherpad for note-takers"><span class="fa fa-edit"></span></a>
+		      {% endif %}
+		      {# show stream buttons up till end of session, then show archive buttons #}
+		      {% if now < item.timeslot.end_time %}
+		        <!-- Jabber -->
+			{% if item.timeslot.type.slug == 'plenary' %}
+			  <a class="btn btn-default btn-xs"
+			    href="xmpp:plenary@jabber.ietf.org?join"
+			    title="Jabber room for {{item.timeslot.name}}"><span class="fa fa-lightbulb-o"></span>
+			  </a>
+			{% else %}
+			  <a class="btn btn-default btn-xs"
+			    href="xmpp:{{item.session.historic_group.acronym}}@jabber.ietf.org?join"
+			    title="Jabber room for {{item.session.historic_group.acronym}}"><span class="fa fa-lightbulb-o"></span>
+			  </a>
+			{% endif %}
+
+			<!-- Video stream (meetecho) -->
+			{% if item.timeslot.location.video_stream_url %}
+			  <a class="btn btn-default btn-xs"
+			    href="{{ item.timeslot.location.video_stream_url|format:item.session }}"
+			    title="Meetecho video stream"><span class="fa fa-video-camera"></span>
+			  </a>
+			{% endif %}
+			<!-- Audio stream -->
+			{% if item.timeslot.location.audio_stream_url %}
+			  <a class="btn btn-default btn-xs"
+			    href="{{item.timeslot.location.audio_stream_url|format:item.session }}"
+			    title="Audio stream"><span class="glyphicon glyphicon-headphones"></span>
+			  </a>
+			{% endif %}
+		      {% else %}
+		        <!-- Jabber logs -->
+			{% if schedule.meeting.number|add:"0" >= 60 %}
+		        <a class="btn btn-default btn-xs"
+			  href="https://www.ietf.org/jabber/logs/{{item.session.historic_group.acronym}}"
+			  title="Jabber logs for {{item.session.historic_group.acronym}}">
+			   <span class="fa fa-stack">
+			     <i class="fa fa-file-o fa-stack-1x"></i>
+			     <i class="fa fa-lightbulb-o fa-stack-1x"></i>
+			   </span>
+			</a>
+			{% endif %}
+			<!-- Video recording -->
+		        {% if schedule.meeting.number|add:"0" >= 80 %}
+			  {% with item.session.recordings as recordings %}
+			    {% if recordings %}
+			      <!-- There's no guaranteed order, so this is a bit messy: -->
+			      <!-- First, the audio recordings, if any -->
+			      {% for r in recordings %}
+				{% if r.href and 'audio' in r.href %}
+				  <a class="btn btn-default btn-xs" href="{{ r.href }}" title="{{ r.title}}">
+				     <span class="fa fa-file-audio-o"></span>
+				  </a>
+				{% endif %}
+			      {% endfor %}
+			      <!-- Then the youtube recordings -->
+			      {% for r in recordings %}
+				{% if r.href and 'youtu' in r.href %}
+				  <a class="btn btn-default btn-xs" href="{{ r.href }}" title="{{ r.title }}">
+				     <span class="fa fa-file-video-o"></span>
+				  </a>
+				{% endif %}
+			      {% endfor %}
+			      <!-- Finally, any other recordings -->
+			      {% for r in recordings %}
+			        {% if r.href and not 'audio' in r.href and not 'youtu' in r.href %}
+				  <a class="btn btn-default btn-xs" href="{{ r.href }}" title="{{ r.title }}">
+				    <span class="fa fa-file-o"></span>
+				  </a>
+				{% endif %}
+			      {% endfor %}
+			    {% endif %}
+			    <a class="btn btn-default btn-xs"
+			       href="http://www.meetecho.com/ietf{{schedule.meeting.number}}/recordings#{{item.session.historic_group.acronym.upper}}"
+			       title="Meetecho session recording"><img src="{% static 'ietf/images/meetecho-icon.svg' %}" alt="Meetecho Stream" width="12px">
+			    </a>
+			  {% endwith %}
+			{% endif %}
+			<!-- Audio recording -->
+			{# <a class="btn btn-default btn-xs" href="" title="Audio recording"><span class="fa fa-file-audio-o"></span></a>#}
+		      {% endif %}
+		  </span>
 		  </td>
 		</tr>
               {% endif %}
