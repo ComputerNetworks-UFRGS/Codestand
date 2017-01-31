@@ -125,5 +125,8 @@ CODESTAND_APPS = (
     'ietf.codestand.requests'
 )
 
+if CODESTAND_DEBUG:
+    DEV_TEMPLATE_CONTEXT_PROCESSORS = ['ietf.context_processors.sql_debug']
+
 # if CODESTAND_DEBUG:
 #     CODESTAND_APPS += ('debug_toolbar',)
