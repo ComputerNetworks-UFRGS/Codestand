@@ -23,7 +23,7 @@
                 <a href="{% url "ietf.codestand.views.index" %}"><i class="fa fa-home"></i> Home</a>
                 <!-- Divider -->
                 <span class="divider">/</span>
-                <a href="#" class="bread-current">Top Coders</a>
+                <a class="bread-current">Top Coders</a>
             </div>
 
             <div class="clearfix"></div>
@@ -48,13 +48,13 @@
                             <!-- Widget content -->
                             <div class="padd">
                                 <ul class="latest-news">
-                                    {% for count, coder in topcoders %}
+                                    {% for count, codername, coderid in topcoders %}
 	                               		<li>
 	                                    	<!-- Title and date -->
                                             {% if count > 1 %}
-	                                    	<h5><a href="#">{{ coder }}</a> - {{ count }} Projects</h5>
+	                                    	<h5><a href="{% url 'ietf.codestand.accounts.views.profile' coderid %}">{{ codername }}</a> - {{ count }} Projects</h5>
                                             {% else %}
-                                            <h5><a href="#">{{ coder }}</a> - {{ count }} Project</h5>
+                                            <h5><a href="{% url 'ietf.codestand.accounts.views.profile' coderid %}">{{ codername }}</a> - {{ count }} Project</h5>
                                             {% endif %}
 	                                	</li>
                                     {% endfor %}

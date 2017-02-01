@@ -69,7 +69,7 @@ def top_coders(request):
         for id, name in all_coders:
             if cd.coder == id:
                 coder = name
-        topcoders.append((cd.count, coder))
+        topcoders.append((cd.count, coder, id))
     return render_page(request, constants.TEMPLATE_TOPCODERS, {
         'topcoders': topcoders,
     })
