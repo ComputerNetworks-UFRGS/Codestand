@@ -2,14 +2,14 @@ DATABASES = {
     'default': {
         'NAME': 'ietf_utf8',
         'ENGINE': 'django.db.backends.mysql',
-        'USER': 'matheuspfitscher',
+        'USER': 'matheus',
         'PASSWORD': 'ietf',  # Contact henrik@levkowetz.com to get the password
         'HOST': '127.0.0.1'
     },
     'datatracker': {
         'NAME': 'ietf_utf8',
         'ENGINE': 'django.db.backends.mysql',
-        'USER': 'matheuspfitscher',
+        'USER': 'matheus',
         'PASSWORD': 'ietf',  # Contact henrik@levkowetz.com to get the password
         'HOST': '127.0.0.1'
     },
@@ -23,7 +23,7 @@ DATABASES = {
 }
 
 
-DATABASE_ROUTERS = ["ietf.new_router.DatatrackerRouter"]
+DATABASE_ROUTERS = ["ietf.codestand_router.DatatrackerRouter"]
 
 # Since the zinfandel database above is read-only, you also need to have a
 # different session backend in order to avoid exceptions due to attempts

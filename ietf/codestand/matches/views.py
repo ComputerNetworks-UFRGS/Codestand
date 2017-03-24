@@ -377,7 +377,7 @@ def save_code(request, template, pk, ck="", coding=None):
         # Adding new contact to the mailing list to be saved in the project
         elif request.POST.get(constants.STRING_CONTACT) and new_contact.is_valid():
             m = new_contact.save(commit=False)
-            if m.type.lower() == constants.STRING_TWITTER:  # TODO: Standardize for all
+            if m.type.lower() == constants.STRING_TWITTER:
                 m.contact = '@' + m.contact
             contacts.append(m)
 
@@ -555,8 +555,7 @@ def edit(request, pk, ck):
             for key in keys:
                 docs.append(DocAlias.objects.using('datatracker').get(name=key))
         request.session[constants.ADD_DOCS] = list(docs)
-
-    # TODO: Review this        
+     
     us = get_user(request)
     user = us
 
@@ -623,8 +622,7 @@ def remove_link(request, ck, link_name):
     link = next(el for el in links if el.link == link_name)
     if ck != "0":
         coding = get_object_or_404(CodingProject, id=ck)
-
-        # TODO: Review this        
+       
         us = get_user(request)
         user = us
 
@@ -639,7 +637,6 @@ def remove_link(request, ck, link_name):
     links.remove(link)
     request.session[constants.ADD_LINKS] = links
 
-    # TODO: Centralize this?
     return HttpResponseRedirect(refresh_template)
 
 
@@ -680,8 +677,7 @@ def remove_contact(request, ck, contact_name):
 
     if ck != "0":
         coding = get_object_or_404(CodingProject, id=ck)
-
-        # TODO: Review this        
+     
         us = get_user(request)
         user = us
 
@@ -696,7 +692,6 @@ def remove_contact(request, ck, contact_name):
     contacts.remove(contact)
     request.session[constants.ADD_CONTACTS] = contacts
 
-    # TODO: Centralize this?
     return HttpResponseRedirect(refresh_template)
 
 
@@ -716,8 +711,7 @@ def remove_tag(request, ck, tag_name):
 
     if ck != "0":
         coding = get_object_or_404(CodingProject, id=ck)
-
-        # TODO: Review this        
+       
         us = get_user(request)
         user = us
 
@@ -732,7 +726,6 @@ def remove_tag(request, ck, tag_name):
     tags.remove(tag)
     request.session[constants.ADD_TAGS] = tags
 
-    # TODO: Centralize this?
     return HttpResponseRedirect(refresh_template)
 
 
@@ -752,8 +745,7 @@ def remove_document(request, pk, doc_name):
 
     if pk != "0":
         project_container = get_object_or_404(ProjectContainer, id=pk)
-
-        # TODO: Review this        
+        
         us = get_user(request)
         user = us
 
@@ -768,5 +760,4 @@ def remove_document(request, pk, doc_name):
     docs.remove(document)
     request.session[constants.ADD_DOCS] = docs
 
-    # TODO: Centralize this?
     return HttpResponseRedirect(refresh_template)

@@ -483,10 +483,6 @@ def save_project(request, template, project_container=None):
         'canaddcontact': can_add_contact
     })
 
-
-''' TODO: UNIFICAR CODIGO MATCHES E REQUESTS '''
-
-
 @login_required(login_url=settings.CODESTAND_PREFIX + constants.TEMPLATE_LOGIN)
 def archive(request, pk):
     
