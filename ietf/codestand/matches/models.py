@@ -51,7 +51,7 @@ class CodingProject(models.Model):
     # When the coding project was added
     creation_date = models.DateTimeField(auto_now_add=True)
 
-    # TODO: this field is integer?
+    # TODO: this field is an integer?
     reputation = models.IntegerField(null=True, blank=True)
 
     contacts = models.ManyToManyField(ProjectContact, blank=True)
@@ -101,7 +101,7 @@ class ProjectContainer(models.Model):
     def __unicode__(self):  # __unicode__ on Python 2
         return self.title
     
-# TODO: Thinks about change this to other model
+# TODO: Thinks about change this to another model
 class DashboardConfig(models.Model):
     """ The Dashboard config is the saved preferences to dashboard from user """
     

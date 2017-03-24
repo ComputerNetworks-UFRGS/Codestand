@@ -61,9 +61,9 @@
 
 											<div class="row">
 												<div class="col-md-4">
-													<strong>By: </strong><a href="{% url 'ietf.codestand.accounts.views.profile' coder.id %}">{{ coder.name }}</a>
+													<strong>By: </strong><a href="#">{{ coder.name }}</a>
 													<br />
-													<strong>Mentor: </strong><a href="{% url 'ietf.codestand.accounts.views.profile' mentor.id %}">{{ mentor.name }}</a>
+													<strong>Mentor: </strong><a href="#">{{ mentor.name }}</a>
 													<br />
 													{% if projectcontainer.code_request and not projectcontainer.is_archived and not projectcontainer.is_deleted %}
 													<strong>CodeRequest: </strong><a href="{% url 'ietf.codestand.requests.views.show' projectcontainer.id %}">{{projectcontainer.title}}</a>

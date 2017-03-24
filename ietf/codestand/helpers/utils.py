@@ -19,7 +19,6 @@ def is_user_allowed(user, permission):
 
 
 def get_user(request):
-    # TODO: Colocar o usuario nas variaveis de sessao
     if constants.USER not in request.session or request.session[constants.USER].user != request.user:
         if request.user.is_authenticated():
             user = Person.objects.using('datatracker').get(user=request.user)
