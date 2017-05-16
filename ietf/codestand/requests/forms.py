@@ -11,15 +11,15 @@ class DocNameForm(forms.Form):
     doc = SearchableDocAliasField(label="I-D name/RFC number", required=True, doc_type="draft")
 
 
-class MentorForm(forms.Form):    
+class MentorForm(forms.Form):
     mentor = SearchablePersonField(label="Must be present", required=False)
-        
+
 
 class TagForm(ModelForm):
     class Meta:
         model = ProjectTag
         fields = ["name"]
-        
+
         widgets = {
             'name': TextInput(attrs={'placeholder': 'Enter tag here'})
         }
@@ -29,7 +29,7 @@ class CodeRequestForm(ModelForm):
     class Meta:
         model = CodeRequest
         fields = ["mentor", "estimated_lof", "additional_information"]
-        
+
         widgets = {
             'mentor': TextInput(attrs={'placeholder':'Enter mentor here'}),
             'additional_information': TextInput(attrs={'placeholder': 'Enter additional information here'})

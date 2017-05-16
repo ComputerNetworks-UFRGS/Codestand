@@ -13,7 +13,7 @@ urlpatterns = [
     url(r'^edit/(?P<pk>[0-9]+)$', views.edit, name="ietf.codestand.requests.views.edit"),
     url(r'^delete/(?P<pk>[0-9]+)/$', views.delete, name="ietf.codestand.requests.views.delete"),
     url(r'^delete/(?P<pk>[0-9]+)/(?P<template>.+)$', views.delete, name="ietf.codestand.requests.views.delete"),
-    url(r'^archive/(?P<pk>[0-9]+)$', views.archive, name="ietf.codestand.requests.views.rchive"),
+    url(r'^archive/(?P<pk>[0-9]+)$', views.archive, name="ietf.codestand.requests.views.archive"),
     url(r'^remove_contact/(?P<pk>[0-9]+)/(?P<contact_name>.+)$', views.remove_contact,
         name="ietf.codestand.requests.views.remove_contact"),
     url(r'^remove_document/(?P<pk>[0-9]+)/(?P<doc_name>.+)$', views.remove_document,

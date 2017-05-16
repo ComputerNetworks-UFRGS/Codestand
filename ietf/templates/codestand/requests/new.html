@@ -258,5 +258,6 @@ $(document).ready(function(){
 $('#chk-mentor').change(function() {
      $('#details :input').attr('disabled', this.checked);
 });
+$(':input').prop('required', false);
 </script>
 {% endblock %}
