@@ -1,1257 +1,11 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project version="4">
   <component name="ChangeListManager">
-    <list default="true" id="0bc92ffd-8764-451c-990f-0287cd247c11" name="Default" comment="Upgrade to 6.50.1 of Datatracker system.">
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/ietf/static/admin/img/changelist-bg.gif" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/ietf/static/admin/img/changelist-bg_rtl.gif" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/ietf/static/admin/img/default-bg-reverse.gif" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/ietf/static/admin/img/default-bg.gif" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/ietf/static/admin/img/deleted-overlay.gif" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/ietf/static/admin/img/gis/move_vertex_off.png" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/ietf/static/admin/img/gis/move_vertex_on.png" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/ietf/static/admin/img/icon-no.gif" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/ietf/static/admin/img/icon-unknown.gif" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/ietf/static/admin/img/icon-yes.gif" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/ietf/static/admin/img/icon_addlink.gif" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/ietf/static/admin/img/icon_alert.gif" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/ietf/static/admin/img/icon_calendar.gif" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/ietf/static/admin/img/icon_changelink.gif" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/ietf/static/admin/img/icon_clock.gif" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/ietf/static/admin/img/icon_deletelink.gif" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/ietf/static/admin/img/icon_error.gif" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/ietf/static/admin/img/icon_searchbox.png" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/ietf/static/admin/img/icon_success.gif" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/ietf/static/admin/img/inline-delete-8bit.png" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/ietf/static/admin/img/inline-delete.png" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/ietf/static/admin/img/inline-restore-8bit.png" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/ietf/static/admin/img/inline-restore.png" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/ietf/static/admin/img/inline-splitter-bg.gif" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/ietf/static/admin/img/nav-bg-grabber.gif" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/ietf/static/admin/img/nav-bg-reverse.gif" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/ietf/static/admin/img/nav-bg-selected.gif" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/ietf/static/admin/img/nav-bg.gif" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/ietf/static/admin/img/selector-icons.gif" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/ietf/static/admin/img/selector-search.gif" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/ietf/static/admin/img/sorting-icons.gif" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/ietf/static/admin/img/tooltag-add.png" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/ietf/static/admin/img/tooltag-arrowright.png" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/ietf/static/bootstrap/fonts/glyphicons-halflings-regular.eot" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/ietf/static/bootstrap/fonts/glyphicons-halflings-regular.ttf" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/ietf/static/bootstrap/fonts/glyphicons-halflings-regular.woff" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/ietf/static/bootstrap/fonts/glyphicons-halflings-regular.woff2" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/ietf/static/font-awesome/fonts/FontAwesome.otf" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/ietf/static/font-awesome/fonts/fontawesome-webfont.eot" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/ietf/static/font-awesome/fonts/fontawesome-webfont.ttf" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/ietf/static/font-awesome/fonts/fontawesome-webfont.woff" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/ietf/static/font-awesome/fonts/fontawesome-webfont.woff2" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/ietf/static/ietf/images/flipchart.png" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/ietf/static/ptmono/ptm55f_w.eot" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/ietf/static/ptmono/ptm55f_w.ttf" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/ietf/static/ptmono/ptm55f_w.woff" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/ietf/static/ptmono/ptm75f_w.eot" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/ietf/static/ptmono/ptm75f_w.ttf" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/ietf/static/ptmono/ptm75f_w.woff" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/ietf/static/ptsans/ptc55f_w.eot" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/ietf/static/ptsans/ptc55f_w.ttf" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/ietf/static/ptsans/ptc55f_w.woff" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/ietf/static/ptsans/ptc75f_w.eot" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/ietf/static/ptsans/ptc75f_w.ttf" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/ietf/static/ptsans/ptc75f_w.woff" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/ietf/static/ptsans/ptn57f_w.eot" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/ietf/static/ptsans/ptn57f_w.ttf" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/ietf/static/ptsans/ptn57f_w.woff" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/ietf/static/ptsans/ptn77f_w.eot" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/ietf/static/ptsans/ptn77f_w.ttf" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/ietf/static/ptsans/ptn77f_w.woff" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/ietf/static/ptsans/pts55f_w.eot" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/ietf/static/ptsans/pts55f_w.ttf" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/ietf/static/ptsans/pts55f_w.woff" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/ietf/static/ptsans/pts56f_w.eot" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/ietf/static/ptsans/pts56f_w.ttf" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/ietf/static/ptsans/pts56f_w.woff" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/ietf/static/ptsans/pts75f_w.eot" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/ietf/static/ptsans/pts75f_w.ttf" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/ietf/static/ptsans/pts75f_w.woff" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/ietf/static/ptsans/pts76f_w.eot" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/ietf/static/ptsans/pts76f_w.ttf" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/ietf/static/ptsans/pts76f_w.woff" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/ietf/static/ptserif/ptf55f_w.eot" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/ietf/static/ptserif/ptf55f_w.ttf" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/ietf/static/ptserif/ptf55f_w.woff" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/ietf/static/ptserif/ptf56f_w.eot" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/ietf/static/ptserif/ptf56f_w.ttf" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/ietf/static/ptserif/ptf56f_w.woff" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/ietf/static/ptserif/ptf75f_w.eot" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/ietf/static/ptserif/ptf75f_w.ttf" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/ietf/static/ptserif/ptf75f_w.woff" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/ietf/static/ptserif/ptf76f_w.eot" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/ietf/static/ptserif/ptf76f_w.ttf" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/ietf/static/ptserif/ptf76f_w.woff" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/ietf/static/ptserif/ptz55f_w.eot" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/ietf/static/ptserif/ptz55f_w.ttf" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/ietf/static/ptserif/ptz55f_w.woff" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/ietf/static/ptserif/ptz56f_w.eot" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/ietf/static/ptserif/ptz56f_w.ttf" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/ietf/static/ptserif/ptz56f_w.woff" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/ietf/static/secr/img/admin/arrow-down.gif" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/ietf/static/secr/img/admin/arrow-up.gif" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/ietf/static/secr/img/admin/changelist-bg.gif" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/ietf/static/secr/img/admin/changelist-bg_rtl.gif" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/ietf/static/secr/img/admin/chooser-bg.gif" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/ietf/static/secr/img/admin/chooser_stacked-bg.gif" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/ietf/static/secr/img/admin/default-bg-reverse.gif" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/ietf/static/secr/img/admin/default-bg.gif" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/ietf/static/secr/img/admin/deleted-overlay.gif" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/ietf/static/secr/img/admin/icon-no.gif" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/ietf/static/secr/img/admin/icon-unknown.gif" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/ietf/static/secr/img/admin/icon-yes.gif" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/ietf/static/secr/img/admin/icon_addlink.gif" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/ietf/static/secr/img/admin/icon_alert.gif" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/ietf/static/secr/img/admin/icon_calendar.gif" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/ietf/static/secr/img/admin/icon_changelink.gif" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/ietf/static/secr/img/admin/icon_clock.gif" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/ietf/static/secr/img/admin/icon_deletelink.gif" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/ietf/static/secr/img/admin/icon_error.gif" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/ietf/static/secr/img/admin/icon_searchbox.png" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/ietf/static/secr/img/admin/icon_success.gif" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/ietf/static/secr/img/admin/inline-delete-8bit.png" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/ietf/static/secr/img/admin/inline-delete.png" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/ietf/static/secr/img/admin/inline-restore-8bit.png" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/ietf/static/secr/img/admin/inline-restore.png" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/ietf/static/secr/img/admin/inline-splitter-bg.gif" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/ietf/static/secr/img/admin/nav-bg-grabber.gif" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/ietf/static/secr/img/admin/nav-bg-reverse.gif" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/ietf/static/secr/img/admin/nav-bg.gif" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/ietf/static/secr/img/admin/selector-add.gif" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/ietf/static/secr/img/admin/selector-addall.gif" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/ietf/static/secr/img/admin/selector-remove.gif" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/ietf/static/secr/img/admin/selector-removeall.gif" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/ietf/static/secr/img/admin/selector-search.gif" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/ietf/static/secr/img/admin/selector_stacked-add.gif" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/ietf/static/secr/img/admin/selector_stacked-remove.gif" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/ietf/static/secr/img/admin/tool-left.gif" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/ietf/static/secr/img/admin/tool-left_over.gif" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/ietf/static/secr/img/admin/tool-right.gif" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/ietf/static/secr/img/admin/tool-right_over.gif" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/ietf/static/secr/img/admin/tooltag-add.gif" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/ietf/static/secr/img/admin/tooltag-add_over.gif" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/ietf/static/secr/img/admin/tooltag-arrowright.gif" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/ietf/static/secr/img/admin/tooltag-arrowright_over.gif" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/ietf/static/secr/img/ajax-loader.gif" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/ietf/static/secr/img/ams_logo.png" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/ietf/static/secr/img/delete.png" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/ietf/static/secr/img/test-background.png" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/ietf/static/secr/img/ui-icons_222222_256x240.png" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/ietf/static/secr/img/ui-icons_666666_256x240.png" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/ietf/static/secr/img/wait26.gif" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/ietf/static/secr/img/wait28.gif" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/ietf/static/select2/select2-spinner.gif" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/ietf/static/select2/select2.png" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/ietf/static/select2/select2x2.png" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/release-coverage.json.gz" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/admin/fonts/Roboto-Bold-webfont.woff" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/admin/fonts/Roboto-Light-webfont.woff" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/admin/fonts/Roboto-Regular-webfont.woff" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/admin/img/changelist-bg.gif" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/admin/img/changelist-bg_rtl.gif" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/admin/img/default-bg-reverse.gif" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/admin/img/default-bg.gif" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/admin/img/deleted-overlay.gif" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/admin/img/gis/move_vertex_off.png" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/admin/img/gis/move_vertex_on.png" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/admin/img/icon-no.gif" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/admin/img/icon-unknown.gif" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/admin/img/icon-yes.gif" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/admin/img/icon_addlink.gif" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/admin/img/icon_alert.gif" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/admin/img/icon_calendar.gif" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/admin/img/icon_changelink.gif" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/admin/img/icon_clock.gif" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/admin/img/icon_deletelink.gif" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/admin/img/icon_error.gif" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/admin/img/icon_searchbox.png" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/admin/img/icon_success.gif" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/admin/img/inline-delete-8bit.png" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/admin/img/inline-delete.png" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/admin/img/inline-restore-8bit.png" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/admin/img/inline-restore.png" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/admin/img/inline-splitter-bg.gif" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/admin/img/nav-bg-grabber.gif" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/admin/img/nav-bg-reverse.gif" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/admin/img/nav-bg-selected.gif" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/admin/img/nav-bg.gif" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/admin/img/selector-icons.gif" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/admin/img/selector-search.gif" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/admin/img/sorting-icons.gif" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/admin/img/tooltag-add.png" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/admin/img/tooltag-arrowright.png" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/bootstrap/fonts/glyphicons-halflings-regular.eot" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/bootstrap/fonts/glyphicons-halflings-regular.ttf" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/bootstrap/fonts/glyphicons-halflings-regular.woff" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/bootstrap/fonts/glyphicons-halflings-regular.woff2" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/font-awesome/fonts/FontAwesome.otf" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/font-awesome/fonts/fontawesome-webfont.eot" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/font-awesome/fonts/fontawesome-webfont.ttf" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/font-awesome/fonts/fontawesome-webfont.woff" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/font-awesome/fonts/fontawesome-webfont.woff2" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/ietf/bootstrap/fonts/glyphicons-halflings-regular.eot" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/ietf/bootstrap/fonts/glyphicons-halflings-regular.ttf" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/ietf/bootstrap/fonts/glyphicons-halflings-regular.woff" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/ietf/bootstrap/fonts/glyphicons-halflings-regular.woff2" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/ietf/css/agenda/images/conflict-boxes/ad1.xcf" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/ietf/css/agenda/images/conflict-boxes/me1.png" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/ietf/css/agenda/images/conflict-boxes/me1.xcf" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/ietf/css/agenda/images/conflict-boxes/narow1.png" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/ietf/css/agenda/images/conflict-boxes/narow1.xcf" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/ietf/css/agenda/images/conflict-boxes/narow2.png" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/ietf/css/agenda/images/conflict-boxes/narow2.xcf" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/ietf/css/agenda/images/conflict-boxes/narow2b.xcf" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/ietf/css/agenda/images/conflict-boxes/narow3.png" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/ietf/css/agenda/images/conflict-boxes/narow3.xcf" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/ietf/css/agenda/images/conflict-boxes/narrow1.png" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/ietf/css/agenda/images/conflict-boxes/narrow1.xcf" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/ietf/css/agenda/images/green_hatch.png" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/ietf/css/agenda/images/green_hatch.xcf" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/ietf/css/agenda/images/orange_hatch.png" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/ietf/css/agenda/images/pencil.png" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/ietf/css/agenda/images/yui/sprite.png" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/ietf/css/agenda/jquery-ui-themes/images/ui-bg_flat_0_aaaaaa_40x100.png" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/ietf/css/agenda/jquery-ui-themes/images/ui-bg_flat_75_ffffff_40x100.png" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/ietf/css/agenda/jquery-ui-themes/images/ui-bg_glass_55_fbf9ee_1x400.png" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/ietf/css/agenda/jquery-ui-themes/images/ui-bg_glass_65_ffffff_1x400.png" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/ietf/css/agenda/jquery-ui-themes/images/ui-bg_glass_75_dadada_1x400.png" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/ietf/css/agenda/jquery-ui-themes/images/ui-bg_glass_75_e6e6e6_1x400.png" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/ietf/css/agenda/jquery-ui-themes/images/ui-bg_glass_95_fef1ec_1x400.png" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/ietf/css/agenda/jquery-ui-themes/images/ui-bg_highlight-soft_75_cccccc_1x100.png" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/ietf/css/agenda/jquery-ui-themes/images/ui-icons_222222_256x240.png" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/ietf/css/agenda/jquery-ui-themes/images/ui-icons_2e83ff_256x240.png" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/ietf/css/agenda/jquery-ui-themes/images/ui-icons_454545_256x240.png" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/ietf/css/agenda/jquery-ui-themes/images/ui-icons_888888_256x240.png" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/ietf/css/agenda/jquery-ui-themes/images/ui-icons_cd0a0a_256x240.png" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/ietf/css/images/animated-overlay.gif" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/ietf/css/images/ui-bg_flat_0_aaaaaa_40x100.png" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/ietf/css/images/ui-bg_flat_75_ffffff_40x100.png" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/ietf/css/images/ui-bg_glass_55_fbf9ee_1x400.png" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/ietf/css/images/ui-bg_glass_65_ffffff_1x400.png" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/ietf/css/images/ui-bg_glass_75_dadada_1x400.png" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/ietf/css/images/ui-bg_glass_75_e6e6e6_1x400.png" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/ietf/css/images/ui-bg_glass_95_fef1ec_1x400.png" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/ietf/css/images/ui-bg_highlight-soft_75_cccccc_1x100.png" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/ietf/css/images/ui-icons_222222_256x240.png" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/ietf/css/images/ui-icons_2e83ff_256x240.png" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/ietf/css/images/ui-icons_454545_256x240.png" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/ietf/css/images/ui-icons_888888_256x240.png" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/ietf/css/images/ui-icons_cd0a0a_256x240.png" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/ietf/css/lib/select2-spinner.gif" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/ietf/css/lib/select2.png" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/ietf/doc/LSMT_user_manual.pdf" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/ietf/fonts/FontAwesome.otf" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/ietf/fonts/PTMono/PTM55F_W.eot" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/ietf/fonts/PTMono/PTM55F_W.ttf" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/ietf/fonts/PTMono/PTM55F_W.woff" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/ietf/fonts/PTMono/PTM75F_W.eot" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/ietf/fonts/PTMono/PTM75F_W.ttf" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/ietf/fonts/PTMono/PTM75F_W.woff" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/ietf/fonts/PTSans/PTC55F_W.eot" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/ietf/fonts/PTSans/PTC55F_W.ttf" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/ietf/fonts/PTSans/PTC55F_W.woff" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/ietf/fonts/PTSans/PTC75F_W.eot" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/ietf/fonts/PTSans/PTC75F_W.ttf" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/ietf/fonts/PTSans/PTC75F_W.woff" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/ietf/fonts/PTSans/PTN57F_W.eot" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/ietf/fonts/PTSans/PTN57F_W.ttf" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/ietf/fonts/PTSans/PTN57F_W.woff" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/ietf/fonts/PTSans/PTN77F_W.eot" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/ietf/fonts/PTSans/PTN77F_W.ttf" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/ietf/fonts/PTSans/PTN77F_W.woff" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/ietf/fonts/PTSans/PTS55F_W.eot" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/ietf/fonts/PTSans/PTS55F_W.ttf" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/ietf/fonts/PTSans/PTS55F_W.woff" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/ietf/fonts/PTSans/PTS56F_W.eot" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/ietf/fonts/PTSans/PTS56F_W.ttf" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/ietf/fonts/PTSans/PTS56F_W.woff" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/ietf/fonts/PTSans/PTS75F_W.eot" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/ietf/fonts/PTSans/PTS75F_W.ttf" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/ietf/fonts/PTSans/PTS75F_W.woff" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/ietf/fonts/PTSans/PTS76F_W.eot" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/ietf/fonts/PTSans/PTS76F_W.ttf" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/ietf/fonts/PTSans/PTS76F_W.woff" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/ietf/fonts/PTSerif/PTF55F_W.eot" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/ietf/fonts/PTSerif/PTF55F_W.ttf" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/ietf/fonts/PTSerif/PTF55F_W.woff" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/ietf/fonts/PTSerif/PTF56F_W.eot" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/ietf/fonts/PTSerif/PTF56F_W.ttf" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/ietf/fonts/PTSerif/PTF56F_W.woff" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/ietf/fonts/PTSerif/PTF75F_W.eot" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/ietf/fonts/PTSerif/PTF75F_W.ttf" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/ietf/fonts/PTSerif/PTF75F_W.woff" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/ietf/fonts/PTSerif/PTF76F_W.eot" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/ietf/fonts/PTSerif/PTF76F_W.ttf" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/ietf/fonts/PTSerif/PTF76F_W.woff" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/ietf/fonts/PTSerif/PTZ55F_W.eot" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/ietf/fonts/PTSerif/PTZ55F_W.ttf" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/ietf/fonts/PTSerif/PTZ55F_W.woff" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/ietf/fonts/PTSerif/PTZ56F_W.eot" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/ietf/fonts/PTSerif/PTZ56F_W.ttf" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/ietf/fonts/PTSerif/PTZ56F_W.woff" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/ietf/fonts/fontawesome-webfont.eot" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/ietf/fonts/fontawesome-webfont.ttf" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/ietf/fonts/fontawesome-webfont.woff" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/ietf/fonts/fontawesome-webfont.woff2" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/ietf/fonts/glyphicons-halflings-regular.eot" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/ietf/fonts/glyphicons-halflings-regular.ttf" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/ietf/fonts/glyphicons-halflings-regular.woff" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/ietf/fonts/glyphicons-halflings-regular.woff2" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/ietf/fonts/ionicons.eot" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/ietf/fonts/ionicons.ttf" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/ietf/fonts/ionicons.woff" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/ietf/images/agenda-weekview/close.png" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/ietf/images/apple-touch-icon.png" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/ietf/images/arrow-ani.gif" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/ietf/images/back.png" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/ietf/images/boardroom-layout.png" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/ietf/images/cream.png" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/ietf/images/flipchart.png" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/ietf/images/iesg-draft-state-diagram.png" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/ietf/images/ietf-icon-blue.png" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/ietf/images/ietf-icon-blue3.png" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/ietf/images/ietf-icon-red3.png" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/ietf/images/ietficon.ico" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/ietf/images/ietficon.png" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/ietf/images/ietflogo-blue3-small.png" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/ietf/images/ietflogo-small-transparent.png" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/ietf/images/ietflogo.png" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/ietf/images/main-back.png" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/ietf/images/meetecho-mini.png" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/ietf/images/models.png" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/ietf/images/projector.png" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/ietf/images/projector2.png" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/ietf/js/agenda/spin/assets/bg.png" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/ietf/js/agenda/spin/assets/browsers.png" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/ietf/js/agenda/spin/assets/crosshair.gif" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/ietf/js/agenda/spin/assets/github.gif" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/ietf/js/agenda/spin/assets/preview.jpg" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/ietf/js/agenda/spin/assets/ribbon.png" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/ietf/js/agenda/spin/favicon.ico" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/ptmono/ptm55f_w.eot" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/ptmono/ptm55f_w.ttf" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/ptmono/ptm55f_w.woff" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/ptmono/ptm75f_w.eot" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/ptmono/ptm75f_w.ttf" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/ptmono/ptm75f_w.woff" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/ptsans/ptc55f_w.eot" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/ptsans/ptc55f_w.ttf" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/ptsans/ptc55f_w.woff" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/ptsans/ptc75f_w.eot" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/ptsans/ptc75f_w.ttf" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/ptsans/ptc75f_w.woff" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/ptsans/ptn57f_w.eot" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/ptsans/ptn57f_w.ttf" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/ptsans/ptn57f_w.woff" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/ptsans/ptn77f_w.eot" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/ptsans/ptn77f_w.ttf" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/ptsans/ptn77f_w.woff" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/ptsans/pts55f_w.eot" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/ptsans/pts55f_w.ttf" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/ptsans/pts55f_w.woff" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/ptsans/pts56f_w.eot" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/ptsans/pts56f_w.ttf" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/ptsans/pts56f_w.woff" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/ptsans/pts75f_w.eot" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/ptsans/pts75f_w.ttf" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/ptsans/pts75f_w.woff" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/ptsans/pts76f_w.eot" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/ptsans/pts76f_w.ttf" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/ptsans/pts76f_w.woff" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/ptserif/ptf55f_w.eot" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/ptserif/ptf55f_w.ttf" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/ptserif/ptf55f_w.woff" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/ptserif/ptf56f_w.eot" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/ptserif/ptf56f_w.ttf" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/ptserif/ptf56f_w.woff" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/ptserif/ptf75f_w.eot" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/ptserif/ptf75f_w.ttf" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/ptserif/ptf75f_w.woff" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/ptserif/ptf76f_w.eot" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/ptserif/ptf76f_w.ttf" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/ptserif/ptf76f_w.woff" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/ptserif/ptz55f_w.eot" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/ptserif/ptz55f_w.ttf" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/ptserif/ptz55f_w.woff" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/ptserif/ptz56f_w.eot" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/ptserif/ptz56f_w.ttf" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/ptserif/ptz56f_w.woff" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/secr/img/admin/arrow-down.gif" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/secr/img/admin/arrow-up.gif" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/secr/img/admin/changelist-bg.gif" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/secr/img/admin/changelist-bg_rtl.gif" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/secr/img/admin/chooser-bg.gif" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/secr/img/admin/chooser_stacked-bg.gif" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/secr/img/admin/default-bg-reverse.gif" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/secr/img/admin/default-bg.gif" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/secr/img/admin/deleted-overlay.gif" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/secr/img/admin/icon-no.gif" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/secr/img/admin/icon-unknown.gif" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/secr/img/admin/icon-yes.gif" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/secr/img/admin/icon_addlink.gif" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/secr/img/admin/icon_alert.gif" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/secr/img/admin/icon_calendar.gif" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/secr/img/admin/icon_changelink.gif" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/secr/img/admin/icon_clock.gif" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/secr/img/admin/icon_deletelink.gif" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/secr/img/admin/icon_error.gif" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/secr/img/admin/icon_searchbox.png" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/secr/img/admin/icon_success.gif" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/secr/img/admin/inline-delete-8bit.png" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/secr/img/admin/inline-delete.png" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/secr/img/admin/inline-restore-8bit.png" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/secr/img/admin/inline-restore.png" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/secr/img/admin/inline-splitter-bg.gif" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/secr/img/admin/nav-bg-grabber.gif" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/secr/img/admin/nav-bg-reverse.gif" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/secr/img/admin/nav-bg.gif" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/secr/img/admin/selector-add.gif" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/secr/img/admin/selector-addall.gif" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/secr/img/admin/selector-remove.gif" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/secr/img/admin/selector-removeall.gif" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/secr/img/admin/selector-search.gif" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/secr/img/admin/selector_stacked-add.gif" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/secr/img/admin/selector_stacked-remove.gif" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/secr/img/admin/tool-left.gif" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/secr/img/admin/tool-left_over.gif" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/secr/img/admin/tool-right.gif" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/secr/img/admin/tool-right_over.gif" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/secr/img/admin/tooltag-add.gif" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/secr/img/admin/tooltag-add_over.gif" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/secr/img/admin/tooltag-arrowright.gif" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/secr/img/admin/tooltag-arrowright_over.gif" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/secr/img/ajax-loader.gif" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/secr/img/ams_logo.png" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/secr/img/delete.png" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/secr/img/test-background.png" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/secr/img/ui-icons_222222_256x240.png" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/secr/img/ui-icons_666666_256x240.png" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/secr/img/wait26.gif" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/secr/img/wait28.gif" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/select2/select2-spinner.gif" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/select2/select2.png" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/select2/select2x2.png" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/.idea/6.50.1.iml" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/bin/update" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/bootstrap/Gemfile" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/bootstrap/Gemfile.lock" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/bootstrap/ISSUE_TEMPLATE.md" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/bootstrap/grunt/change-version.js" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/bootstrap/grunt/npm-shrinkwrap.json" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/buildbot/masters/datatracker/master.cfg" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/docker/devserver" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/docker/mailserver" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/ietf/doc/migrations/0020_auto_20170224_0222.py" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/ietf/doc/migrations/0021_add_wg_states.py" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/ietf/doc/migrations/0022_add_docevent_rev.py" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/ietf/doc/migrations/0023_set_docevent_rev_data.py" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/ietf/doc/migrations/0024_del_docevent_subclass_revision.py" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/ietf/doc/migrations/0025_auto_20170307_0146.py" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/ietf/doc/migrations/0026_add_downrefappr_from_wiki.py" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/ietf/doc/migrations/0027_auto_20170412_0528.py" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/ietf/doc/migrations/0028_editedauthorsdocevent.py" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/ietf/doc/tests_downref.py" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/ietf/doc/views_downref.py" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/ietf/externals/static/html5shiv/html5shiv.js" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/ietf/externals/static/spin.js/spin.min.js" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/ietf/externals/static/zxcvbn/bower.json" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/ietf/externals/static/zxcvbn/zxcvbn.js" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/ietf/group/migrations/0010_iab_programs.py" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/ietf/group/migrations/0011_auto_20170301_0332.py" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/ietf/group/templatetags/__init__.py" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/ietf/group/templatetags/group_tags.py" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/ietf/meeting/migrations/0046_auto_20170201_0857.py" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/ietf/meeting/migrations/0047_import_shared_audio_files.py" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/ietf/meeting/migrations/0048_recreate_97_attendees.py" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/ietf/meeting/migrations/0049_auto_20170412_0528.py" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/ietf/meeting/migrations/0050_add_room_resources.py" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/ietf/meeting/migrations/0051_auto_20170511_0449.py" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/ietf/meeting/migrations/0052_auto_20170515_0726.py" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/ietf/message/migrations/0003_message_msgid.py" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/ietf/message/migrations/0004_change_msgid_default.py" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/ietf/name/migrations/0017_add_role_name_trac_admin.py" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/ietf/name/migrations/0018_iab_programs.py" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/ietf/name/migrations/0019_add_docrelationshipname_downref_approval.py" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/ietf/nomcom/management/commands/make_dummy_nomcom.py" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/ietf/nomcom/migrations/0012_auto_20170210_0205.py" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/ietf/person/migrations/0015_clean_primary.py" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/ietf/review/migrations/0011_add_review_doc_authors.py" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/ietf/secr/templates/proceedings/audio_import_warning.txt" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/ietf/settings_releasetest.py" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/ietf/settings_sqlitetest.py" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/ietf/settings_testcrawl.py" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/ietf/static/admin/css/base.css" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/ietf/static/admin/css/changelists.css" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/ietf/static/admin/css/dashboard.css" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/ietf/static/admin/css/forms.css" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/ietf/static/admin/css/ie.css" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/ietf/static/admin/css/login.css" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/ietf/static/admin/css/rtl.css" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/ietf/static/admin/css/widgets.css" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/ietf/static/admin/js/LICENSE-JQUERY.txt" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/ietf/static/admin/js/SelectBox.js" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/ietf/static/admin/js/SelectFilter2.js" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/ietf/static/admin/js/actions.js" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/ietf/static/admin/js/actions.min.js" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/ietf/static/admin/js/admin/DateTimeShortcuts.js" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/ietf/static/admin/js/admin/RelatedObjectLookups.js" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/ietf/static/admin/js/calendar.js" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/ietf/static/admin/js/collapse.js" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/ietf/static/admin/js/collapse.min.js" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/ietf/static/admin/js/core.js" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/ietf/static/admin/js/inlines.js" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/ietf/static/admin/js/inlines.min.js" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/ietf/static/admin/js/jquery.init.js" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/ietf/static/admin/js/jquery.js" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/ietf/static/admin/js/jquery.min.js" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/ietf/static/admin/js/prepopulate.js" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/ietf/static/admin/js/prepopulate.min.js" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/ietf/static/admin/js/related-widget-wrapper.js" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/ietf/static/admin/js/timeparse.js" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/ietf/static/admin/js/urlify.js" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/ietf/static/bootstrap-datepicker/bower.json" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/ietf/static/bootstrap-datepicker/css/bootstrap-datepicker3.min.css" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/ietf/static/bootstrap-datepicker/js/bootstrap-datepicker.min.js" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/ietf/static/bootstrap/css/bootstrap-theme.css" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/ietf/static/bootstrap/css/bootstrap-theme.css.map" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/ietf/static/bootstrap/css/bootstrap-theme.min.css" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/ietf/static/bootstrap/css/bootstrap.css" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/ietf/static/bootstrap/css/bootstrap.css.map" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/ietf/static/bootstrap/css/bootstrap.min.css" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/ietf/static/bootstrap/fonts/glyphicons-halflings-regular.svg" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/ietf/static/bootstrap/js/bootstrap.js" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/ietf/static/bootstrap/js/bootstrap.min.js" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/ietf/static/bootstrap/js/npm.js" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/ietf/static/bootstrap/less/bootstrap.less" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/ietf/static/d3/bower.json" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/ietf/static/d3/d3.min.js" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/ietf/static/flot/jquery.flot.min.js" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/ietf/static/flot/jquery.flot.time.min.js" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/ietf/static/font-awesome/bower.json" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/ietf/static/font-awesome/css/font-awesome.min.css" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/ietf/static/font-awesome/fonts/fontawesome-webfont.svg" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/ietf/static/highcharts/bower.json" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/ietf/static/highcharts/highcharts-more.js" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/ietf/static/highcharts/highcharts.js" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/ietf/static/highcharts/highmaps.js" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/ietf/static/highcharts/highstock.js" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/ietf/static/highcharts/modules/exporting.js" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/ietf/static/highcharts/modules/offline-exporting.js" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/ietf/static/html5shiv/bower.json" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/ietf/static/html5shiv/html5shiv.min.js" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/ietf/static/ietf/doc/api.rst" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/ietf/static/ietf/js/password_strength.js" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/ietf/static/jquery.cookie/bower.json" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/ietf/static/jquery.cookie/jquery.cookie.js" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/ietf/static/jquery.tablesorter/bower.json" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/ietf/static/jquery.tablesorter/css/theme.bootstrap.min.css" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/ietf/static/jquery.tablesorter/js/jquery.tablesorter.combined.min.js" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/ietf/static/jquery/bower.json" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/ietf/static/jquery/jquery.min.js" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/ietf/static/ptmono/demo.html" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/ietf/static/ptmono/pt free font license_eng_1.3.txt" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/ietf/static/ptmono/pt free font license_rus_1.3.txt" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/ietf/static/ptmono/ptm55f_demo.html" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/ietf/static/ptmono/ptm55f_stylesheet.css" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/ietf/static/ptmono/ptm55f_w.svg" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/ietf/static/ptmono/ptm75f_demo.html" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/ietf/static/ptmono/ptm75f_stylesheet.css" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/ietf/static/ptmono/ptm75f_w.svg" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/ietf/static/ptmono/stylesheet.css" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/ietf/static/ptsans/demo.html" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/ietf/static/ptsans/pt free font license_eng_1.2.txt" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/ietf/static/ptsans/pt free font license_rus_1.2.txt" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/ietf/static/ptsans/ptc55f_demo.html" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/ietf/static/ptsans/ptc55f_stylesheet.css" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/ietf/static/ptsans/ptc55f_w.svg" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/ietf/static/ptsans/ptc75f_demo.html" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/ietf/static/ptsans/ptc75f_stylesheet.css" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/ietf/static/ptsans/ptc75f_w.svg" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/ietf/static/ptsans/ptn57f_demo.html" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/ietf/static/ptsans/ptn57f_stylesheet.css" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/ietf/static/ptsans/ptn57f_w.svg" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/ietf/static/ptsans/ptn77f_demo.html" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/ietf/static/ptsans/ptn77f_stylesheet.css" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/ietf/static/ptsans/ptn77f_w.svg" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/ietf/static/ptsans/pts55f_demo.html" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/ietf/static/ptsans/pts55f_stylesheet.css" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/ietf/static/ptsans/pts55f_w.svg" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/ietf/static/ptsans/pts56f_demo.html" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/ietf/static/ptsans/pts56f_stylesheet.css" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/ietf/static/ptsans/pts56f_w.svg" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/ietf/static/ptsans/pts75f_demo.html" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/ietf/static/ptsans/pts75f_stylesheet.css" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/ietf/static/ptsans/pts75f_w.svg" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/ietf/static/ptsans/pts76f_demo.html" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/ietf/static/ptsans/pts76f_stylesheet.css" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/ietf/static/ptsans/pts76f_w.svg" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/ietf/static/ptsans/stylesheet.css" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/ietf/static/ptserif/demo.html" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/ietf/static/ptserif/pt free font license_eng_1.2.txt" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/ietf/static/ptserif/pt free font license_rus_1.2.txt" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/ietf/static/ptserif/ptf55f_demo.html" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/ietf/static/ptserif/ptf55f_stylesheet.css" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/ietf/static/ptserif/ptf55f_w.svg" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/ietf/static/ptserif/ptf56f_demo.html" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/ietf/static/ptserif/ptf56f_stylesheet.css" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/ietf/static/ptserif/ptf56f_w.svg" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/ietf/static/ptserif/ptf75f_demo.html" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/ietf/static/ptserif/ptf75f_stylesheet.css" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/ietf/static/ptserif/ptf75f_w.svg" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/ietf/static/ptserif/ptf76f_demo.html" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/ietf/static/ptserif/ptf76f_stylesheet.css" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/ietf/static/ptserif/ptf76f_w.svg" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/ietf/static/ptserif/ptz55f_demo.html" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/ietf/static/ptserif/ptz55f_stylesheet.css" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/ietf/static/ptserif/ptz55f_w.svg" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/ietf/static/ptserif/ptz56f_demo.html" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/ietf/static/ptserif/ptz56f_stylesheet.css" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/ietf/static/ptserif/ptz56f_w.svg" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/ietf/static/ptserif/stylesheet.css" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/ietf/static/respond/bower.json" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/ietf/static/respond/dest/respond.min.js" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/ietf/static/secr/css/base.css" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/ietf/static/secr/css/custom.css" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/ietf/static/secr/css/forms.css" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/ietf/static/secr/css/ietf.js" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/ietf/static/secr/css/ipr.css" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/ietf/static/secr/css/jquery-ui-1.11.4.custom.css" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/ietf/static/secr/css/telechat.css" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/ietf/static/secr/css/test.css" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/ietf/static/secr/css/widgets.css" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/ietf/static/secr/js/dynamic_inlines.js" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/ietf/static/secr/js/jquery-ui-1.11.4.custom.min.js" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/ietf/static/secr/js/proceedings-recording.js" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/ietf/static/secr/js/sessions.js" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/ietf/static/secr/js/utils.js" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/ietf/static/select2-bootstrap-css/bower.json" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/ietf/static/select2-bootstrap-css/select2-bootstrap.min.css" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/ietf/static/select2/bower.json" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/ietf/static/select2/select2.css" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/ietf/static/select2/select2.min.js" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/ietf/static/spin.js/bower.json" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/ietf/static/spin.js/spin.js" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/ietf/submit/migrations/0018_fix_more_bad_submission_docevents.py" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/ietf/templates/doc/document_html.html" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/ietf/templates/doc/downref.html" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/ietf/templates/doc/downref_add.html" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/ietf/templates/group/active_programs.html" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/ietf/templates/registration/change_username.html" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/ietf/templates/registration/password_change_email.txt" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/ietf/templates/registration/username_change_email.txt" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/ietf/templates/release/stats.html" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/ietf/utils/migrations/0002_dumpinfo_tz.py" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/ietf/utils/rfcmarkup.py" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/ietf/utils/templatetags/htmlfilters.py" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/ietf/utils/urls.py" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/patch/README" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/patch/trace-django-queryset-origin.patch" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/admin/css/base.css" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/admin/css/changelists.css" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/admin/css/dashboard.css" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/admin/css/fonts.css" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/admin/css/forms.css" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/admin/css/ie.css" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/admin/css/login.css" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/admin/css/rtl.css" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/admin/css/widgets.css" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/admin/fonts/LICENSE.txt" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/admin/fonts/README.txt" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/admin/img/LICENSE" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/admin/img/README.txt" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/admin/img/calendar-icons.svg" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/admin/img/gis/move_vertex_off.svg" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/admin/img/gis/move_vertex_on.svg" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/admin/img/icon-addlink.svg" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/admin/img/icon-alert.svg" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/admin/img/icon-calendar.svg" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/admin/img/icon-changelink.svg" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/admin/img/icon-clock.svg" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/admin/img/icon-deletelink.svg" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/admin/img/icon-no.svg" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/admin/img/icon-unknown-alt.svg" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/admin/img/icon-unknown.svg" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/admin/img/icon-yes.svg" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/admin/img/inline-delete.svg" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/admin/img/search.svg" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/admin/img/selector-icons.svg" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/admin/img/sorting-icons.svg" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/admin/img/tooltag-add.svg" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/admin/img/tooltag-arrowright.svg" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/admin/js/LICENSE-JQUERY.txt" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/admin/js/SelectBox.js" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/admin/js/SelectFilter2.js" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/admin/js/actions.js" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/admin/js/actions.min.js" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/admin/js/admin/DateTimeShortcuts.js" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/admin/js/admin/RelatedObjectLookups.js" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/admin/js/calendar.js" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/admin/js/cancel.js" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/admin/js/change_form.js" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/admin/js/collapse.js" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/admin/js/collapse.min.js" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/admin/js/core.js" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/admin/js/inlines.js" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/admin/js/inlines.min.js" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/admin/js/jquery.init.js" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/admin/js/jquery.js" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/admin/js/jquery.min.js" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/admin/js/popup_response.js" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/admin/js/prepopulate.js" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/admin/js/prepopulate.min.js" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/admin/js/prepopulate_init.js" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/admin/js/related-widget-wrapper.js" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/admin/js/timeparse.js" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/admin/js/urlify.js" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/admin/js/vendor/jquery/LICENSE-JQUERY.txt" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/admin/js/vendor/jquery/jquery.js" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/admin/js/vendor/jquery/jquery.min.js" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/admin/js/vendor/xregexp/LICENSE-XREGEXP.txt" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/admin/js/vendor/xregexp/xregexp.js" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/admin/js/vendor/xregexp/xregexp.min.js" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/bootstrap-datepicker/bower.json" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/bootstrap-datepicker/css/bootstrap-datepicker3.min.css" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/bootstrap-datepicker/js/bootstrap-datepicker.min.js" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/bootstrap/css/bootstrap-theme.css" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/bootstrap/css/bootstrap-theme.css.map" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/bootstrap/css/bootstrap-theme.min.css" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/bootstrap/css/bootstrap.css" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/bootstrap/css/bootstrap.css.map" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/bootstrap/css/bootstrap.min.css" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/bootstrap/fonts/glyphicons-halflings-regular.svg" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/bootstrap/js/bootstrap.js" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/bootstrap/js/bootstrap.min.js" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/bootstrap/js/npm.js" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/bootstrap/less/bootstrap.less" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/d3/bower.json" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/d3/d3.min.js" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/django_password_strength/js/password_strength.js" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/django_password_strength/js/zxcvbn-async.js" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/django_password_strength/js/zxcvbn.js" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/flot/jquery.flot.min.js" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/flot/jquery.flot.time.min.js" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/font-awesome/bower.json" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/font-awesome/css/font-awesome.min.css" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/font-awesome/fonts/fontawesome-webfont.svg" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/highcharts/bower.json" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/highcharts/highcharts-more.js" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/highcharts/highcharts.js" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/highcharts/highmaps.js" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/highcharts/highstock.js" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/highcharts/modules/exporting.js" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/highcharts/modules/offline-exporting.js" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/html5shiv/bower.json" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/html5shiv/html5shiv.js" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/html5shiv/html5shiv.min.js" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/ietf/bootstrap/css/bootstrap-theme.css" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/ietf/bootstrap/css/bootstrap-theme.css.map" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/ietf/bootstrap/css/bootstrap-theme.min.css" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/ietf/bootstrap/css/bootstrap-theme.min.css.map" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/ietf/bootstrap/css/bootstrap.css" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/ietf/bootstrap/css/bootstrap.css.map" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/ietf/bootstrap/css/bootstrap.min.css" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/ietf/bootstrap/css/bootstrap.min.css.map" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/ietf/bootstrap/fonts/glyphicons-halflings-regular.svg" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/ietf/bootstrap/js/bootstrap.js" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/ietf/bootstrap/js/bootstrap.min.js" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/ietf/bootstrap/js/npm.js" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/ietf/css/agenda/agenda.css" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/ietf/css/agenda/base2.css" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/ietf/css/agenda/jquery-ui-themes/jquery-ui-1.8.11.custom.css" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/ietf/css/agenda/jquery-ui-timepicker-addon.css" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/ietf/css/bootstrap-datetimepicker.min.css" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/ietf/css/bootstrap-theme.min.css" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/ietf/css/bootstrap.css" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/ietf/css/bootstrap.min.css" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/ietf/css/chosen.css" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/ietf/css/codestand.css" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/ietf/css/font-awesome.min.css" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/ietf/css/fullcalendar.css" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/ietf/css/ietf.css" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/ietf/css/ionicons.min.css" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/ietf/css/jquery-ui.css" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/ietf/css/jquery.cleditor.css" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/ietf/css/jquery.dataTables.css" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/ietf/css/jquery.onoff.css" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/ietf/css/liaisons.css" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/ietf/css/lib/datepicker3.css" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/ietf/css/lib/qunit-1.12.0.css" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/ietf/css/lib/select2-bootstrap.css" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/ietf/css/lib/select2.css" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/ietf/css/prettyPhoto.css" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/ietf/css/rateit.css" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/ietf/css/style.css" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/ietf/css/widgets.css" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/ietf/doc/api.rst" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/ietf/fonts/PTMono/Demo.html" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/ietf/fonts/PTMono/PT Free Font License_eng_1.3.txt" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/ietf/fonts/PTMono/PT Free Font License_rus_1.3.txt" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/ietf/fonts/PTMono/PTM55F_W.svg" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/ietf/fonts/PTMono/PTM55F_demo.html" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/ietf/fonts/PTMono/PTM55F_stylesheet.css" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/ietf/fonts/PTMono/PTM75F_W.svg" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/ietf/fonts/PTMono/PTM75F_demo.html" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/ietf/fonts/PTMono/PTM75F_stylesheet.css" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/ietf/fonts/PTMono/stylesheet.css" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/ietf/fonts/PTSans/PT Free Font License_eng_1.2.txt" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/ietf/fonts/PTSans/PT Free Font License_rus_1.2.txt" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/ietf/fonts/PTSans/PTC55F_W.svg" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/ietf/fonts/PTSans/PTC55F_demo.html" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/ietf/fonts/PTSans/PTC55F_stylesheet.css" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/ietf/fonts/PTSans/PTC75F_W.svg" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/ietf/fonts/PTSans/PTC75F_demo.html" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/ietf/fonts/PTSans/PTC75F_stylesheet.css" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/ietf/fonts/PTSans/PTN57F_W.svg" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/ietf/fonts/PTSans/PTN57F_demo.html" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/ietf/fonts/PTSans/PTN57F_stylesheet.css" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/ietf/fonts/PTSans/PTN77F_W.svg" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/ietf/fonts/PTSans/PTN77F_demo.html" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/ietf/fonts/PTSans/PTN77F_stylesheet.css" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/ietf/fonts/PTSans/PTS55F_W.svg" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/ietf/fonts/PTSans/PTS55F_demo.html" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/ietf/fonts/PTSans/PTS55F_stylesheet.css" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/ietf/fonts/PTSans/PTS56F_W.svg" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/ietf/fonts/PTSans/PTS56F_demo.html" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/ietf/fonts/PTSans/PTS56F_stylesheet.css" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/ietf/fonts/PTSans/PTS75F_W.svg" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/ietf/fonts/PTSans/PTS75F_demo.html" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/ietf/fonts/PTSans/PTS75F_stylesheet.css" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/ietf/fonts/PTSans/PTS76F_W.svg" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/ietf/fonts/PTSans/PTS76F_demo.html" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/ietf/fonts/PTSans/PTS76F_stylesheet.css" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/ietf/fonts/PTSans/demo.html" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/ietf/fonts/PTSans/stylesheet.css" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/ietf/fonts/PTSerif/PT Free Font License_eng_1.2.txt" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/ietf/fonts/PTSerif/PT Free Font License_rus_1.2.txt" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/ietf/fonts/PTSerif/PTF55F_W.svg" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/ietf/fonts/PTSerif/PTF55F_demo.html" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/ietf/fonts/PTSerif/PTF55F_stylesheet.css" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/ietf/fonts/PTSerif/PTF56F_W.svg" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/ietf/fonts/PTSerif/PTF56F_demo.html" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/ietf/fonts/PTSerif/PTF56F_stylesheet.css" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/ietf/fonts/PTSerif/PTF75F_W.svg" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/ietf/fonts/PTSerif/PTF75F_demo.html" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/ietf/fonts/PTSerif/PTF75F_stylesheet.css" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/ietf/fonts/PTSerif/PTF76F_W.svg" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/ietf/fonts/PTSerif/PTF76F_demo.html" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/ietf/fonts/PTSerif/PTF76F_stylesheet.css" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/ietf/fonts/PTSerif/PTZ55F_W.svg" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/ietf/fonts/PTSerif/PTZ55F_demo.html" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/ietf/fonts/PTSerif/PTZ55F_stylesheet.css" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/ietf/fonts/PTSerif/PTZ56F_W.svg" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/ietf/fonts/PTSerif/PTZ56F_demo.html" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/ietf/fonts/PTSerif/PTZ56F_stylesheet.css" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/ietf/fonts/PTSerif/demo.html" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/ietf/fonts/PTSerif/stylesheet.css" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/ietf/fonts/fontawesome-webfont.svg" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/ietf/fonts/glyphicons-halflings-regular.svg" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/ietf/fonts/ionicons.svg" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/ietf/images/ietficon.svg" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/ietf/images/meetecho-icon.svg" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/ietf/js/agenda/agenda_edit.js" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/ietf/js/agenda/agenda_helpers.js" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/ietf/js/agenda/agenda_listeners.js" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/ietf/js/agenda/agenda_objects.js" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/ietf/js/agenda/agenda_properties_edit.js" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/ietf/js/agenda/agenda_property_utils.js" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/ietf/js/agenda/agendas_edit.js" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/ietf/js/agenda/jquery-1.8.2.min.js" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/ietf/js/agenda/jquery-ui-1.9.0.custom/i18n/jquery-ui-i18n.js" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/ietf/js/agenda/jquery-ui-1.9.0.custom/i18n/jquery.ui.datepicker-af.js" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/ietf/js/agenda/jquery-ui-1.9.0.custom/i18n/jquery.ui.datepicker-ar-DZ.js" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/ietf/js/agenda/jquery-ui-1.9.0.custom/i18n/jquery.ui.datepicker-ar.js" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/ietf/js/agenda/jquery-ui-1.9.0.custom/i18n/jquery.ui.datepicker-az.js" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/ietf/js/agenda/jquery-ui-1.9.0.custom/i18n/jquery.ui.datepicker-bg.js" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/ietf/js/agenda/jquery-ui-1.9.0.custom/i18n/jquery.ui.datepicker-bs.js" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/ietf/js/agenda/jquery-ui-1.9.0.custom/i18n/jquery.ui.datepicker-ca.js" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/ietf/js/agenda/jquery-ui-1.9.0.custom/i18n/jquery.ui.datepicker-cs.js" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/ietf/js/agenda/jquery-ui-1.9.0.custom/i18n/jquery.ui.datepicker-cy-GB.js" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/ietf/js/agenda/jquery-ui-1.9.0.custom/i18n/jquery.ui.datepicker-da.js" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/ietf/js/agenda/jquery-ui-1.9.0.custom/i18n/jquery.ui.datepicker-de.js" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/ietf/js/agenda/jquery-ui-1.9.0.custom/i18n/jquery.ui.datepicker-el.js" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/ietf/js/agenda/jquery-ui-1.9.0.custom/i18n/jquery.ui.datepicker-en-AU.js" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/ietf/js/agenda/jquery-ui-1.9.0.custom/i18n/jquery.ui.datepicker-en-GB.js" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/ietf/js/agenda/jquery-ui-1.9.0.custom/i18n/jquery.ui.datepicker-en-NZ.js" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/ietf/js/agenda/jquery-ui-1.9.0.custom/i18n/jquery.ui.datepicker-eo.js" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/ietf/js/agenda/jquery-ui-1.9.0.custom/i18n/jquery.ui.datepicker-es.js" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/ietf/js/agenda/jquery-ui-1.9.0.custom/i18n/jquery.ui.datepicker-et.js" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/ietf/js/agenda/jquery-ui-1.9.0.custom/i18n/jquery.ui.datepicker-eu.js" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/ietf/js/agenda/jquery-ui-1.9.0.custom/i18n/jquery.ui.datepicker-fa.js" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/ietf/js/agenda/jquery-ui-1.9.0.custom/i18n/jquery.ui.datepicker-fi.js" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/ietf/js/agenda/jquery-ui-1.9.0.custom/i18n/jquery.ui.datepicker-fo.js" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/ietf/js/agenda/jquery-ui-1.9.0.custom/i18n/jquery.ui.datepicker-fr-CH.js" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/ietf/js/agenda/jquery-ui-1.9.0.custom/i18n/jquery.ui.datepicker-fr.js" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/ietf/js/agenda/jquery-ui-1.9.0.custom/i18n/jquery.ui.datepicker-gl.js" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/ietf/js/agenda/jquery-ui-1.9.0.custom/i18n/jquery.ui.datepicker-he.js" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/ietf/js/agenda/jquery-ui-1.9.0.custom/i18n/jquery.ui.datepicker-hi.js" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/ietf/js/agenda/jquery-ui-1.9.0.custom/i18n/jquery.ui.datepicker-hr.js" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/ietf/js/agenda/jquery-ui-1.9.0.custom/i18n/jquery.ui.datepicker-hu.js" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/ietf/js/agenda/jquery-ui-1.9.0.custom/i18n/jquery.ui.datepicker-hy.js" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/ietf/js/agenda/jquery-ui-1.9.0.custom/i18n/jquery.ui.datepicker-id.js" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/ietf/js/agenda/jquery-ui-1.9.0.custom/i18n/jquery.ui.datepicker-is.js" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/ietf/js/agenda/jquery-ui-1.9.0.custom/i18n/jquery.ui.datepicker-it.js" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/ietf/js/agenda/jquery-ui-1.9.0.custom/i18n/jquery.ui.datepicker-ja.js" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/ietf/js/agenda/jquery-ui-1.9.0.custom/i18n/jquery.ui.datepicker-ka.js" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/ietf/js/agenda/jquery-ui-1.9.0.custom/i18n/jquery.ui.datepicker-kk.js" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/ietf/js/agenda/jquery-ui-1.9.0.custom/i18n/jquery.ui.datepicker-km.js" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/ietf/js/agenda/jquery-ui-1.9.0.custom/i18n/jquery.ui.datepicker-ko.js" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/ietf/js/agenda/jquery-ui-1.9.0.custom/i18n/jquery.ui.datepicker-lb.js" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/ietf/js/agenda/jquery-ui-1.9.0.custom/i18n/jquery.ui.datepicker-lt.js" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/ietf/js/agenda/jquery-ui-1.9.0.custom/i18n/jquery.ui.datepicker-lv.js" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/ietf/js/agenda/jquery-ui-1.9.0.custom/i18n/jquery.ui.datepicker-mk.js" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/ietf/js/agenda/jquery-ui-1.9.0.custom/i18n/jquery.ui.datepicker-ml.js" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/ietf/js/agenda/jquery-ui-1.9.0.custom/i18n/jquery.ui.datepicker-ms.js" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/ietf/js/agenda/jquery-ui-1.9.0.custom/i18n/jquery.ui.datepicker-nl-BE.js" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/ietf/js/agenda/jquery-ui-1.9.0.custom/i18n/jquery.ui.datepicker-nl.js" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/ietf/js/agenda/jquery-ui-1.9.0.custom/i18n/jquery.ui.datepicker-no.js" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/ietf/js/agenda/jquery-ui-1.9.0.custom/i18n/jquery.ui.datepicker-pl.js" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/ietf/js/agenda/jquery-ui-1.9.0.custom/i18n/jquery.ui.datepicker-pt-BR.js" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/ietf/js/agenda/jquery-ui-1.9.0.custom/i18n/jquery.ui.datepicker-pt.js" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/ietf/js/agenda/jquery-ui-1.9.0.custom/i18n/jquery.ui.datepicker-rm.js" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/ietf/js/agenda/jquery-ui-1.9.0.custom/i18n/jquery.ui.datepicker-ro.js" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/ietf/js/agenda/jquery-ui-1.9.0.custom/i18n/jquery.ui.datepicker-ru.js" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/ietf/js/agenda/jquery-ui-1.9.0.custom/i18n/jquery.ui.datepicker-sk.js" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/ietf/js/agenda/jquery-ui-1.9.0.custom/i18n/jquery.ui.datepicker-sl.js" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/ietf/js/agenda/jquery-ui-1.9.0.custom/i18n/jquery.ui.datepicker-sq.js" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/ietf/js/agenda/jquery-ui-1.9.0.custom/i18n/jquery.ui.datepicker-sr-SR.js" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/ietf/js/agenda/jquery-ui-1.9.0.custom/i18n/jquery.ui.datepicker-sr.js" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/ietf/js/agenda/jquery-ui-1.9.0.custom/i18n/jquery.ui.datepicker-sv.js" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/ietf/js/agenda/jquery-ui-1.9.0.custom/i18n/jquery.ui.datepicker-ta.js" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/ietf/js/agenda/jquery-ui-1.9.0.custom/i18n/jquery.ui.datepicker-th.js" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/ietf/js/agenda/jquery-ui-1.9.0.custom/i18n/jquery.ui.datepicker-tj.js" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/ietf/js/agenda/jquery-ui-1.9.0.custom/i18n/jquery.ui.datepicker-tr.js" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/ietf/js/agenda/jquery-ui-1.9.0.custom/i18n/jquery.ui.datepicker-uk.js" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/ietf/js/agenda/jquery-ui-1.9.0.custom/i18n/jquery.ui.datepicker-vi.js" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/ietf/js/agenda/jquery-ui-1.9.0.custom/i18n/jquery.ui.datepicker-zh-CN.js" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/ietf/js/agenda/jquery-ui-1.9.0.custom/i18n/jquery.ui.datepicker-zh-HK.js" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/ietf/js/agenda/jquery-ui-1.9.0.custom/i18n/jquery.ui.datepicker-zh-TW.js" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/ietf/js/agenda/jquery-ui-1.9.0.custom/jquery-ui.custom.js" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/ietf/js/agenda/jquery-ui-1.9.0.custom/jquery.ui.accordion.js" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/ietf/js/agenda/jquery-ui-1.9.0.custom/jquery.ui.autocomplete.js" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/ietf/js/agenda/jquery-ui-1.9.0.custom/jquery.ui.button.js" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/ietf/js/agenda/jquery-ui-1.9.0.custom/jquery.ui.core.js" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/ietf/js/agenda/jquery-ui-1.9.0.custom/jquery.ui.datepicker.js" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/ietf/js/agenda/jquery-ui-1.9.0.custom/jquery.ui.dialog.js" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/ietf/js/agenda/jquery-ui-1.9.0.custom/jquery.ui.draggable.js" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/ietf/js/agenda/jquery-ui-1.9.0.custom/jquery.ui.droppable.js" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/ietf/js/agenda/jquery-ui-1.9.0.custom/jquery.ui.effect-blind.js" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/ietf/js/agenda/jquery-ui-1.9.0.custom/jquery.ui.effect-bounce.js" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/ietf/js/agenda/jquery-ui-1.9.0.custom/jquery.ui.effect-clip.js" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/ietf/js/agenda/jquery-ui-1.9.0.custom/jquery.ui.effect-drop.js" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/ietf/js/agenda/jquery-ui-1.9.0.custom/jquery.ui.effect-explode.js" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/ietf/js/agenda/jquery-ui-1.9.0.custom/jquery.ui.effect-fade.js" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/ietf/js/agenda/jquery-ui-1.9.0.custom/jquery.ui.effect-fold.js" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/ietf/js/agenda/jquery-ui-1.9.0.custom/jquery.ui.effect-highlight.js" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/ietf/js/agenda/jquery-ui-1.9.0.custom/jquery.ui.effect-pulsate.js" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/ietf/js/agenda/jquery-ui-1.9.0.custom/jquery.ui.effect-scale.js" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/ietf/js/agenda/jquery-ui-1.9.0.custom/jquery.ui.effect-shake.js" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/ietf/js/agenda/jquery-ui-1.9.0.custom/jquery.ui.effect-slide.js" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/ietf/js/agenda/jquery-ui-1.9.0.custom/jquery.ui.effect-transfer.js" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/ietf/js/agenda/jquery-ui-1.9.0.custom/jquery.ui.effect.js" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/ietf/js/agenda/jquery-ui-1.9.0.custom/jquery.ui.menu.js" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/ietf/js/agenda/jquery-ui-1.9.0.custom/jquery.ui.mouse.js" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/ietf/js/agenda/jquery-ui-1.9.0.custom/jquery.ui.position.js" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/ietf/js/agenda/jquery-ui-1.9.0.custom/jquery.ui.progressbar.js" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/ietf/js/agenda/jquery-ui-1.9.0.custom/jquery.ui.resizable.js" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/ietf/js/agenda/jquery-ui-1.9.0.custom/jquery.ui.selectable.js" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/ietf/js/agenda/jquery-ui-1.9.0.custom/jquery.ui.slider.js" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/ietf/js/agenda/jquery-ui-1.9.0.custom/jquery.ui.sortable.js" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/ietf/js/agenda/jquery-ui-1.9.0.custom/jquery.ui.spinner.js" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/ietf/js/agenda/jquery-ui-1.9.0.custom/jquery.ui.tabs.js" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/ietf/js/agenda/jquery-ui-1.9.0.custom/jquery.ui.tooltip.js" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/ietf/js/agenda/jquery-ui-1.9.0.custom/jquery.ui.widget.js" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/ietf/js/agenda/jquery-ui-1.9.0.custom/minified/i18n/jquery-ui-i18n.min.js" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/ietf/js/agenda/jquery-ui-1.9.0.custom/minified/i18n/jquery.ui.datepicker-af.min.js" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/ietf/js/agenda/jquery-ui-1.9.0.custom/minified/i18n/jquery.ui.datepicker-ar-DZ.min.js" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/ietf/js/agenda/jquery-ui-1.9.0.custom/minified/i18n/jquery.ui.datepicker-ar.min.js" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/ietf/js/agenda/jquery-ui-1.9.0.custom/minified/i18n/jquery.ui.datepicker-az.min.js" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/ietf/js/agenda/jquery-ui-1.9.0.custom/minified/i18n/jquery.ui.datepicker-bg.min.js" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/ietf/js/agenda/jquery-ui-1.9.0.custom/minified/i18n/jquery.ui.datepicker-bs.min.js" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/ietf/js/agenda/jquery-ui-1.9.0.custom/minified/i18n/jquery.ui.datepicker-ca.min.js" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/ietf/js/agenda/jquery-ui-1.9.0.custom/minified/i18n/jquery.ui.datepicker-cs.min.js" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/ietf/js/agenda/jquery-ui-1.9.0.custom/minified/i18n/jquery.ui.datepicker-cy-GB.min.js" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/ietf/js/agenda/jquery-ui-1.9.0.custom/minified/i18n/jquery.ui.datepicker-da.min.js" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/ietf/js/agenda/jquery-ui-1.9.0.custom/minified/i18n/jquery.ui.datepicker-de.min.js" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/ietf/js/agenda/jquery-ui-1.9.0.custom/minified/i18n/jquery.ui.datepicker-el.min.js" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/ietf/js/agenda/jquery-ui-1.9.0.custom/minified/i18n/jquery.ui.datepicker-en-AU.min.js" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/ietf/js/agenda/jquery-ui-1.9.0.custom/minified/i18n/jquery.ui.datepicker-en-GB.min.js" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/ietf/js/agenda/jquery-ui-1.9.0.custom/minified/i18n/jquery.ui.datepicker-en-NZ.min.js" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/ietf/js/agenda/jquery-ui-1.9.0.custom/minified/i18n/jquery.ui.datepicker-eo.min.js" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/ietf/js/agenda/jquery-ui-1.9.0.custom/minified/i18n/jquery.ui.datepicker-es.min.js" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/ietf/js/agenda/jquery-ui-1.9.0.custom/minified/i18n/jquery.ui.datepicker-et.min.js" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/ietf/js/agenda/jquery-ui-1.9.0.custom/minified/i18n/jquery.ui.datepicker-eu.min.js" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/ietf/js/agenda/jquery-ui-1.9.0.custom/minified/i18n/jquery.ui.datepicker-fa.min.js" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/ietf/js/agenda/jquery-ui-1.9.0.custom/minified/i18n/jquery.ui.datepicker-fi.min.js" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/ietf/js/agenda/jquery-ui-1.9.0.custom/minified/i18n/jquery.ui.datepicker-fo.min.js" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/ietf/js/agenda/jquery-ui-1.9.0.custom/minified/i18n/jquery.ui.datepicker-fr-CH.min.js" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/ietf/js/agenda/jquery-ui-1.9.0.custom/minified/i18n/jquery.ui.datepicker-fr.min.js" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/ietf/js/agenda/jquery-ui-1.9.0.custom/minified/i18n/jquery.ui.datepicker-gl.min.js" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/ietf/js/agenda/jquery-ui-1.9.0.custom/minified/i18n/jquery.ui.datepicker-he.min.js" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/ietf/js/agenda/jquery-ui-1.9.0.custom/minified/i18n/jquery.ui.datepicker-hi.min.js" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/ietf/js/agenda/jquery-ui-1.9.0.custom/minified/i18n/jquery.ui.datepicker-hr.min.js" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/ietf/js/agenda/jquery-ui-1.9.0.custom/minified/i18n/jquery.ui.datepicker-hu.min.js" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/ietf/js/agenda/jquery-ui-1.9.0.custom/minified/i18n/jquery.ui.datepicker-hy.min.js" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/ietf/js/agenda/jquery-ui-1.9.0.custom/minified/i18n/jquery.ui.datepicker-id.min.js" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/ietf/js/agenda/jquery-ui-1.9.0.custom/minified/i18n/jquery.ui.datepicker-is.min.js" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/ietf/js/agenda/jquery-ui-1.9.0.custom/minified/i18n/jquery.ui.datepicker-it.min.js" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/ietf/js/agenda/jquery-ui-1.9.0.custom/minified/i18n/jquery.ui.datepicker-ja.min.js" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/ietf/js/agenda/jquery-ui-1.9.0.custom/minified/i18n/jquery.ui.datepicker-ka.min.js" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/ietf/js/agenda/jquery-ui-1.9.0.custom/minified/i18n/jquery.ui.datepicker-kk.min.js" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/ietf/js/agenda/jquery-ui-1.9.0.custom/minified/i18n/jquery.ui.datepicker-km.min.js" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/ietf/js/agenda/jquery-ui-1.9.0.custom/minified/i18n/jquery.ui.datepicker-ko.min.js" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/ietf/js/agenda/jquery-ui-1.9.0.custom/minified/i18n/jquery.ui.datepicker-lb.min.js" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/ietf/js/agenda/jquery-ui-1.9.0.custom/minified/i18n/jquery.ui.datepicker-lt.min.js" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/ietf/js/agenda/jquery-ui-1.9.0.custom/minified/i18n/jquery.ui.datepicker-lv.min.js" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/ietf/js/agenda/jquery-ui-1.9.0.custom/minified/i18n/jquery.ui.datepicker-mk.min.js" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/ietf/js/agenda/jquery-ui-1.9.0.custom/minified/i18n/jquery.ui.datepicker-ml.min.js" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/ietf/js/agenda/jquery-ui-1.9.0.custom/minified/i18n/jquery.ui.datepicker-ms.min.js" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/ietf/js/agenda/jquery-ui-1.9.0.custom/minified/i18n/jquery.ui.datepicker-nl-BE.min.js" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/ietf/js/agenda/jquery-ui-1.9.0.custom/minified/i18n/jquery.ui.datepicker-nl.min.js" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/ietf/js/agenda/jquery-ui-1.9.0.custom/minified/i18n/jquery.ui.datepicker-no.min.js" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/ietf/js/agenda/jquery-ui-1.9.0.custom/minified/i18n/jquery.ui.datepicker-pl.min.js" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/ietf/js/agenda/jquery-ui-1.9.0.custom/minified/i18n/jquery.ui.datepicker-pt-BR.min.js" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/ietf/js/agenda/jquery-ui-1.9.0.custom/minified/i18n/jquery.ui.datepicker-pt.min.js" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/ietf/js/agenda/jquery-ui-1.9.0.custom/minified/i18n/jquery.ui.datepicker-rm.min.js" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/ietf/js/agenda/jquery-ui-1.9.0.custom/minified/i18n/jquery.ui.datepicker-ro.min.js" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/ietf/js/agenda/jquery-ui-1.9.0.custom/minified/i18n/jquery.ui.datepicker-ru.min.js" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/ietf/js/agenda/jquery-ui-1.9.0.custom/minified/i18n/jquery.ui.datepicker-sk.min.js" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/ietf/js/agenda/jquery-ui-1.9.0.custom/minified/i18n/jquery.ui.datepicker-sl.min.js" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/ietf/js/agenda/jquery-ui-1.9.0.custom/minified/i18n/jquery.ui.datepicker-sq.min.js" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/ietf/js/agenda/jquery-ui-1.9.0.custom/minified/i18n/jquery.ui.datepicker-sr-SR.min.js" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/ietf/js/agenda/jquery-ui-1.9.0.custom/minified/i18n/jquery.ui.datepicker-sr.min.js" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/ietf/js/agenda/jquery-ui-1.9.0.custom/minified/i18n/jquery.ui.datepicker-sv.min.js" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/ietf/js/agenda/jquery-ui-1.9.0.custom/minified/i18n/jquery.ui.datepicker-ta.min.js" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/ietf/js/agenda/jquery-ui-1.9.0.custom/minified/i18n/jquery.ui.datepicker-th.min.js" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/ietf/js/agenda/jquery-ui-1.9.0.custom/minified/i18n/jquery.ui.datepicker-tj.min.js" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/ietf/js/agenda/jquery-ui-1.9.0.custom/minified/i18n/jquery.ui.datepicker-tr.min.js" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/ietf/js/agenda/jquery-ui-1.9.0.custom/minified/i18n/jquery.ui.datepicker-uk.min.js" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/ietf/js/agenda/jquery-ui-1.9.0.custom/minified/i18n/jquery.ui.datepicker-vi.min.js" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/ietf/js/agenda/jquery-ui-1.9.0.custom/minified/i18n/jquery.ui.datepicker-zh-CN.min.js" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/ietf/js/agenda/jquery-ui-1.9.0.custom/minified/i18n/jquery.ui.datepicker-zh-HK.min.js" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/ietf/js/agenda/jquery-ui-1.9.0.custom/minified/i18n/jquery.ui.datepicker-zh-TW.min.js" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/ietf/js/agenda/jquery-ui-1.9.0.custom/minified/jquery-ui.custom.min.js" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/ietf/js/agenda/jquery-ui-1.9.0.custom/minified/jquery.ui.accordion.min.js" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/ietf/js/agenda/jquery-ui-1.9.0.custom/minified/jquery.ui.autocomplete.min.js" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/ietf/js/agenda/jquery-ui-1.9.0.custom/minified/jquery.ui.button.min.js" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/ietf/js/agenda/jquery-ui-1.9.0.custom/minified/jquery.ui.core.min.js" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/ietf/js/agenda/jquery-ui-1.9.0.custom/minified/jquery.ui.datepicker.min.js" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/ietf/js/agenda/jquery-ui-1.9.0.custom/minified/jquery.ui.dialog.min.js" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/ietf/js/agenda/jquery-ui-1.9.0.custom/minified/jquery.ui.draggable.min.js" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/ietf/js/agenda/jquery-ui-1.9.0.custom/minified/jquery.ui.droppable.min.js" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/ietf/js/agenda/jquery-ui-1.9.0.custom/minified/jquery.ui.effect-blind.min.js" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/ietf/js/agenda/jquery-ui-1.9.0.custom/minified/jquery.ui.effect-bounce.min.js" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/ietf/js/agenda/jquery-ui-1.9.0.custom/minified/jquery.ui.effect-clip.min.js" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/ietf/js/agenda/jquery-ui-1.9.0.custom/minified/jquery.ui.effect-drop.min.js" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/ietf/js/agenda/jquery-ui-1.9.0.custom/minified/jquery.ui.effect-explode.min.js" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/ietf/js/agenda/jquery-ui-1.9.0.custom/minified/jquery.ui.effect-fade.min.js" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/ietf/js/agenda/jquery-ui-1.9.0.custom/minified/jquery.ui.effect-fold.min.js" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/ietf/js/agenda/jquery-ui-1.9.0.custom/minified/jquery.ui.effect-highlight.min.js" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/ietf/js/agenda/jquery-ui-1.9.0.custom/minified/jquery.ui.effect-pulsate.min.js" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/ietf/js/agenda/jquery-ui-1.9.0.custom/minified/jquery.ui.effect-scale.min.js" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/ietf/js/agenda/jquery-ui-1.9.0.custom/minified/jquery.ui.effect-shake.min.js" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/ietf/js/agenda/jquery-ui-1.9.0.custom/minified/jquery.ui.effect-slide.min.js" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/ietf/js/agenda/jquery-ui-1.9.0.custom/minified/jquery.ui.effect-transfer.min.js" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/ietf/js/agenda/jquery-ui-1.9.0.custom/minified/jquery.ui.effect.min.js" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/ietf/js/agenda/jquery-ui-1.9.0.custom/minified/jquery.ui.menu.min.js" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/ietf/js/agenda/jquery-ui-1.9.0.custom/minified/jquery.ui.mouse.min.js" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/ietf/js/agenda/jquery-ui-1.9.0.custom/minified/jquery.ui.position.min.js" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/ietf/js/agenda/jquery-ui-1.9.0.custom/minified/jquery.ui.progressbar.min.js" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/ietf/js/agenda/jquery-ui-1.9.0.custom/minified/jquery.ui.resizable.min.js" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/ietf/js/agenda/jquery-ui-1.9.0.custom/minified/jquery.ui.selectable.min.js" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/ietf/js/agenda/jquery-ui-1.9.0.custom/minified/jquery.ui.slider.min.js" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/ietf/js/agenda/jquery-ui-1.9.0.custom/minified/jquery.ui.sortable.min.js" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/ietf/js/agenda/jquery-ui-1.9.0.custom/minified/jquery.ui.spinner.min.js" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/ietf/js/agenda/jquery-ui-1.9.0.custom/minified/jquery.ui.tabs.min.js" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/ietf/js/agenda/jquery-ui-1.9.0.custom/minified/jquery.ui.tooltip.min.js" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/ietf/js/agenda/jquery-ui-1.9.0.custom/minified/jquery.ui.widget.min.js" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/ietf/js/agenda/jquery-ui-timepicker/jquery-ui-sliderAccess.js" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/ietf/js/agenda/jquery-ui-timepicker/jquery-ui-timepicker-addon.js" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/ietf/js/agenda/moment.min.js" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/ietf/js/agenda/spin/LICENSE.txt" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/ietf/js/agenda/spin/Makefile" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/ietf/js/agenda/spin/README.md" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/ietf/js/agenda/spin/assets/fd-slider/fd-slider-tooltip.css" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/ietf/js/agenda/spin/assets/fd-slider/fd-slider.css" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/ietf/js/agenda/spin/assets/fd-slider/fd-slider.js" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/ietf/js/agenda/spin/assets/jquery.js" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/ietf/js/agenda/spin/assets/main.css" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/ietf/js/agenda/spin/assets/prettify.css" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/ietf/js/agenda/spin/assets/prettify.js" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/ietf/js/agenda/spin/bower.json" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/ietf/js/agenda/spin/dist/spin.js" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/ietf/js/agenda/spin/dist/spin.min.js" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/ietf/js/agenda/spin/example/amd.html" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/ietf/js/agenda/spin/example/jquery.html" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/ietf/js/agenda/spin/example/modernizr.html" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/ietf/js/agenda/spin/example/modernizr.js" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/ietf/js/agenda/spin/example/positioning.html" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/ietf/js/agenda/spin/example/require.js" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/ietf/js/agenda/spin/example/settings.html" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/ietf/js/agenda/spin/index.html" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/ietf/js/agenda/spin/jquery.spin.js" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/ietf/js/agenda/spin/package.json" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/ietf/js/agenda/spin/spin.js" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/ietf/js/agenda/timeslot_edit.js" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/ietf/js/bootstrap-datepicker.min.js" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/ietf/js/bootstrap-datetimepicker.min.js" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/ietf/js/bootstrap.js" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/ietf/js/bootstrap.min.js" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/ietf/js/charts.js" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/ietf/js/chosen.js" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/ietf/js/chosen.min.js" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/ietf/js/codestand.js" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/ietf/js/complete-review.js" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/ietf/js/custom.js" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/ietf/js/document_timeline.js" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/ietf/js/edit-milestones.js" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/ietf/js/excanvas.min.js" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/ietf/js/filter.js" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/ietf/js/fullcalendar.min.js" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/ietf/js/html5shiv.js" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/ietf/js/ietf.js" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/ietf/js/ipr-edit.js" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/ietf/js/ipr-search.js" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/ietf/js/jquery-1.8.2.min.js" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/ietf/js/jquery-2.1.1.js" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/ietf/js/jquery-ui.min.js" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/ietf/js/jquery.cleditor.min.js" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/ietf/js/jquery.dataTables.min.js" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/ietf/js/jquery.flot.js" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/ietf/js/jquery.flot.pie.js" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/ietf/js/jquery.flot.resize.js" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/ietf/js/jquery.flot.stack.js" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/ietf/js/jquery.js" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/ietf/js/jquery.noty.js" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/ietf/js/jquery.onoff.min.js" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/ietf/js/jquery.prettyPhoto.js" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/ietf/js/jquery.rateit.min.js" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/ietf/js/jquery.slimscroll.min.js" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/ietf/js/layouts/bottom.js" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/ietf/js/layouts/top.js" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/ietf/js/layouts/topRight.js" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/ietf/js/liaisons.js" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/ietf/js/lib/bootstrap-datepicker.js" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/ietf/js/lib/bootstrap-tokenfield.min.js" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/ietf/js/lib/bootstrap.min.js" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/ietf/js/lib/jquery-1.11.2.min.js" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/ietf/js/lib/jquery.cookie.min.js" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/ietf/js/lib/qunit-1.12.0.js" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/ietf/js/lib/select2-3.5.2.min.js" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/ietf/js/lib/typeahead.bundle.min.js" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/ietf/js/manage-community-list.js" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/ietf/js/manage-review-requests.js" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/ietf/js/meeting-interim-request.js" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/ietf/js/password_strength.js" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/ietf/js/respond.min.js" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/ietf/js/review-stats.js" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/ietf/js/room_params.js" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/ietf/js/select2-field.js" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/ietf/js/select2.min.js" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/ietf/js/sparklines.js" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/ietf/js/status-change-edit-relations.js" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/ietf/js/themes/default.js" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/ietf/js/toggle-visibility.js" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/jquery.cookie/bower.json" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/jquery.cookie/jquery.cookie.js" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/jquery.tablesorter/bower.json" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/jquery.tablesorter/css/theme.bootstrap.min.css" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/jquery.tablesorter/js/jquery.tablesorter.combined.min.js" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/jquery/bower.json" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/jquery/jquery.min.js" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/ptmono/demo.html" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/ptmono/pt free font license_eng_1.3.txt" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/ptmono/pt free font license_rus_1.3.txt" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/ptmono/ptm55f_demo.html" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/ptmono/ptm55f_stylesheet.css" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/ptmono/ptm55f_w.svg" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/ptmono/ptm75f_demo.html" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/ptmono/ptm75f_stylesheet.css" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/ptmono/ptm75f_w.svg" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/ptmono/stylesheet.css" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/ptsans/demo.html" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/ptsans/pt free font license_eng_1.2.txt" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/ptsans/pt free font license_rus_1.2.txt" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/ptsans/ptc55f_demo.html" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/ptsans/ptc55f_stylesheet.css" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/ptsans/ptc55f_w.svg" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/ptsans/ptc75f_demo.html" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/ptsans/ptc75f_stylesheet.css" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/ptsans/ptc75f_w.svg" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/ptsans/ptn57f_demo.html" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/ptsans/ptn57f_stylesheet.css" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/ptsans/ptn57f_w.svg" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/ptsans/ptn77f_demo.html" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/ptsans/ptn77f_stylesheet.css" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/ptsans/ptn77f_w.svg" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/ptsans/pts55f_demo.html" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/ptsans/pts55f_stylesheet.css" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/ptsans/pts55f_w.svg" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/ptsans/pts56f_demo.html" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/ptsans/pts56f_stylesheet.css" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/ptsans/pts56f_w.svg" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/ptsans/pts75f_demo.html" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/ptsans/pts75f_stylesheet.css" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/ptsans/pts75f_w.svg" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/ptsans/pts76f_demo.html" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/ptsans/pts76f_stylesheet.css" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/ptsans/pts76f_w.svg" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/ptsans/stylesheet.css" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/ptserif/demo.html" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/ptserif/pt free font license_eng_1.2.txt" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/ptserif/pt free font license_rus_1.2.txt" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/ptserif/ptf55f_demo.html" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/ptserif/ptf55f_stylesheet.css" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/ptserif/ptf55f_w.svg" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/ptserif/ptf56f_demo.html" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/ptserif/ptf56f_stylesheet.css" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/ptserif/ptf56f_w.svg" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/ptserif/ptf75f_demo.html" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/ptserif/ptf75f_stylesheet.css" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/ptserif/ptf75f_w.svg" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/ptserif/ptf76f_demo.html" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/ptserif/ptf76f_stylesheet.css" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/ptserif/ptf76f_w.svg" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/ptserif/ptz55f_demo.html" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/ptserif/ptz55f_stylesheet.css" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/ptserif/ptz55f_w.svg" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/ptserif/ptz56f_demo.html" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/ptserif/ptz56f_stylesheet.css" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/ptserif/ptz56f_w.svg" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/ptserif/stylesheet.css" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/respond/bower.json" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/respond/dest/respond.min.js" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/robots.txt" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/secr/css/base.css" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/secr/css/custom.css" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/secr/css/forms.css" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/secr/css/ietf.js" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/secr/css/ipr.css" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/secr/css/jquery-ui-1.11.4.custom.css" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/secr/css/telechat.css" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/secr/css/test.css" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/secr/css/widgets.css" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/secr/js/dynamic_inlines.js" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/secr/js/jquery-ui-1.11.4.custom.min.js" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/secr/js/proceedings-recording.js" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/secr/js/sessions.js" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/secr/js/utils.js" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/select2-bootstrap-css/bower.json" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/select2-bootstrap-css/select2-bootstrap.min.css" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/select2/bower.json" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/select2/select2.css" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/select2/select2.min.js" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/spin.js/bower.json" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/spin.js/spin.js" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/spin.js/spin.min.js" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/zxcvbn/bower.json" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/static/zxcvbn/zxcvbn.js" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/table-list.json" />
+    <list default="true" id="0bc92ffd-8764-451c-990f-0287cd247c11" name="Default" comment="Commiting missed files.">
       <change type="MODIFICATION" beforePath="$PROJECT_DIR$/.idea/workspace.xml" afterPath="$PROJECT_DIR$/.idea/workspace.xml" />
+      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/ietf/codestand/matches/views.py" afterPath="$PROJECT_DIR$/ietf/codestand/matches/views.py" />
+      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/ietf/codestand/requests/urls.py" afterPath="$PROJECT_DIR$/ietf/codestand/requests/urls.py" />
+      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/ietf/codestand/requests/views.py" afterPath="$PROJECT_DIR$/ietf/codestand/requests/views.py" />
     </list>
     <option name="EXCLUDED_CONVERTED_TO_IGNORED" value="true" />
     <option name="TRACKING_ENABLED" value="true" />
@@ -1265,34 +19,10 @@
   </component>
   <component name="ExecutionTargetManager" SELECTED_TARGET="default_target" />
   <component name="FileEditorManager">
-    <leaf SIDE_TABS_SIZE_LIMIT_KEY="300">
-      <file leaf-file-name="constants.py" pinned="false" current-in-tab="false">
-        <entry file="file://$PROJECT_DIR$/ietf/codestand/constants.py">
-          <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="121">
-              <caret line="69" column="3" lean-forward="true" selection-start-line="69" selection-start-column="3" selection-end-line="69" selection-end-column="3" />
-              <folding />
-            </state>
-          </provider>
-        </entry>
-      </file>
-      <file leaf-file-name="models.py" pinned="false" current-in-tab="true">
-        <entry file="file://$PROJECT_DIR$/ietf/doc/models.py">
-          <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="205">
-              <caret line="24" column="20" lean-forward="true" selection-start-line="24" selection-start-column="20" selection-end-line="24" selection-end-column="20" />
-              <folding />
-            </state>
-          </provider>
-        </entry>
-      </file>
-    </leaf>
+    <leaf SIDE_TABS_SIZE_LIMIT_KEY="300" />
   </component>
   <component name="FindInProjectRecents">
     <findStrings>
-      <find>ietf.codestand.matches.views.show_list</find>
-      <find>login</find>
-      <find>contrib</find>
       <find>about</find>
       <find>from future</find>
       <find>url</find>
@@ -1320,6 +50,9 @@
       <find>'show'</find>
       <find>name='ietf</find>
       <find>name=&quot;</find>
+      <find>name='</find>
+      <find>owner</find>
+      <find>is_my_list</find>
     </findStrings>
     <replaceStrings>
       <replace>&quot;ietf.codestand.views.show_list</replace>
@@ -1338,10 +71,8 @@
     <option name="CHANGED_PATHS">
       <list>
         <option value="$PROJECT_DIR$/ietf/settings_local.py" />
-        <option value="$PROJECT_DIR$/ietf/codestand/requests/views.py" />
         <option value="$PROJECT_DIR$/ietf/urls.py" />
         <option value="$PROJECT_DIR$/ietf/templates/codestand/accounts/topcoders.html" />
-        <option value="$PROJECT_DIR$/ietf/codestand/matches/views.py" />
         <option value="$PROJECT_DIR$/ietf/templates/base/menu_codestand.html" />
         <option value="$PROJECT_DIR$/ietf/templates/codestand/index.html" />
         <option value="$PROJECT_DIR$/ietf/templates/base_codestand.html" />
@@ -1357,9 +88,11 @@
         <option value="$PROJECT_DIR$/ietf/templates/codestand/requests/new.html" />
         <option value="$PROJECT_DIR$/ietf/templates/codestand/requests/show.html" />
         <option value="$PROJECT_DIR$/ietf/templates/codestand/requests/edit.html" />
-        <option value="$PROJECT_DIR$/ietf/codestand/requests/urls.py" />
         <option value="$PROJECT_DIR$/ietf/codestand/matches/urls.py" />
         <option value="$PROJECT_DIR$/ietf/codestand/constants.py" />
+        <option value="$PROJECT_DIR$/ietf/codestand/requests/urls.py" />
+        <option value="$PROJECT_DIR$/ietf/codestand/requests/views.py" />
+        <option value="$PROJECT_DIR$/ietf/codestand/matches/views.py" />
       </list>
     </option>
   </component>
@@ -1385,8 +118,8 @@
       <foldersAlwaysOnTop value="true" />
     </navigator>
     <panes>
-      <pane id="Scope" />
       <pane id="Scratches" />
+      <pane id="Scope" />
       <pane id="ProjectPane">
         <subPane>
           <PATH>
@@ -1428,6 +161,68 @@
             </PATH_ELEMENT>
             <PATH_ELEMENT>
               <option name="myItemId" value="utils" />
+              <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.PsiDirectoryNode" />
+            </PATH_ELEMENT>
+          </PATH>
+          <PATH>
+            <PATH_ELEMENT>
+              <option name="myItemId" value="6.50.1" />
+              <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.ProjectViewProjectNode" />
+            </PATH_ELEMENT>
+            <PATH_ELEMENT>
+              <option name="myItemId" value="6.50.1" />
+              <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.PsiDirectoryNode" />
+            </PATH_ELEMENT>
+            <PATH_ELEMENT>
+              <option name="myItemId" value="ietf" />
+              <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.PsiDirectoryNode" />
+            </PATH_ELEMENT>
+            <PATH_ELEMENT>
+              <option name="myItemId" value="codestand" />
+              <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.PsiDirectoryNode" />
+            </PATH_ELEMENT>
+          </PATH>
+          <PATH>
+            <PATH_ELEMENT>
+              <option name="myItemId" value="6.50.1" />
+              <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.ProjectViewProjectNode" />
+            </PATH_ELEMENT>
+            <PATH_ELEMENT>
+              <option name="myItemId" value="6.50.1" />
+              <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.PsiDirectoryNode" />
+            </PATH_ELEMENT>
+            <PATH_ELEMENT>
+              <option name="myItemId" value="ietf" />
+              <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.PsiDirectoryNode" />
+            </PATH_ELEMENT>
+            <PATH_ELEMENT>
+              <option name="myItemId" value="codestand" />
+              <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.PsiDirectoryNode" />
+            </PATH_ELEMENT>
+            <PATH_ELEMENT>
+              <option name="myItemId" value="requests" />
+              <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.PsiDirectoryNode" />
+            </PATH_ELEMENT>
+          </PATH>
+          <PATH>
+            <PATH_ELEMENT>
+              <option name="myItemId" value="6.50.1" />
+              <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.ProjectViewProjectNode" />
+            </PATH_ELEMENT>
+            <PATH_ELEMENT>
+              <option name="myItemId" value="6.50.1" />
+              <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.PsiDirectoryNode" />
+            </PATH_ELEMENT>
+            <PATH_ELEMENT>
+              <option name="myItemId" value="ietf" />
+              <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.PsiDirectoryNode" />
+            </PATH_ELEMENT>
+            <PATH_ELEMENT>
+              <option name="myItemId" value="codestand" />
+              <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.PsiDirectoryNode" />
+            </PATH_ELEMENT>
+            <PATH_ELEMENT>
+              <option name="myItemId" value="matches" />
               <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.PsiDirectoryNode" />
             </PATH_ELEMENT>
           </PATH>
@@ -1594,21 +389,27 @@
       <option name="project" value="LOCAL" />
       <updated>1494945974088</updated>
     </task>
-    <option name="localTasksCounter" value="2" />
+    <task id="LOCAL-00002" summary="Commiting missed files.">
+      <created>1494946646745</created>
+      <option name="number" value="00002" />
+      <option name="presentableId" value="LOCAL-00002" />
+      <option name="project" value="LOCAL" />
+      <updated>1494946646745</updated>
+    </task>
+    <option name="localTasksCounter" value="3" />
     <servers />
   </component>
   <component name="ToolWindowManager">
     <frame x="65" y="24" width="1301" height="744" extended-state="6" />
     <editor active="false" />
     <layout>
-      <window_info id="Project" active="true" anchor="left" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="true" show_stripe_button="true" weight="0.24960877" sideWeight="0.5" order="0" side_tool="false" content_ui="combo" />
+      <window_info id="Project" active="false" anchor="left" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="true" show_stripe_button="true" weight="0.2370892" sideWeight="0.5" order="0" side_tool="false" content_ui="combo" />
       <window_info id="TODO" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="6" side_tool="false" content_ui="tabs" />
       <window_info id="Event Log" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="7" side_tool="true" content_ui="tabs" />
-      <window_info id="Find" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.32817337" sideWeight="0.5" order="1" side_tool="false" content_ui="tabs" />
       <window_info id="Version Control" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="7" side_tool="false" content_ui="tabs" />
       <window_info id="Python Console" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="7" side_tool="false" content_ui="tabs" />
       <window_info id="Structure" active="false" anchor="left" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.25" sideWeight="0.5" order="1" side_tool="false" content_ui="tabs" />
-      <window_info id="Terminal" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="true" show_stripe_button="true" weight="0.32972136" sideWeight="0.5" order="7" side_tool="false" content_ui="tabs" />
+      <window_info id="Terminal" active="true" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="true" show_stripe_button="true" weight="0.31888545" sideWeight="0.5" order="7" side_tool="false" content_ui="tabs" />
       <window_info id="Favorites" active="false" anchor="left" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="2" side_tool="true" content_ui="tabs" />
       <window_info id="Cvs" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.25" sideWeight="0.5" order="4" side_tool="false" content_ui="tabs" />
       <window_info id="Message" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="0" side_tool="false" content_ui="tabs" />
@@ -1616,6 +417,7 @@
       <window_info id="Inspection" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.4" sideWeight="0.5" order="5" side_tool="false" content_ui="tabs" />
       <window_info id="Run" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="2" side_tool="false" content_ui="tabs" />
       <window_info id="Hierarchy" active="false" anchor="right" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.25" sideWeight="0.5" order="2" side_tool="false" content_ui="combo" />
+      <window_info id="Find" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.32817337" sideWeight="0.5" order="1" side_tool="false" content_ui="tabs" />
       <window_info id="Ant Build" active="false" anchor="right" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.25" sideWeight="0.5" order="1" side_tool="false" content_ui="tabs" />
       <window_info id="Debug" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.4" sideWeight="0.5" order="3" side_tool="false" content_ui="tabs" />
     </layout>
@@ -1625,7 +427,8 @@
   </component>
   <component name="VcsManagerConfiguration">
     <MESSAGE value="Upgrade to 6.50.1 of Datatracker system." />
-    <option name="LAST_COMMIT_MESSAGE" value="Upgrade to 6.50.1 of Datatracker system." />
+    <MESSAGE value="Commiting missed files." />
+    <option name="LAST_COMMIT_MESSAGE" value="Commiting missed files." />
   </component>
   <component name="XDebuggerManager">
     <breakpoint-manager>
@@ -1638,9 +441,7 @@
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="45">
           <caret line="15" column="28" lean-forward="false" selection-start-line="15" selection-start-column="24" selection-end-line="15" selection-end-column="28" />
-          <folding>
-            <element signature="e#0#36#0" expanded="false" />
-          </folding>
+          <folding />
         </state>
       </provider>
     </entry>
@@ -1648,9 +449,6 @@
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="1980">
           <caret line="132" column="17" lean-forward="false" selection-start-line="132" selection-start-column="4" selection-end-line="132" selection-end-column="17" />
-          <folding>
-            <element signature="e#0#15#0" expanded="false" />
-          </folding>
         </state>
       </provider>
     </entry>
@@ -1658,7 +456,6 @@
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="330">
           <caret line="25" column="139" lean-forward="false" selection-start-line="25" selection-start-column="99" selection-end-line="25" selection-end-column="139" />
-          <folding />
         </state>
       </provider>
     </entry>
@@ -1666,7 +463,6 @@
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="420">
           <caret line="28" column="29" lean-forward="false" selection-start-line="28" selection-start-column="29" selection-end-line="28" selection-end-column="29" />
-          <folding />
         </state>
       </provider>
     </entry>
@@ -1674,7 +470,6 @@
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="510">
           <caret line="34" column="38" lean-forward="true" selection-start-line="34" selection-start-column="38" selection-end-line="34" selection-end-column="38" />
-          <folding />
         </state>
       </provider>
     </entry>
@@ -1682,7 +477,6 @@
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="0">
           <caret line="0" column="0" lean-forward="false" selection-start-line="0" selection-start-column="0" selection-end-line="0" selection-end-column="0" />
-          <folding />
         </state>
       </provider>
     </entry>
@@ -1770,13 +564,6 @@
         </state>
       </provider>
     </entry>
-    <entry file="file://$PROJECT_DIR$/ietf/codestand/requests/views.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="205">
-          <caret line="148" column="21" lean-forward="false" selection-start-line="148" selection-start-column="21" selection-end-line="148" selection-end-column="21" />
-        </state>
-      </provider>
-    </entry>
     <entry file="file://$PROJECT_DIR$/ietf/settings_local.py">
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="-1201">
@@ -1788,7 +575,6 @@
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="578">
           <caret line="54" column="72" lean-forward="false" selection-start-line="54" selection-start-column="72" selection-end-line="54" selection-end-column="72" />
-          <folding />
         </state>
       </provider>
     </entry>
@@ -1796,17 +582,6 @@
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="128">
           <caret line="22" column="27" lean-forward="false" selection-start-line="22" selection-start-column="27" selection-end-line="22" selection-end-column="27" />
-          <folding />
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/ietf/codestand/matches/views.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="385">
-          <caret line="133" column="60" lean-forward="false" selection-start-line="133" selection-start-column="60" selection-end-line="133" selection-end-column="60" />
-          <folding>
-            <element signature="e#0#36#0" expanded="false" />
-          </folding>
         </state>
       </provider>
     </entry>
@@ -1814,13 +589,6 @@
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="630">
           <caret line="42" column="70" lean-forward="false" selection-start-line="42" selection-start-column="70" selection-end-line="42" selection-end-column="70" />
-          <folding>
-            <element signature="n#style#0;n#i#0;n#div#1;n#div#0;n#div#1;n#div#0;n#div#0;n#div#0;n#!!top" expanded="false" />
-            <element signature="n#style#0;n#p#0;n#div#1;n#div#0;n#div#1;n#div#0;n#div#0;n#div#0;n#!!top" expanded="false" />
-            <element signature="n#style#0;n#div#2;n#div#0;n#div#1;n#div#0;n#div#0;n#div#0;n#!!top" expanded="false" />
-            <element signature="n#style#0;n#i#0;n#div#2;n#div#0;n#div#1;n#div#0;n#div#0;n#div#0;n#!!top" expanded="false" />
-            <element signature="n#style#0;n#p#0;n#div#2;n#div#0;n#div#1;n#div#0;n#div#0;n#div#0;n#!!top" expanded="false" />
-          </folding>
         </state>
       </provider>
     </entry>
@@ -1828,7 +596,6 @@
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="120">
           <caret line="8" column="80" lean-forward="true" selection-start-line="8" selection-start-column="80" selection-end-line="8" selection-end-column="80" />
-          <folding />
         </state>
       </provider>
     </entry>
@@ -1836,10 +603,6 @@
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="0">
           <caret line="0" column="0" lean-forward="false" selection-start-line="0" selection-start-column="0" selection-end-line="3" selection-end-column="21" />
-          <folding>
-            <marker date="1494854111188" expanded="true" signature="4929:5231" ph="..." />
-            <marker date="1494854111188" expanded="false" signature="5020:5027" ph="×" />
-          </folding>
         </state>
       </provider>
     </entry>
@@ -1847,9 +610,6 @@
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="322">
           <caret line="79" column="12" lean-forward="false" selection-start-line="79" selection-start-column="12" selection-end-line="79" selection-end-column="12" />
-          <folding>
-            <element signature="n#style#0;n#a#0;n#div#0;n#div#0;n#nav#0;n#body#0;n#html#0;n#!!top" expanded="false" />
-          </folding>
         </state>
       </provider>
     </entry>
@@ -1857,7 +617,6 @@
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="0">
           <caret line="0" column="0" lean-forward="false" selection-start-line="0" selection-start-column="0" selection-end-line="0" selection-end-column="0" />
-          <folding />
         </state>
       </provider>
     </entry>
@@ -1865,7 +624,6 @@
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="-29">
           <caret line="0" column="0" lean-forward="false" selection-start-line="0" selection-start-column="0" selection-end-line="0" selection-end-column="0" />
-          <folding />
         </state>
       </provider>
     </entry>
@@ -1873,9 +631,6 @@
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="270">
           <caret line="18" column="13" lean-forward="false" selection-start-line="18" selection-start-column="4" selection-end-line="18" selection-end-column="13" />
-          <folding>
-            <element signature="e#0#10#0" expanded="false" />
-          </folding>
         </state>
       </provider>
     </entry>
@@ -1883,7 +638,6 @@
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="0">
           <caret line="0" column="0" lean-forward="false" selection-start-line="0" selection-start-column="0" selection-end-line="0" selection-end-column="0" />
-          <folding />
         </state>
       </provider>
     </entry>
@@ -1891,7 +645,6 @@
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="115">
           <caret line="65" column="34" lean-forward="false" selection-start-line="65" selection-start-column="34" selection-end-line="65" selection-end-column="34" />
-          <folding />
         </state>
       </provider>
     </entry>
@@ -1899,7 +652,6 @@
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="330">
           <caret line="25" column="139" lean-forward="false" selection-start-line="25" selection-start-column="99" selection-end-line="25" selection-end-column="139" />
-          <folding />
         </state>
       </provider>
     </entry>
@@ -1907,9 +659,6 @@
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="3765">
           <caret line="322" column="18" lean-forward="false" selection-start-line="322" selection-start-column="18" selection-end-line="322" selection-end-column="18" />
-          <folding>
-            <element signature="e#0#15#0" expanded="false" />
-          </folding>
         </state>
       </provider>
     </entry>
@@ -1917,7 +666,6 @@
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="75">
           <caret line="12" column="56" lean-forward="false" selection-start-line="12" selection-start-column="56" selection-end-line="12" selection-end-column="56" />
-          <folding />
         </state>
       </provider>
     </entry>
@@ -1925,9 +673,6 @@
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="105">
           <caret line="7" column="59" lean-forward="false" selection-start-line="7" selection-start-column="59" selection-end-line="7" selection-end-column="59" />
-          <folding>
-            <element signature="e#0#41#0" expanded="false" />
-          </folding>
         </state>
       </provider>
     </entry>
@@ -1935,7 +680,6 @@
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="218">
           <caret line="72" column="98" lean-forward="false" selection-start-line="72" selection-start-column="98" selection-end-line="72" selection-end-column="98" />
-          <folding />
         </state>
       </provider>
     </entry>
@@ -1943,7 +687,6 @@
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="225">
           <caret line="15" column="25" lean-forward="true" selection-start-line="15" selection-start-column="25" selection-end-line="15" selection-end-column="25" />
-          <folding />
         </state>
       </provider>
     </entry>
@@ -1951,7 +694,6 @@
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="165">
           <caret line="17" column="0" lean-forward="false" selection-start-line="17" selection-start-column="0" selection-end-line="40" selection-end-column="6" />
-          <folding />
         </state>
       </provider>
     </entry>
@@ -1959,7 +701,6 @@
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="60">
           <caret line="4" column="0" lean-forward="false" selection-start-line="4" selection-start-column="0" selection-end-line="4" selection-end-column="0" />
-          <folding />
         </state>
       </provider>
     </entry>
@@ -1967,7 +708,6 @@
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="60">
           <caret line="4" column="0" lean-forward="false" selection-start-line="4" selection-start-column="0" selection-end-line="4" selection-end-column="0" />
-          <folding />
         </state>
       </provider>
     </entry>
@@ -1975,7 +715,6 @@
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="0">
           <caret line="0" column="35" lean-forward="false" selection-start-line="0" selection-start-column="35" selection-end-line="0" selection-end-column="35" />
-          <folding />
         </state>
       </provider>
     </entry>
@@ -1983,7 +722,6 @@
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="30">
           <caret line="2" column="48" lean-forward="false" selection-start-line="2" selection-start-column="48" selection-end-line="2" selection-end-column="48" />
-          <folding />
         </state>
       </provider>
     </entry>
@@ -1991,7 +729,6 @@
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="0">
           <caret line="0" column="35" lean-forward="false" selection-start-line="0" selection-start-column="35" selection-end-line="0" selection-end-column="35" />
-          <folding />
         </state>
       </provider>
     </entry>
@@ -1999,7 +736,6 @@
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="30">
           <caret line="2" column="48" lean-forward="false" selection-start-line="2" selection-start-column="48" selection-end-line="2" selection-end-column="48" />
-          <folding />
         </state>
       </provider>
     </entry>
@@ -2007,9 +743,6 @@
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="375">
           <caret line="25" column="96" lean-forward="false" selection-start-line="25" selection-start-column="96" selection-end-line="25" selection-end-column="96" />
-          <folding>
-            <element signature="e#0#32#0" expanded="false" />
-          </folding>
         </state>
       </provider>
     </entry>
@@ -2017,26 +750,13 @@
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="150">
           <caret line="10" column="91" lean-forward="false" selection-start-line="10" selection-start-column="91" selection-end-line="10" selection-end-column="91" />
-          <folding>
-            <element signature="e#0#32#0" expanded="false" />
-          </folding>
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/ietf/codestand/requests/urls.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="165">
-          <caret line="11" column="66" lean-forward="false" selection-start-line="11" selection-start-column="66" selection-end-line="11" selection-end-column="66" />
-          <folding>
-            <element signature="e#0#32#0" expanded="false" />
-          </folding>
         </state>
       </provider>
     </entry>
     <entry file="file://$PROJECT_DIR$/ietf/codestand/constants.py">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="121">
-          <caret line="69" column="3" lean-forward="true" selection-start-line="69" selection-start-column="3" selection-end-line="69" selection-end-column="3" />
+        <state relative-caret-position="1035">
+          <caret line="69" column="3" lean-forward="false" selection-start-line="69" selection-start-column="3" selection-end-line="69" selection-end-column="3" />
           <folding />
         </state>
       </provider>
@@ -2045,16 +765,37 @@
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="0">
           <caret line="0" column="0" lean-forward="false" selection-start-line="0" selection-start-column="0" selection-end-line="0" selection-end-column="0" />
-          <folding>
-            <element signature="e#0#9#0" expanded="true" />
-          </folding>
         </state>
       </provider>
     </entry>
     <entry file="file://$PROJECT_DIR$/ietf/doc/models.py">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="205">
-          <caret line="24" column="20" lean-forward="true" selection-start-line="24" selection-start-column="20" selection-end-line="24" selection-end-column="20" />
+        <state relative-caret-position="330">
+          <caret line="22" column="26" lean-forward="false" selection-start-line="22" selection-start-column="26" selection-end-line="22" selection-end-column="26" />
+          <folding />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/ietf/codestand/requests/urls.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="0">
+          <caret line="1" column="41" lean-forward="true" selection-start-line="1" selection-start-column="41" selection-end-line="1" selection-end-column="41" />
+          <folding />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/ietf/codestand/requests/views.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="270">
+          <caret line="31" column="0" lean-forward="false" selection-start-line="31" selection-start-column="0" selection-end-line="32" selection-end-column="21" />
+          <folding />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/ietf/codestand/matches/views.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="2670">
+          <caret line="190" column="30" lean-forward="false" selection-start-line="190" selection-start-column="30" selection-end-line="190" selection-end-column="30" />
           <folding />
         </state>
       </provider>

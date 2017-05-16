@@ -21,5 +21,5 @@ urlpatterns = [
     url(r'^remove_tag/(?P<pk>[0-9]+)/(?P<tag_name>.+)$', views.remove_tag, name="ietf.codestand.requests.views.remove_tag"),
     url(r'^search/$', views.search, name="ietf.codestand.requests.views.search"),
     url(r'^search/(?P<type_list>.*)$', views.search, name="ietf.codestand.requests.views.search"),
-    url(r'^(?P<pk>[0-9]+)/$', views.show, name='ietf.codestand.requests.views.show'),
+    url(r'^(?P<pk>[0-9]+)/$', views.show, name="ietf.codestand.requests.views.show"),
 ]

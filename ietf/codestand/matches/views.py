@@ -28,6 +28,8 @@ def show_list(request, is_my_list="False", att=constants.ATT_CREATION_DATE, stat
     user_id = None
     if user:
         user_id = int(user.id)
+    elif is_my_list != 'False':
+        raise Http404
     all_ids = None
     if state == "True" and constants.ALL_PROJECTS in request.session:
         all_projects = request.session[constants.ALL_PROJECTS]
