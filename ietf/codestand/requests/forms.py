@@ -1,5 +1,5 @@
 from django import forms
-from django.forms import ModelForm
+from django.forms import ModelForm, TextInput
 from ietf.codestand.requests.models import CodeRequest
 from ietf.codestand.matches.models import ProjectTag
 from ietf.person.fields import SearchablePersonField
@@ -19,9 +19,18 @@ class TagForm(ModelForm):
     class Meta:
         model = ProjectTag
         fields = ["name"]
+        
+        widgets = {
+            'name': TextInput(attrs={'placeholder': 'Enter tag here'})
+        }
 
 
 class CodeRequestForm(ModelForm):
     class Meta:
         model = CodeRequest
         fields = ["mentor", "estimated_lof", "additional_information"]
+        
+        widgets = {
+            'mentor': TextInput(attrs={'placeholder':'Enter mentor here'}),
+            'additional_information': TextInput(attrs={'placeholder': 'Enter additional information here'})
+        }

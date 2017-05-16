@@ -35,10 +35,9 @@
 import os, datetime, urllib, json, glob, re
 
 from django.http import HttpResponse, Http404 , HttpResponseForbidden
-from django.shortcuts import render, render_to_response, get_object_or_404, redirect
-from django.template import RequestContext
+from django.shortcuts import render, get_object_or_404, redirect
 from django.template.loader import render_to_string
-from django.core.urlresolvers import reverse as urlreverse
+from django.urls import reverse as urlreverse
 from django.conf import settings
 from django import forms
 
@@ -50,11 +49,11 @@ from ietf.doc.models import ( Document, DocAlias, DocHistory, DocEvent, BallotDo
 from ietf.doc.utils import ( add_links_in_new_revision_events, augment_events_with_revision,
     can_adopt_draft, get_chartering_type, get_document_content, get_tags_for_stream_id,
     needed_ballot_positions, nice_consensus, prettify_std_name, update_telechat, has_same_ballot,
-    get_initial_notify, make_notify_changed_event, crawl_history, default_consensus,
-    add_events_message_info, get_unicode_document_content)
+    get_initial_notify, make_notify_changed_event, make_rev_history, default_consensus,
+    add_events_message_info, get_unicode_document_content, build_doc_meta_block)
 from ietf.community.utils import augment_docs_with_tracking_info
 from ietf.group.models import Role
-from ietf.group.utils import can_manage_group, can_manage_materials
+from ietf.group.utils import can_manage_group_type, can_manage_materials
 from ietf.ietfauth.utils import has_role, is_authorized_in_doc_stream, user_is_person, role_required
 from ietf.name.models import StreamName, BallotPositionName
 from ietf.person.models import Email
@@ -68,21 +67,22 @@ from ietf.review.models import ReviewRequest
 from ietf.review.utils import can_request_review_of_doc, review_requests_to_list_for_docs
 from ietf.review.utils import no_review_from_teams_on_doc
 
+
 def render_document_top(request, doc, tab, name):
     tabs = []
-    tabs.append(("Document", "document", urlreverse("doc_view", kwargs=dict(name=name)), True))
+    tabs.append(("Status", "status", urlreverse("ietf.doc.views_doc.document_main", kwargs=dict(name=name)), True, None))
 
     ballot = doc.latest_event(BallotDocEvent, type="created_ballot")
     if doc.type_id in ("draft","conflrev", "statchg"):
-        tabs.append(("IESG Evaluation Record", "ballot", urlreverse("doc_ballot", kwargs=dict(name=name)), ballot,  None if ballot else "IESG Evaluation Ballot has not been created yet"))
+        tabs.append(("IESG Evaluation Record", "ballot", urlreverse("ietf.doc.views_doc.document_ballot", kwargs=dict(name=name)), ballot,  None if ballot else "IESG Evaluation Ballot has not been created yet"))
     elif doc.type_id == "charter" and doc.group.type_id == "wg":
-        tabs.append(("IESG Review", "ballot", urlreverse("doc_ballot", kwargs=dict(name=name)), ballot, None if ballot else "IESG Review Ballot has not been created yet"))
+        tabs.append(("IESG Review", "ballot", urlreverse("ietf.doc.views_doc.document_ballot", kwargs=dict(name=name)), ballot, None if ballot else "IESG Review Ballot has not been created yet"))
 
     if doc.type_id == "draft" or (doc.type_id == "charter" and doc.group.type_id == "wg"):
-        tabs.append(("IESG Writeups", "writeup", urlreverse("doc_writeup", kwargs=dict(name=name)), True))
+        tabs.append(("IESG Writeups", "writeup", urlreverse('ietf.doc.views_doc.document_writeup', kwargs=dict(name=name)), True, None))
 
-    tabs.append(("Email expansions","email",urlreverse("doc_email", kwargs=dict(name=name)), True))
-    tabs.append(("History", "history", urlreverse("doc_history", kwargs=dict(name=name)), True))
+    tabs.append(("Email expansions","email",urlreverse('ietf.doc.views_doc.document_email', kwargs=dict(name=name)), True, None))
+    tabs.append(("History", "history", urlreverse('ietf.doc.views_doc.document_history', kwargs=dict(name=name)), True, None))
 
     if name.startswith("rfc"):
         name = "RFC %s" % name[3:]
@@ -104,7 +104,7 @@ def document_main(request, name, rev=None):
     if rev==None and doc.type_id == "draft" and not name.startswith("rfc"):
         for a in aliases:
             if a.startswith("rfc"):
-                return redirect("doc_view", name=a)
+                return redirect("ietf.doc.views_doc.document_main", name=a)
 
     if doc.type_id == 'conflrev':
         conflictdoc = doc.related_that_doc('conflrev')[0].document
@@ -121,7 +121,7 @@ def document_main(request, name, rev=None):
 
     if rev != None:
         if rev == doc.rev:
-            return redirect('doc_view', name=name)
+            return redirect('ietf.doc.views_doc.document_main', name=name)
 
         # find the entry in the history
         for h in doc.history_set.order_by("-time"):
@@ -131,7 +131,7 @@ def document_main(request, name, rev=None):
                 break
 
         if not snapshot:
-            return redirect('doc_view', name=name)
+            return redirect('ietf.doc.views_doc.document_main', name=name)
 
         if doc.type_id == "charter":
             # find old group, too
@@ -142,7 +142,7 @@ def document_main(request, name, rev=None):
     # set this after we've found the right doc instance
     group = doc.group
 
-    top = render_document_top(request, doc, "document", name)
+    top = render_document_top(request, doc, "status", name)
 
 
     telechat = doc.latest_event(TelechatDocEvent, type="scheduled_for_telechat")
@@ -159,7 +159,7 @@ def document_main(request, name, rev=None):
         can_edit = has_role(request.user, ("Area Director", "Secretariat"))
         stream_slugs = StreamName.objects.values_list("slug", flat=True)
         can_change_stream = bool(can_edit or (
-                request.user.is_authenticated() and
+                request.user.is_authenticated and
                 Role.objects.filter(name__in=("chair", "secr", "auth", "delegate"),
                                     group__acronym__in=stream_slugs,
                                     person__user=request.user)))
@@ -261,7 +261,7 @@ def document_main(request, name, rev=None):
         elif group.type_id in ("rg", "wg"):
             submission = "%s %s" % (group.acronym, group.type)
             if group.type_id == "wg":
-                submission = "<a href=\"%s\">%s</a>" % (urlreverse("group_home", kwargs=dict(group_type=group.type_id, acronym=group.acronym)), submission)
+                submission = "<a href=\"%s\">%s</a>" % (urlreverse("ietf.group.views.group_home", kwargs=dict(group_type=group.type_id, acronym=group.acronym)), submission)
             if doc.stream_id and doc.get_state_slug("draft-stream-%s" % doc.stream_id) == "c-adopt":
                 submission = "candidate for %s" % submission
 
@@ -322,20 +322,20 @@ def document_main(request, name, rev=None):
         actions = []
 
         if can_adopt_draft(request.user, doc) and not doc.get_state_slug() in ["rfc"] and not snapshot:
-            actions.append(("Manage Document Adoption in Group", urlreverse('doc_adopt_draft', kwargs=dict(name=doc.name))))
+            actions.append(("Manage Document Adoption in Group", urlreverse('ietf.doc.views_draft.adopt_draft', kwargs=dict(name=doc.name))))
 
         if doc.get_state_slug() == "expired" and not resurrected_by and can_edit and not snapshot:
-            actions.append(("Request Resurrect", urlreverse('doc_request_resurrect', kwargs=dict(name=doc.name))))
+            actions.append(("Request Resurrect", urlreverse('ietf.doc.views_draft.request_resurrect', kwargs=dict(name=doc.name))))
 
         if doc.get_state_slug() == "expired" and has_role(request.user, ("Secretariat",)) and not snapshot:
-            actions.append(("Resurrect", urlreverse('doc_resurrect', kwargs=dict(name=doc.name))))
+            actions.append(("Resurrect", urlreverse('ietf.doc.views_draft.resurrect', kwargs=dict(name=doc.name))))
 
         if (doc.get_state_slug() not in ["rfc", "expired"] and doc.stream_id in ("ise", "irtf")
             and can_edit_stream_info and not conflict_reviews and not snapshot):
             label = "Begin IETF Conflict Review"
             if not doc.intended_std_level:
                 label += " (note that intended status is not set)"
-            actions.append((label, urlreverse('conflict_review_start', kwargs=dict(name=doc.name))))
+            actions.append((label, urlreverse('ietf.doc.views_conflict_review.start_review', kwargs=dict(name=doc.name))))
 
         if (doc.get_state_slug() not in ["rfc", "expired"] and doc.stream_id in ("iab", "ise", "irtf")
             and can_edit_stream_info and not snapshot):
@@ -345,13 +345,13 @@ def document_main(request, name, rev=None):
                     label += " (note that intended status is not set)"
                 if iesg_state and iesg_state.slug != 'dead':
                     label += " (Warning: the IESG state indicates ongoing IESG processing)"
-                actions.append((label, urlreverse('doc_request_publication', kwargs=dict(name=doc.name))))
+                actions.append((label, urlreverse('ietf.doc.views_draft.request_publication', kwargs=dict(name=doc.name))))
 
         if doc.get_state_slug() not in ["rfc", "expired"] and doc.stream_id in ("ietf",) and not snapshot:
             if not iesg_state and can_edit:
-                actions.append(("Begin IESG Processing", urlreverse('doc_edit_info', kwargs=dict(name=doc.name)) + "?new=1"))
+                actions.append(("Begin IESG Processing", urlreverse('ietf.doc.views_draft.edit_info', kwargs=dict(name=doc.name)) + "?new=1"))
             elif can_edit_stream_info and (not iesg_state or iesg_state.slug == 'watching'):
-                actions.append(("Submit to IESG for Publication", urlreverse('doc_to_iesg', kwargs=dict(name=doc.name))))
+                actions.append(("Submit to IESG for Publication", urlreverse('ietf.doc.views_draft.to_iesg', kwargs=dict(name=doc.name))))
 
         augment_docs_with_tracking_info([doc], request.user)
 
@@ -365,7 +365,7 @@ def document_main(request, name, rev=None):
         review_requests = review_requests_to_list_for_docs([doc]).get(doc.pk, [])
         no_review_from_teams = no_review_from_teams_on_doc(doc, rev or doc.rev)
 
-        return render_to_response("doc/document_draft.html",
+        return render(request, "doc/document_draft.html",
                                   dict(doc=doc,
                                        group=group,
                                        top=top,
@@ -427,8 +427,7 @@ def document_main(request, name, rev=None):
                                        presentations=presentations,
                                        review_requests=review_requests,
                                        no_review_from_teams=no_review_from_teams,
-                                       ),
-                                  context_instance=RequestContext(request))
+                                       ))
 
     if doc.type_id == "charter":
         filename = "%s-%s.txt" % (doc.canonical_name(), doc.rev)
@@ -450,9 +449,9 @@ def document_main(request, name, rev=None):
         if chartering and not snapshot:
             milestones = doc.group.groupmilestone_set.filter(state="charter")
 
-        can_manage = can_manage_group(request.user, doc.group)
+        can_manage = can_manage_group_type(request.user, doc.group)
 
-        return render_to_response("doc/document_charter.html",
+        return render(request, "doc/document_charter.html",
                                   dict(doc=doc,
                                        top=top,
                                        chartering=chartering,
@@ -466,8 +465,7 @@ def document_main(request, name, rev=None):
                                        group=group,
                                        milestones=milestones,
                                        can_manage=can_manage,
-                                       ),
-                                  context_instance=RequestContext(request))
+                                       ))
 
     if doc.type_id == "conflrev":
         filename = "%s-%s.txt" % (doc.canonical_name(), doc.rev)
@@ -483,7 +481,7 @@ def document_main(request, name, rev=None):
         if doc.get_state_slug() in ("iesgeval") and doc.active_ballot():
             ballot_summary = needed_ballot_positions(doc, doc.active_ballot().active_ad_positions().values())
 
-        return render_to_response("doc/document_conflict_review.html",
+        return render(request, "doc/document_conflict_review.html",
                                   dict(doc=doc,
                                        top=top,
                                        content=content,
@@ -494,8 +492,7 @@ def document_main(request, name, rev=None):
                                        conflictdoc=conflictdoc,
                                        ballot_summary=ballot_summary,
                                        approved_states=('appr-reqnopub-pend','appr-reqnopub-sent','appr-noprob-pend','appr-noprob-sent'),
-                                       ),
-                                  context_instance=RequestContext(request))
+                                       ))
 
     if doc.type_id == "statchg":
         filename = "%s-%s.txt" % (doc.canonical_name(), doc.rev)
@@ -518,7 +515,7 @@ def document_main(request, name, rev=None):
         else:
             sorted_relations=None
 
-        return render_to_response("doc/document_status_change.html",
+        return render(request, "doc/document_status_change.html",
                                   dict(doc=doc,
                                        top=top,
                                        content=content,
@@ -529,8 +526,7 @@ def document_main(request, name, rev=None):
                                        ballot_summary=ballot_summary,
                                        approved_states=('appr-pend','appr-sent'),
                                        sorted_relations=sorted_relations,
-                                       ),
-                                  context_instance=RequestContext(request))
+                                       ))
 
     # TODO : Add "recording", and "bluesheets" here when those documents are appropriately
     #        created and content is made available on disk
@@ -564,7 +560,7 @@ def document_main(request, name, rev=None):
 
             other_types.append((t, url))
 
-        return render_to_response("doc/document_material.html",
+        return render(request, "doc/document_material.html",
                                   dict(doc=doc,
                                        top=top,
                                        content=content,
@@ -575,8 +571,7 @@ def document_main(request, name, rev=None):
                                        in_group_materials_types = doc.group and doc.group.features.has_materials and doc.type_id in doc.group.features.material_types,
                                        other_types=other_types,
                                        presentations=presentations,
-                                       ),
-                                  context_instance=RequestContext(request))
+                                       ))
 
 
     if doc.type_id == "review":
@@ -603,8 +598,45 @@ def document_main(request, name, rev=None):
                            other_reviews=other_reviews,
                       ))
 
-    raise Http404
+    raise Http404("Document not found: %s" % (name + ("-%s"%rev if rev else "")))
 
+
+def document_html(request, name, rev=None):
+    if name.startswith('rfc0'):
+        name = "rfc" + name[3:].lstrip('0')
+    if name.startswith('review-') and re.search('-\d\d\d\d-\d\d$', name):
+        name = "%s-%s" % (name, rev)
+    if rev and not name.startswith('charter-') and re.search('[0-9]{1,2}-[0-9]{2}', rev):
+        name = "%s-%s" % (name, rev[:-3])
+        rev = rev[-2:]
+    docs = Document.objects.filter(docalias__name=name)
+    if rev and not docs.exists():
+        # handle some special cases, like draft-ietf-tsvwg-ieee-802-11
+        name = '%s-%s' % (name, rev)
+        rev=None
+        docs = Document.objects.filter(docalias__name=name)
+    if not docs.exists():
+        raise Http404("Document not found: %s" % name)
+    if docs.count() > 1:
+        raise Http404("Multiple documents matched: %s" % name)
+
+    doc = docs.get()
+    if not os.path.exists(doc.get_file_name()):
+        raise Http404("Document not found: %s" % doc.get_base_name())
+
+    top = render_document_top(request, doc, "status", name)
+    if not rev and not name.startswith('rfc'):
+        rev = doc.rev
+    if rev:
+        docs = DocHistory.objects.filter(doc=doc, rev=rev)
+        if docs.exists():
+            doc = docs.first()
+        else:
+            doc = doc.fake_history_obj(rev)
+    if doc.type_id in ['draft',]:
+        doc.meta = build_doc_meta_block(doc, settings.HTMLIZER_URL_PREFIX)
+
+    return render(request, "doc/document_html.html", {"doc":doc, "top":top, "navbar_mode":"navbar-static-top",  })
 
 def check_doc_email_aliases():
     pattern = re.compile('^expand-(.*?)(\..*?)?@.*? +(.*)$')
@@ -679,7 +711,7 @@ def document_history(request, name):
 
             url = ""
             if name.startswith("charter"):
-                url = request.build_absolute_uri(urlreverse("charter_with_milestones_txt", kwargs=dict(name=e.doc.name, rev=e.rev)))
+                url = request.build_absolute_uri(urlreverse('ietf.doc.views_charter.charter_with_milestones_txt', kwargs=dict(name=e.doc.name, rev=e.rev)))
             elif name.startswith("conflict-review"):
                 url = find_history_active_at(e.doc, e.time).href()
             elif name.startswith("status-change"):
@@ -700,21 +732,20 @@ def document_history(request, name):
     # figure out if the current user can add a comment to the history
     if doc.type_id == "draft" and doc.group != None:
         can_add_comment = bool(has_role(request.user, ("Area Director", "Secretariat", "IRTF Chair", "IANA", "RFC Editor")) or (
-            request.user.is_authenticated() and
+            request.user.is_authenticated and
             Role.objects.filter(name__in=("chair", "secr"),
                 group__acronym=doc.group.acronym,
                 person__user=request.user)))
     else:
         can_add_comment = has_role(request.user, ("Area Director", "Secretariat", "IRTF Chair"))
 
-    return render_to_response("doc/document_history.html",
+    return render(request, "doc/document_history.html",
                               dict(doc=doc,
                                    top=top,
                                    diff_revisions=diff_revisions,
                                    events=events,
                                    can_add_comment=can_add_comment,
-                                   ),
-                              context_instance=RequestContext(request))
+                                   ))
 
 
 def document_bibtex(request, name, rev=None):
@@ -732,14 +763,14 @@ def document_bibtex(request, name, rev=None):
                 doc = h
                 break
 
-    return render_to_response("doc/document_bibtex.bib",
+    return render(request, "doc/document_bibtex.bib",
                               dict(doc=doc,
                                    replaced_by=replaced_by,
                                    published=published,
                                    rfc=rfc,
                                    latest_revision=latest_revision),
                               content_type="text/plain; charset=utf-8",
-                              context_instance=RequestContext(request))
+                          )
 
 
 def document_writeup(request, name):
@@ -763,15 +794,15 @@ def document_writeup(request, name):
         if doc.get_state("draft-iesg"):
             writeups.append(("Announcement",
                              text_from_writeup("changed_ballot_approval_text"),
-                             urlreverse("doc_ballot_approvaltext", kwargs=dict(name=doc.name))))
+                             urlreverse('ietf.doc.views_ballot.ballot_approvaltext', kwargs=dict(name=doc.name))))
 
         writeups.append(("Ballot Text",
                          text_from_writeup("changed_ballot_writeup_text"),
-                         urlreverse("doc_ballot_writeupnotes", kwargs=dict(name=doc.name))))
+                         urlreverse('ietf.doc.views_ballot.ballot_writeupnotes', kwargs=dict(name=doc.name))))
 
         writeups.append(("RFC Editor Note",
                          text_from_writeup("changed_rfc_editor_note_text"),
-                         urlreverse("doc_ballot_rfceditornote", kwargs=dict(name=doc.name))))
+                         urlreverse('ietf.doc.views_ballot.ballot_rfceditornote', kwargs=dict(name=doc.name))))
 
     elif doc.type_id == "charter":
         sections.append(("WG Review Announcement",
@@ -799,13 +830,12 @@ def document_writeup(request, name):
     if not sections:
         raise Http404
 
-    return render_to_response("doc/document_writeup.html",
+    return render(request, "doc/document_writeup.html",
                               dict(doc=doc,
                                    top=top,
                                    sections=sections,
                                    can_edit=has_role(request.user, ("Area Director", "Secretariat")),
-                                   ),
-                              context_instance=RequestContext(request))
+                                   ))
 
 def document_shepherd_writeup(request, name):
     doc = get_object_or_404(Document, docalias__name=name)
@@ -818,17 +848,17 @@ def document_shepherd_writeup(request, name):
     can_edit_stream_info = is_authorized_in_doc_stream(request.user, doc)
     can_edit_shepherd_writeup = can_edit_stream_info or user_is_person(request.user, doc.shepherd and doc.shepherd.person) or has_role(request.user, ["Area Director"])
 
-    return render_to_response("doc/shepherd_writeup.html",
+    return render(request, "doc/shepherd_writeup.html",
                                dict(doc=doc,
                                     writeup=writeup_text,
                                     can_edit=can_edit_shepherd_writeup
                                    ),
-                              context_instance=RequestContext(request))
+                              )
 
 def document_references(request, name):
     doc = get_object_or_404(Document,docalias__name=name)
     refs = doc.relations_that_doc(['refnorm','refinfo','refunk','refold'])
-    return render_to_response("doc/document_references.html",dict(doc=doc,refs=sorted(refs,key=lambda x:x.target.name),),context_instance=RequestContext(request))
+    return render(request, "doc/document_references.html",dict(doc=doc,refs=sorted(refs,key=lambda x:x.target.name),))
 
 def document_referenced_by(request, name):
     doc = get_object_or_404(Document,docalias__name=name)
@@ -840,13 +870,12 @@ def document_referenced_by(request, name):
     else:
        numdocs=None
     refs=sorted(refs,key=lambda x:(['refnorm','refinfo','refunk','refold'].index(x.relationship.slug),x.source.canonical_name()))
-    return render_to_response("doc/document_referenced_by.html",
+    return render(request, "doc/document_referenced_by.html",
                dict(alias_name=name,
                     doc=doc,
                     numdocs=numdocs,
                     refs=refs,
-                    ),
-               context_instance=RequestContext(request))
+                    ))
 
 def document_ballot_content(request, doc, ballot_id, editable=True):
     """Render HTML string with content of ballot page."""
@@ -903,7 +932,7 @@ def document_ballot_content(request, doc, ballot_id, editable=True):
                                    summary=summary,
                                    all_ballots=all_ballots,
                                    ),
-                              context_instance=RequestContext(request))
+                              request=request)
 
 def document_ballot(request, name, ballot_id=None):
     doc = get_object_or_404(Document, docalias__name=name)
@@ -913,22 +942,20 @@ def document_ballot(request, name, ballot_id=None):
 
     request.session['ballot_edit_return_point'] = request.path_info
 
-    return render_to_response("doc/document_ballot.html",
+    return render(request, "doc/document_ballot.html",
                               dict(doc=doc,
                                    top=top,
                                    ballot_content=c,
-                                   ),
-                              context_instance=RequestContext(request))
+                                   ))
 
 def ballot_popup(request, name, ballot_id):
     doc = get_object_or_404(Document, docalias__name=name)
     c = document_ballot_content(request, doc, ballot_id=ballot_id, editable=False)
-    return render_to_response("doc/ballot_popup.html",
+    return render(request, "doc/ballot_popup.html",
                               dict(doc=doc,
                                    ballot_content=c,
                                    ballot_id=ballot_id,
-                                   ),
-                              context_instance=RequestContext(request))
+                                   ))
 
 
 def document_json(request, name, rev=None):
@@ -966,7 +993,7 @@ def document_json(request, name, rev=None):
     data["ad"] = doc.ad.role_email("ad").formatted_email() if doc.ad else None
 
     latest_revision = doc.latest_event(NewRevisionDocEvent, type="new_revision")
-    data["rev_history"] = crawl_history(latest_revision.doc if latest_revision else doc)
+    data["rev_history"] = make_rev_history(latest_revision.doc if latest_revision else doc)
 
     if doc.type_id == "draft":
         data["iesg_state"] = extract_name(doc.get_state("draft-iesg"))
@@ -982,7 +1009,7 @@ def document_json(request, name, rev=None):
     return HttpResponse(json.dumps(data, indent=2), content_type='application/json')
 
 class AddCommentForm(forms.Form):
-    comment = forms.CharField(required=True, widget=forms.Textarea)
+    comment = forms.CharField(required=True, widget=forms.Textarea, strip=False)
 
 @role_required('Area Director', 'Secretariat', 'IRTF Chair', 'WG Chair', 'RG Chair', 'WG Secretary', 'RG Secretary', 'IANA', 'RFC Editor')
 def add_comment(request, name):
@@ -993,7 +1020,7 @@ def add_comment(request, name):
 
     if doc.type_id == "draft" and doc.group != None:
         can_add_comment = bool(has_role(request.user, ("Area Director", "Secretariat", "IRTF Chair", "IANA", "RFC Editor")) or (
-            request.user.is_authenticated() and
+            request.user.is_authenticated and
             Role.objects.filter(name__in=("chair", "secr"),
                 group__acronym=doc.group.acronym,
                 person__user=request.user)))
@@ -1008,21 +1035,20 @@ def add_comment(request, name):
         if form.is_valid():
             c = form.cleaned_data['comment']
             
-            e = DocEvent(doc=doc, by=login)
+            e = DocEvent(doc=doc, rev=doc.rev, by=login)
             e.type = "added_comment"
             e.desc = c
             e.save()
 
             email_comment(request, doc, e)
 
-            return redirect("doc_history", name=doc.name)
+            return redirect('ietf.doc.views_doc.document_history', name=doc.name)
     else:
         form = AddCommentForm()
   
-    return render_to_response('doc/add_comment.html',
+    return render(request, 'doc/add_comment.html',
                               dict(doc=doc,
-                                   form=form),
-                              context_instance=RequestContext(request))
+                                   form=form))
 
 @role_required("Area Director", "Secretariat")
 def telechat_date(request, name):
@@ -1055,7 +1081,7 @@ def telechat_date(request, name):
             else:
                 cleaned_returning_item = form.cleaned_data['returning_item']
             update_telechat(request, doc, login, form.cleaned_data['telechat_date'],cleaned_returning_item)
-            return redirect('doc_view', name=doc.name)
+            return redirect('ietf.doc.views_doc.document_main', name=doc.name)
     else:
         form = TelechatForm(initial=initial)
         if doc.type.slug=='charter':
@@ -1089,7 +1115,7 @@ def edit_notify(request, name):
                     e = make_notify_changed_event(request, doc, login.person, new_notify)
                     doc.notify = new_notify
                     doc.save_with_history([e])
-                return redirect('doc_view', name=doc.name)
+                return redirect('ietf.doc.views_doc.document_main', name=doc.name)
 
         elif "regenerate_addresses" in request.POST:
             init = { "notify" : get_initial_notify(doc) }
@@ -1109,19 +1135,19 @@ def edit_notify(request, name):
         titletext = 'the conflict review of %s' % conflictdoc.canonical_name()
     else:
         titletext = '%s' % doc.canonical_name()
-    return render_to_response('doc/edit_notify.html',
+    return render(request, 'doc/edit_notify.html',
                               {'form':   form,
                                'doc': doc,
                                'titletext': titletext,
                               },
-                              context_instance = RequestContext(request))
+                          )
 
 def email_aliases(request,name=''):
     doc = get_object_or_404(Document, name=name) if name else None
     if not name:
         # require login for the overview page, but not for the
         # document-specific pages 
-        if not request.user.is_authenticated():
+        if not request.user.is_authenticated:
                 return redirect('%s?next=%s' % (settings.LOGIN_URL, request.path))
     aliases = get_doc_email_aliases(name)
 
@@ -1157,7 +1183,7 @@ def edit_sessionpresentation(request,name,session_id):
             new_selection = form.cleaned_data['version']
             if initial['version'] != new_selection:
                 doc.sessionpresentation_set.filter(pk=sp.pk).update(rev=None if new_selection=='current' else new_selection)
-                c = DocEvent(type="added_comment", doc=doc, by=request.user.person)
+                c = DocEvent(type="added_comment", doc=doc, rev=doc.rev, by=request.user.person)
                 c.desc = "Revision for session %s changed to  %s" % (sp.session,new_selection)
                 c.save()
             return redirect('ietf.doc.views_doc.all_presentations', name=name)
@@ -1178,7 +1204,7 @@ def remove_sessionpresentation(request,name,session_id):
 
     if request.method == 'POST':
         doc.sessionpresentation_set.filter(pk=sp.pk).delete()
-        c = DocEvent(type="added_comment", doc=doc, by=request.user.person)
+        c = DocEvent(type="added_comment", doc=doc, rev=doc.rev, by=request.user.person)
         c.desc = "Removed from session: %s" % (sp.session)
         c.save()
         return redirect('ietf.doc.views_doc.all_presentations', name=name)
@@ -1215,7 +1241,7 @@ def add_sessionpresentation(request,name):
             version = version_form.cleaned_data['version']
             rev = None if version=='current' else version
             doc.sessionpresentation_set.create(session_id=session_id,rev=rev)
-            c = DocEvent(type="added_comment", doc=doc, by=request.user.person)
+            c = DocEvent(type="added_comment", doc=doc, rev=doc.rev, by=request.user.person)
             c.desc = "%s to session: %s" % ('Added -%s'%rev if rev else 'Added', Session.objects.get(pk=session_id))
             c.save()
             return redirect('ietf.doc.views_doc.all_presentations', name=name)

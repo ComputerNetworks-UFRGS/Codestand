@@ -2,7 +2,7 @@ import os, datetime, textwrap, json
 
 from django.http import HttpResponseRedirect, HttpResponseNotFound, HttpResponseForbidden, Http404
 from django.shortcuts import get_object_or_404, redirect, render
-from django.core.urlresolvers import reverse as urlreverse
+from django.urls import reverse as urlreverse
 from django import forms
 from django.utils.safestring import mark_safe
 from django.conf import settings
@@ -24,7 +24,7 @@ from ietf.doc.utils_charter import ( historic_milestones_for_charter,
     split_charter_name)
 from ietf.doc.mails import email_state_changed, email_charter_internal_review
 from ietf.group.models import Group, ChangeStateGroupEvent, MilestoneGroupEvent
-from ietf.group.utils import save_group_in_history, save_milestone_in_history, can_manage_group
+from ietf.group.utils import save_group_in_history, save_milestone_in_history, can_manage_group_type
 from ietf.ietfauth.utils import has_role, role_required
 from ietf.name.models import GroupStateName
 from ietf.person.models import Person
@@ -37,8 +37,8 @@ from ietf.group.views import fill_in_charter_info
 class ChangeStateForm(forms.Form):
     charter_state = forms.ModelChoiceField(State.objects.filter(used=True, type="charter"), label="Charter state", empty_label=None, required=False)
     initial_time = forms.IntegerField(initial=0, label="Review time", help_text="(in weeks)", required=False)
-    message = forms.CharField(widget=forms.Textarea, help_text="Leave blank to change state without notifying the Secretariat.", required=False, label=mark_safe("Message to the Secretariat"))
-    comment = forms.CharField(widget=forms.Textarea, help_text="Optional comment for the charter history.", required=False)
+    message = forms.CharField(widget=forms.Textarea, help_text="Leave blank to change state without notifying the Secretariat.", required=False, label=mark_safe("Message to the Secretariat"), strip=False)
+    comment = forms.CharField(widget=forms.Textarea, help_text="Optional comment for the charter history.", required=False, strip=False)
     def __init__(self, *args, **kwargs):
         self.hide = kwargs.pop('hide', None)
         group = kwargs.pop('group')
@@ -60,7 +60,7 @@ def change_state(request, name, option=None):
     charter = get_object_or_404(Document, type="charter", name=name)
     group = charter.group
 
-    if not can_manage_group(request.user, group):
+    if not can_manage_group_type(request.user, group):
         return HttpResponseForbidden("You don't have permission to access this view")
 
     chartering_type = get_chartering_type(charter)
@@ -131,13 +131,13 @@ def change_state(request, name, option=None):
                     close_open_ballots(charter, by)
 
                     # Special log for abandoned efforts
-                    e = DocEvent(type="changed_document", doc=charter, by=by)
+                    e = DocEvent(type="changed_document", doc=charter, rev=charter.rev, by=by)
                     e.desc = "Chartering effort abandoned"
                     e.save()
                     events.append(e)
 
                 if comment:
-                    events.append(DocEvent.objects.create(type="added_comment", doc=charter, by=by, desc=comment))
+                    events.append(DocEvent.objects.create(type="added_comment", doc=charter, rev=charter.rev, by=by, desc=comment))
 
                 charter.save_with_history(events)
 
@@ -167,12 +167,12 @@ def change_state(request, name, option=None):
                     fix_charter_revision_after_approval(charter, by)
 
             if charter_state.slug == "infrev" and clean["initial_time"] and clean["initial_time"] != 0:
-                e = InitialReviewDocEvent(type="initial_review", by=by, doc=charter)
+                e = InitialReviewDocEvent(type="initial_review", by=by, doc=charter, rev=charter.rev)
                 e.expires = datetime.datetime.now() + datetime.timedelta(weeks=clean["initial_time"])
                 e.desc = "Initial review time expires %s" % e.expires.strftime("%Y-%m-%d")
                 e.save()
 
-            return redirect('doc_view', name=charter.name)
+            return redirect('ietf.doc.views_doc.document_main', name=charter.name)
     else:
         hide = ['initial_time']
         s = charter.get_state()
@@ -233,8 +233,8 @@ def change_state(request, name, option=None):
 
 class ChangeTitleForm(forms.Form):
     charter_title = forms.CharField(widget=forms.TextInput, label="Charter title", help_text="Enter new charter title.", required=True)
-    message = forms.CharField(widget=forms.Textarea, help_text="Leave blank to change the title without notifying the Secretariat.", required=False, label=mark_safe("Message to Secretariat"))
-    comment = forms.CharField(widget=forms.Textarea, help_text="Optional comment for the charter history.", required=False)
+    message = forms.CharField(widget=forms.Textarea, help_text="Leave blank to change the title without notifying the Secretariat.", required=False, label=mark_safe("Message to Secretariat"), strip=False)
+    comment = forms.CharField(widget=forms.Textarea, help_text="Optional comment for the charter history.", required=False, strip=False)
     def __init__(self, *args, **kwargs):
         charter = kwargs.pop('charter')
         super(ChangeTitleForm, self).__init__(*args, **kwargs)
@@ -247,7 +247,7 @@ def change_title(request, name, option=None):
     logging the title as a comment."""
     charter = get_object_or_404(Document, type="charter", name=name)
     group = charter.group
-    if not can_manage_group(request.user, group):
+    if not can_manage_group_type(request.user, group):
         return HttpResponseForbidden("You don't have permission to access this view")
     by = request.user.person
     if request.method == 'POST':
@@ -266,7 +266,7 @@ def change_title(request, name, option=None):
 
                 if not comment:
                     comment = "Changed charter title from '%s' to '%s'." % (prev_title, new_title)
-                e = DocEvent(type="added_comment", doc=charter, by=by)
+                e = DocEvent(type="added_comment", doc=charter, rev=charter.rev, by=by)
                 e.desc = comment
                 e.save()
                 events.append(e)
@@ -276,7 +276,7 @@ def change_title(request, name, option=None):
                 if message:
                     email_admin_re_charter(request, group, "Charter title changed to %s" % new_title, message,'charter_state_edit_admin_needed')
                 email_state_changed(request, charter, "Title changed to %s." % new_title,'doc_state_edited')
-            return redirect('doc_view', name=charter.name)
+            return redirect('ietf.doc.views_doc.document_main', name=charter.name)
     else:
         form = ChangeTitleForm(charter=charter)
     title = "Change charter title of %s %s" % (group.acronym, group.type.name)
@@ -312,7 +312,7 @@ def edit_ad(request, name):
             new_ad = form.cleaned_data['ad']
             if new_ad != charter.ad:
                 events = []
-                e = DocEvent(doc=charter, by=by)
+                e = DocEvent(doc=charter, rev=charter.rev, by=by)
                 e.desc = "Responsible AD changed to %s" % new_ad.plain_name()
                 if charter.ad:
                    e.desc += " from %s" % charter.ad.plain_name()
@@ -323,7 +323,7 @@ def edit_ad(request, name):
                 charter.ad = new_ad
                 charter.save_with_history(events)
 
-            return redirect('doc_view', name=charter.name)
+            return redirect('ietf.doc.views_doc.document_main', name=charter.name)
     else:
         init = { "ad" : charter.ad_id }
         form = AdForm(initial=init)
@@ -335,7 +335,7 @@ def edit_ad(request, name):
 
 
 class UploadForm(forms.Form):
-    content = forms.CharField(widget=forms.Textarea, label="Charter text", help_text="Edit the charter text.", required=False)
+    content = forms.CharField(widget=forms.Textarea, label="Charter text", help_text="Edit the charter text.", required=False, strip=False)
     txt = forms.FileField(label=".txt format", help_text="Or upload a .txt file.", required=False)
 
     def clean_content(self):
@@ -360,7 +360,7 @@ def submit(request, name, option=None):
         charter_canonical_name = name
         charter_rev = "00-00"
 
-    if not can_manage_group(request.user, group) or not group.features.has_chartering_process:
+    if not can_manage_group_type(request.user, group) or not group.features.has_chartering_process:
         return HttpResponseForbidden("You don't have permission to access this view")
 
 
@@ -422,9 +422,9 @@ def submit(request, name, option=None):
             charter.save_with_history(events)
 
             if option:
-                return redirect('charter_startstop_process', name=charter.name, option=option)
+                return redirect('ietf.doc.views_charter.change_state', name=charter.name, option=option)
             else:
-                return redirect("doc_view", name=charter.name)
+                return redirect("ietf.doc.views_doc.document_main", name=charter.name)
     else:
         init = { "content": "" }
 
@@ -454,15 +454,15 @@ def submit(request, name, option=None):
     })
 
 class ActionAnnouncementTextForm(forms.Form):
-    announcement_text = forms.CharField(widget=forms.Textarea, required=True)
+    announcement_text = forms.CharField(widget=forms.Textarea, required=True, strip=False)
 
     def clean_announcement_text(self):
         return self.cleaned_data["announcement_text"].replace("\r", "")
 
 
 class ReviewAnnouncementTextForm(forms.Form):
-    announcement_text = forms.CharField(widget=forms.Textarea, required=True)
-    new_work_text = forms.CharField(widget=forms.Textarea, required=True)
+    announcement_text = forms.CharField(widget=forms.Textarea, required=True, strip=False)
+    new_work_text = forms.CharField(widget=forms.Textarea, required=True, strip=False)
 
     def clean_announcement_text(self):
         return self.cleaned_data["announcement_text"].replace("\r", "")
@@ -486,7 +486,7 @@ def review_announcement_text(request, name):
         raise Http404
 
     if not existing_new_work:
-        existing_new_work = WriteupDocEvent(doc=charter)
+        existing_new_work = WriteupDocEvent(doc=charter, rev=charter.rev)
         existing_new_work.by = by
         existing_new_work.type = "changed_new_work_text"
         existing_new_work.desc = "%s review text was changed" % group.type.name
@@ -504,7 +504,7 @@ def review_announcement_text(request, name):
 
             t = form.cleaned_data['announcement_text']
             if t != existing.text:
-                e = WriteupDocEvent(doc=charter)
+                e = WriteupDocEvent(doc=charter, rev=charter.rev)
                 e.by = by
                 e.type = "changed_review_announcement"
                 e.desc = "%s review text was changed" % (group.type.name)
@@ -518,7 +518,7 @@ def review_announcement_text(request, name):
 
             t = form.cleaned_data['new_work_text']
             if t != existing_new_work.text:
-                e = WriteupDocEvent(doc=charter)
+                e = WriteupDocEvent(doc=charter, rev=charter.rev)
                 e.by = by
                 e.type = "changed_new_work_text" 
                 e.desc = "%s new work message text was changed" % (group.type.name)
@@ -533,9 +533,9 @@ def review_announcement_text(request, name):
                 charter.save_with_history(events)
 
             if request.GET.get("next", "") == "approve":
-                return redirect('charter_approve', name=charter.canonical_name())
+                return redirect('ietf.doc.views_charter.approve', name=charter.canonical_name())
 
-            return redirect('doc_writeup', name=charter.canonical_name())
+            return redirect('ietf.doc.views_doc.document_writeup', name=charter.canonical_name())
 
         if "regenerate_text" in request.POST:
             (existing, existing_new_work) = default_review_text(group, charter, by)
@@ -551,11 +551,11 @@ def review_announcement_text(request, name):
             if any(x in request.POST for x in ['send_nw_only','send_both']):
                 parsed_msg = send_mail_preformatted(request, form.cleaned_data['new_work_text'])
                 messages.success(request, "The email To: '%s' with Subject: '%s' has been sent." % (parsed_msg["To"],parsed_msg["Subject"],))
-            return redirect('doc_writeup', name=charter.name)
+            return redirect('ietf.doc.views_doc.document_writeup', name=charter.name)
 
     return render(request, 'doc/charter/review_announcement_text.html',
                   dict(charter=charter,
-                       back_url=urlreverse("doc_writeup", kwargs=dict(name=charter.name)),
+                       back_url=urlreverse('ietf.doc.views_doc.document_writeup', kwargs=dict(name=charter.name)),
                        announcement_text_form=form,
                   ))
 
@@ -581,7 +581,7 @@ def action_announcement_text(request, name):
         if "save_text" in request.POST and form.is_valid():
             t = form.cleaned_data['announcement_text']
             if t != existing.text:
-                e = WriteupDocEvent(doc=charter)
+                e = WriteupDocEvent(doc=charter, rev=charter.rev)
                 e.by = by
                 e.type = "changed_action_announcement" 
                 e.desc = "%s action text was changed" % group.type.name
@@ -591,9 +591,9 @@ def action_announcement_text(request, name):
                 existing.save()
 
             if request.GET.get("next", "") == "approve":
-                return redirect('charter_approve', name=charter.canonical_name())
+                return redirect('ietf.doc.views_charter.approve', name=charter.canonical_name())
 
-            return redirect('doc_writeup', name=charter.canonical_name())
+            return redirect('ietf.doc.views_doc.document_writeup', name=charter.canonical_name())
 
         if "regenerate_text" in request.POST:
             e = default_action_text(group, charter, by)
@@ -603,16 +603,16 @@ def action_announcement_text(request, name):
         if "send_text" in request.POST and form.is_valid():
             parsed_msg = send_mail_preformatted(request, form.cleaned_data['announcement_text'])
             messages.success(request, "The email To: '%s' with Subject: '%s' has been sent." % (parsed_msg["To"],parsed_msg["Subject"],))
-            return redirect('doc_writeup', name=charter.name)
+            return redirect('ietf.doc.views_doc.document_writeup', name=charter.name)
 
     return render(request, 'doc/charter/action_announcement_text.html',
                   dict(charter=charter,
-                       back_url=urlreverse("doc_writeup", kwargs=dict(name=charter.name)),
+                       back_url=urlreverse('ietf.doc.views_doc.document_writeup', kwargs=dict(name=charter.name)),
                        announcement_text_form=form,
                   ))
 
 class BallotWriteupForm(forms.Form):
-    ballot_writeup = forms.CharField(widget=forms.Textarea, required=True)
+    ballot_writeup = forms.CharField(widget=forms.Textarea, required=True, strip=False)
 
     def clean_ballot_writeup(self):
         return self.cleaned_data["ballot_writeup"].replace("\r", "")
@@ -643,7 +643,7 @@ def ballot_writeupnotes(request, name):
         if form.is_valid():
             t = form.cleaned_data["ballot_writeup"]
             if t != existing.text:
-                e = WriteupDocEvent(doc=charter, by=by)
+                e = WriteupDocEvent(doc=charter, rev=charter.rev, by=by)
                 e.type = "changed_ballot_writeup_text"
                 e.desc = "Ballot writeup was changed"
                 e.text = t
@@ -656,7 +656,7 @@ def ballot_writeupnotes(request, name):
             if "send_ballot" in request.POST and approval:
                 if has_role(request.user, "Area Director") and not charter.latest_event(BallotPositionDocEvent, type="changed_ballot_position", ad=by, ballot=ballot):
                     # sending the ballot counts as a yes
-                    pos = BallotPositionDocEvent(doc=charter, by=by)
+                    pos = BallotPositionDocEvent(doc=charter, rev=charter.rev, by=by)
                     pos.type = "changed_ballot_position"
                     pos.ad = by
                     pos.pos_id = "yes"
@@ -667,7 +667,7 @@ def ballot_writeupnotes(request, name):
                 msg = generate_issue_ballot_mail(request, charter, ballot)
                 send_mail_preformatted(request, msg)
 
-                e = DocEvent(doc=charter, by=by)
+                e = DocEvent(doc=charter, rev=charter.rev, by=by)
                 e.by = by
                 e.type = "sent_ballot_announcement"
                 e.desc = "Ballot has been sent"
@@ -709,7 +709,7 @@ def approve(request, name):
 
         events = []
         # approve
-        e = DocEvent(doc=charter, by=by)
+        e = DocEvent(doc=charter, rev=charter.rev, by=by)
         e.type = "iesg_approved"
         e.desc = "IESG has approved the charter"
         e.save()

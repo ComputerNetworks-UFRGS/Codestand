@@ -38,7 +38,7 @@ def get_person(name):
 # ---------------------------------------------
 
 class DescriptionForm (forms.Form):
-    description = forms.CharField(widget=forms.Textarea(attrs={'rows':'20'}),required=True)
+    description = forms.CharField(widget=forms.Textarea(attrs={'rows':'20'}),required=True, strip=False)
 
 class GroupMilestoneForm(forms.ModelForm):
     class Meta:
@@ -182,10 +182,14 @@ class RoleForm(forms.Form):
         person = cleaned_data['person']
         email = cleaned_data['email']
         name = cleaned_data['name']
+        group_acronym = cleaned_data['group_acronym']
         
         if Role.objects.filter(name=name,group=self.group,person=person,email=email):
             raise forms.ValidationError('ERROR: This is a duplicate entry')
         
+        if not group_acronym:
+            raise forms.ValidationError('You must select a group.')
+
         return cleaned_data
         
 class SearchForm(forms.Form):

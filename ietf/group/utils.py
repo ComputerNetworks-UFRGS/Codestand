@@ -2,7 +2,7 @@ import os
 
 from django.shortcuts import get_object_or_404
 from django.utils.safestring import mark_safe
-from django.core.urlresolvers import reverse as urlreverse
+from django.urls import reverse as urlreverse
 
 import debug                            # pyflakes:ignore
 
@@ -68,14 +68,17 @@ def get_child_group_role_emails(parent, roles, group_type='wg'):
         emails |= get_group_role_emails(group, roles)
     return emails
 
-def get_group_ad_emails(wg):
-    " Get list of area directors' email addresses for a given WG "
-    if not wg.acronym or wg.acronym == 'none':
+def get_group_ad_emails(group):
+    " Get list of area directors' email addresses for a given GROUP "
+    if not group.acronym or group.acronym == 'none':
         return set()
-    emails = get_group_role_emails(wg.parent, roles=('pre-ad', 'ad', 'chair'))
+    if group.type.slug == 'area':
+        emails = get_group_role_emails(group, roles=('pre-ad', 'ad', 'chair'))
+    else:
+        emails = get_group_role_emails(group.parent, roles=('pre-ad', 'ad', 'chair'))
     # Make sure the assigned AD is included (in case that is not one of the area ADs)
-    if wg.state.slug=='active':
-        wg_ad_email = wg.ad_role() and wg.ad_role().email.address
+    if group.state.slug=='active':
+        wg_ad_email = group.ad_role() and group.ad_role().email.address
         if wg_ad_email:
             emails.add(wg_ad_email)
     return emails
@@ -89,15 +92,7 @@ def save_milestone_in_history(milestone):
 
     return h
 
-def can_manage_group_type(user, group_type):
-    if group_type == "rg":
-        return has_role(user, ('IRTF Chair', 'Secretariat'))
-    elif group_type == "wg":
-        return has_role(user, ('Area Director', 'Secretariat'))
-
-    return has_role(user, 'Secretariat')
-
-def can_manage_group(user, group):
+def can_manage_group_type(user, group):
     if group.type_id == "rg":
         return has_role(user, ('IRTF Chair', 'Secretariat'))
     elif group.type_id == "wg":
@@ -107,7 +102,14 @@ def can_manage_group(user, group):
             return has_role(user, ('Area Director', 'Secretariat'))
         elif group.is_decendant_of("irtf"):
             return has_role(user, ('IRTF Chair', 'Secretariat'))
+    elif group.type_id == "program":
+        return has_role(user, ('IAB', 'Secretariat',))        
     return has_role(user, ('Secretariat'))
+
+def can_manage_group(user, group):
+    if can_manage_group_type(user, group):
+        return True
+    return group.has_role(user, group.features.admin_roles)
 
 def milestone_reviewer_for_group_type(group_type):
     if group_type == "rg":
@@ -167,12 +169,9 @@ def construct_group_menu_context(request, group, selected, group_type, others):
 
     # menu entries
     entries = []
+    entries.append(("About", urlreverse("ietf.group.views.group_about", kwargs=kwargs)))
     if group.features.has_documents:
         entries.append(("Documents", urlreverse("ietf.group.views.group_documents", kwargs=kwargs)))
-    if group.features.has_chartering_process:
-        entries.append(("Charter", urlreverse("group_charter", kwargs=kwargs)))
-    else:
-        entries.append(("About", urlreverse("group_about", kwargs=kwargs)))
     if group.features.has_materials and get_group_materials(group).exists():
         entries.append(("Materials", urlreverse("ietf.group.views.materials", kwargs=kwargs)))
     if group.features.has_reviews:
@@ -196,11 +195,12 @@ def construct_group_menu_context(request, group, selected, group_type, others):
     actions = []
 
     is_admin = group.has_role(request.user, group.features.admin_roles)
-    can_manage = can_manage_group(request.user, group)
+    can_manage = can_manage_group_type(request.user, group)
+    can_edit_group = False              # we'll set this further down
 
     if group.features.has_milestones:
         if group.state_id != "proposed" and (is_admin or can_manage):
-            actions.append((u"Edit milestones", urlreverse("group_edit_milestones", kwargs=kwargs)))
+            actions.append((u"Edit milestones", urlreverse('ietf.group.milestones.edit_milestones;current', kwargs=kwargs)))
 
     if group.features.has_documents:
         clist = CommunityList.objects.filter(group=group).first()
@@ -221,7 +221,8 @@ def construct_group_menu_context(request, group, selected, group_type, others):
 
 
     if group.state_id != "conclude" and (is_admin or can_manage):
-        actions.append((u"Edit group", urlreverse("group_edit", kwargs=kwargs)))
+        can_edit_group = True
+        actions.append((u"Edit group", urlreverse("ietf.group.views_edit.edit", kwargs=dict(kwargs, action="edit"))))
 
     if group.features.customize_workflow and (is_admin or can_manage):
         actions.append((u"Customize workflow", urlreverse("ietf.group.views_edit.customize_workflow", kwargs=kwargs)))
@@ -235,6 +236,7 @@ def construct_group_menu_context(request, group, selected, group_type, others):
         "menu_entries": entries,
         "menu_actions": actions,
         "group_type": group_type,
+        "can_edit_group": can_edit_group,
     }
 
     d.update(others)

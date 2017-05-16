@@ -1,7 +1,6 @@
 # -*- coding: utf-8 -*-
 #import tempfile
 import datetime
-import os
 import shutil
 import urlparse
 from pyquery import PyQuery
@@ -10,7 +9,7 @@ import StringIO
 from django.db import IntegrityError
 from django.db.models import Max
 from django.conf import settings
-from django.core.urlresolvers import reverse
+from django.urls import reverse
 from django.core.files import File
 from django.contrib.auth.models import User
 
@@ -52,9 +51,7 @@ def get_cert_files():
 
 def build_test_public_keys_dir(obj):
     obj.saved_nomcom_public_keys_dir = settings.NOMCOM_PUBLIC_KEYS_DIR
-    obj.nomcom_public_keys_dir = os.path.abspath("tmp-nomcom-public-keys-dir")
-    if not os.path.exists(obj.nomcom_public_keys_dir):
-        os.mkdir(obj.nomcom_public_keys_dir)
+    obj.nomcom_public_keys_dir = obj.tempdir('nomcom-public-keys')
     settings.NOMCOM_PUBLIC_KEYS_DIR = obj.nomcom_public_keys_dir
 
 def clean_test_public_keys_dir(obj):
@@ -76,25 +73,25 @@ class NomcomViewsTest(TestCase):
         self.year = NOMCOM_YEAR
 
         # private urls
-        self.private_index_url = reverse('nomcom_private_index', kwargs={'year': self.year})
+        self.private_index_url = reverse('ietf.nomcom.views.private_index', kwargs={'year': self.year})
         self.private_merge_person_url = reverse('ietf.nomcom.views.private_merge_person', kwargs={'year': self.year})
         self.private_merge_nominee_url = reverse('ietf.nomcom.views.private_merge_nominee', kwargs={'year': self.year})
-        self.edit_members_url = reverse('nomcom_edit_members', kwargs={'year': self.year})
-        self.edit_nomcom_url = reverse('nomcom_edit_nomcom', kwargs={'year': self.year})
-        self.private_nominate_url = reverse('nomcom_private_nominate', kwargs={'year': self.year})
-        self.private_nominate_newperson_url = reverse('nomcom_private_nominate_newperson', kwargs={'year': self.year})
-        self.add_questionnaire_url = reverse('nomcom_private_questionnaire', kwargs={'year': self.year})
-        self.private_feedback_url = reverse('nomcom_private_feedback', kwargs={'year': self.year})
-        self.positions_url = reverse("nomcom_list_positions", kwargs={'year': self.year})        
-        self.edit_position_url = reverse("nomcom_add_position", kwargs={'year': self.year})
+        self.edit_members_url = reverse('ietf.nomcom.forms.EditMembersFormPreview', kwargs={'year': self.year})
+        self.edit_nomcom_url = reverse('ietf.nomcom.views.edit_nomcom', kwargs={'year': self.year})
+        self.private_nominate_url = reverse('ietf.nomcom.views.private_nominate', kwargs={'year': self.year})
+        self.private_nominate_newperson_url = reverse('ietf.nomcom.views.private_nominate_newperson', kwargs={'year': self.year})
+        self.add_questionnaire_url = reverse('ietf.nomcom.views.private_questionnaire', kwargs={'year': self.year})
+        self.private_feedback_url = reverse('ietf.nomcom.views.private_feedback', kwargs={'year': self.year})
+        self.positions_url = reverse('ietf.nomcom.views.list_positions', kwargs={'year': self.year})        
+        self.edit_position_url = reverse('ietf.nomcom.views.edit_position', kwargs={'year': self.year})
 
         # public urls
-        self.index_url = reverse('nomcom_year_index', kwargs={'year': self.year})
-        self.requirements_url = reverse('nomcom_requirements', kwargs={'year': self.year})
-        self.questionnaires_url = reverse('nomcom_questionnaires', kwargs={'year': self.year})
-        self.public_feedback_url = reverse('nomcom_public_feedback', kwargs={'year': self.year})
-        self.public_nominate_url = reverse('nomcom_public_nominate', kwargs={'year': self.year})
-        self.public_nominate_newperson_url = reverse('nomcom_public_nominate_newperson', kwargs={'year': self.year})
+        self.index_url = reverse('ietf.nomcom.views.year_index', kwargs={'year': self.year})
+        self.requirements_url = reverse('ietf.nomcom.views.requirements', kwargs={'year': self.year})
+        self.questionnaires_url = reverse('ietf.nomcom.views.questionnaires', kwargs={'year': self.year})
+        self.public_feedback_url = reverse('ietf.nomcom.views.public_feedback', kwargs={'year': self.year})
+        self.public_nominate_url = reverse('ietf.nomcom.views.public_nominate', kwargs={'year': self.year})
+        self.public_nominate_newperson_url = reverse('ietf.nomcom.views.public_nominate_newperson', kwargs={'year': self.year})
 
     def tearDown(self):
         clean_test_public_keys_dir(self)
@@ -1026,7 +1023,7 @@ class ReminderTest(TestCase):
         self.assertTrue('please accept' in outbox[-1]['Subject'])
      
     def test_remind_accept_view(self):
-        url = reverse('nomcom_send_reminder_mail', kwargs={'year': NOMCOM_YEAR,'type':'accept'})
+        url = reverse('ietf.nomcom.views.send_reminder_mail', kwargs={'year': NOMCOM_YEAR,'type':'accept'})
         login_testing_unauthorized(self, CHAIR_USER, url)
         messages_before=len(outbox)
         test_data = {'selected': [x.id for x in Nominee.objects.filter(nomcom=self.nomcom)]}
@@ -1037,7 +1034,7 @@ class ReminderTest(TestCase):
         self.assertTrue('nominee2@' in outbox[-1]['To'])
 
     def test_remind_questionnaire_view(self):
-        url = reverse('nomcom_send_reminder_mail', kwargs={'year': NOMCOM_YEAR,'type':'questionnaire'})
+        url = reverse('ietf.nomcom.views.send_reminder_mail', kwargs={'year': NOMCOM_YEAR,'type':'questionnaire'})
         login_testing_unauthorized(self, CHAIR_USER, url)
         messages_before=len(outbox)
         test_data = {'selected': [x.id for x in Nominee.objects.filter(nomcom=self.nomcom)]}
@@ -1059,7 +1056,7 @@ class InactiveNomcomTests(TestCase):
         clean_test_public_keys_dir(self)
 
     def test_feedback_closed(self):
-        for view in ['nomcom_public_feedback', 'nomcom_private_feedback']:
+        for view in ['ietf.nomcom.views.public_feedback', 'ietf.nomcom.views.private_feedback']:
             url = reverse(view, kwargs={'year': self.nc.year()})
             who = self.plain_person if 'public' in view else self.member
             login_testing_unauthorized(self, who.user.username, url)
@@ -1071,7 +1068,7 @@ class InactiveNomcomTests(TestCase):
             self.assertTrue( q('#nominees a') )
             self.assertFalse( q('#nominees a[href]') )
     
-            url += "?nominee=%d&position=%d" % (self.nc.nominee_set.first().id, self.nc.nominee_set.first().nomineeposition_set.first().position.id)
+            url += "?nominee=%d&position=%d" % (self.nc.nominee_set.order_by('pk').first().id, self.nc.nominee_set.order_by('pk').first().nomineeposition_set.order_by('pk').first().position.id)
             response = self.client.get(url)
             self.assertEqual(response.status_code, 200)
             q = PyQuery(response.content)
@@ -1090,7 +1087,7 @@ class InactiveNomcomTests(TestCase):
             self.assertEqual( fb_before, self.nc.feedback_set.count() )
 
     def test_nominations_closed(self):
-        for view in ['nomcom_public_nominate', 'nomcom_private_nominate']:
+        for view in ['ietf.nomcom.views.public_nominate', 'ietf.nomcom.views.private_nominate']:
             url = reverse(view, kwargs={'year': self.nc.year() })
             who = self.plain_person if 'public' in view else self.member
             login_testing_unauthorized(self, who.user.username, url)
@@ -1102,8 +1099,8 @@ class InactiveNomcomTests(TestCase):
 
     def test_acceptance_closed(self):
         today = datetime.date.today().strftime('%Y%m%d')
-	pid = self.nc.position_set.first().nomineeposition_set.first().id 
-        url = reverse('nomcom_process_nomination_status', kwargs = {
+	pid = self.nc.position_set.first().nomineeposition_set.order_by('pk').first().id 
+        url = reverse('ietf.nomcom.views.process_nomination_status', kwargs = {
                       'year' : self.nc.year(),
                       'nominee_position_id' : pid,
                       'state' : 'accepted',
@@ -1114,7 +1111,7 @@ class InactiveNomcomTests(TestCase):
         self.assertEqual(response.status_code, 403)
 
     def test_can_view_but_cannot_edit_nomcom_settings(self):
-        url = reverse('nomcom_edit_nomcom',kwargs={'year':self.nc.year() })
+        url = reverse('ietf.nomcom.views.edit_nomcom',kwargs={'year':self.nc.year() })
         login_testing_unauthorized(self, self.chair.user.username, url)
         response = self.client.get(url)
         self.assertEqual(response.status_code, 200)
@@ -1122,7 +1119,7 @@ class InactiveNomcomTests(TestCase):
         self.assertEqual(response.status_code, 403)
 
     def test_cannot_classify_feedback(self):
-        url = reverse('nomcom_view_feedback_pending',kwargs={'year':self.nc.year() })
+        url = reverse('ietf.nomcom.views.view_feedback_pending',kwargs={'year':self.nc.year() })
         login_testing_unauthorized(self, self.chair.user.username, url)
         provide_private_key_to_test_client(self)
         response = self.client.get(url)
@@ -1131,7 +1128,7 @@ class InactiveNomcomTests(TestCase):
         self.assertEqual(response.status_code, 403)
 
     def test_cannot_modify_nominees(self):
-        url = reverse('nomcom_private_index', kwargs={'year':self.nc.year()})
+        url = reverse('ietf.nomcom.views.private_index', kwargs={'year':self.nc.year()})
         login_testing_unauthorized(self, self.chair.user.username, url)
         response = self.client.get(url)
         self.assertEqual(response.status_code, 200)
@@ -1145,7 +1142,7 @@ class InactiveNomcomTests(TestCase):
         self.assertTrue('not active' in q('.alert-warning').text() )
 
     def test_email_pasting_closed(self):
-        url = reverse('nomcom_private_feedback_email', kwargs={'year':self.nc.year()})
+        url = reverse('ietf.nomcom.views.private_feedback_email', kwargs={'year':self.nc.year()})
         login_testing_unauthorized(self, self.chair.user.username, url)
         response = self.client.get(url)
         self.assertEqual(response.status_code, 200)
@@ -1159,7 +1156,7 @@ class InactiveNomcomTests(TestCase):
         self.assertTrue('not active' in q('.alert-warning').text() )
 
     def test_questionnaire_entry_closed(self):
-        url = reverse('nomcom_private_questionnaire', kwargs={'year':self.nc.year()})
+        url = reverse('ietf.nomcom.views.private_questionnaire', kwargs={'year':self.nc.year()})
         login_testing_unauthorized(self, self.chair.user.username, url)
         response = self.client.get(url)
         self.assertEqual(response.status_code, 200)
@@ -1171,7 +1168,7 @@ class InactiveNomcomTests(TestCase):
         self.assertTrue('not active' in q('.alert-warning').text() )
         
     def _test_send_reminders_closed(self,rtype):
-        url = reverse('nomcom_send_reminder_mail', kwargs={'year':self.nc.year(),'type':rtype })
+        url = reverse('ietf.nomcom.views.send_reminder_mail', kwargs={'year':self.nc.year(),'type':rtype })
         login_testing_unauthorized(self, self.chair.user.username, url)
         response = self.client.get(url)
         self.assertEqual(response.status_code, 200)
@@ -1200,7 +1197,7 @@ class InactiveNomcomTests(TestCase):
         self.assertTrue('not active' in q('.alert-warning').text() )
 
     def test_cannot_edit_position(self):
-        url = reverse('nomcom_edit_position',kwargs={'year':self.nc.year(),'position_id':self.nc.position_set.first().id})
+        url = reverse('ietf.nomcom.views.edit_position',kwargs={'year':self.nc.year(),'position_id':self.nc.position_set.first().id})
         login_testing_unauthorized(self, self.chair.user.username, url)
         provide_private_key_to_test_client(self)
         response = self.client.get(url)
@@ -1209,7 +1206,7 @@ class InactiveNomcomTests(TestCase):
         self.assertEqual(response.status_code, 403)
 
     def test_cannot_add_position(self):
-        url = reverse('nomcom_add_position',kwargs={'year':self.nc.year()})
+        url = reverse('ietf.nomcom.views.edit_position',kwargs={'year':self.nc.year()})
         login_testing_unauthorized(self, self.chair.user.username, url)
         provide_private_key_to_test_client(self)
         response = self.client.get(url)
@@ -1218,7 +1215,7 @@ class InactiveNomcomTests(TestCase):
         self.assertEqual(response.status_code, 403)
 
     def test_cannot_delete_position(self):
-        url = reverse('nomcom_remove_position',kwargs={'year':self.nc.year(),'position_id':self.nc.position_set.first().id})
+        url = reverse('ietf.nomcom.views.remove_position',kwargs={'year':self.nc.year(),'position_id':self.nc.position_set.first().id})
         login_testing_unauthorized(self, self.chair.user.username, url)
         provide_private_key_to_test_client(self)
         response = self.client.get(url)
@@ -1233,7 +1230,7 @@ class InactiveNomcomTests(TestCase):
                                             variables='',
                                             type_id='plain',
                                             content='test content')
-        url = reverse('nomcom_edit_template',kwargs={'year':self.nc.year(), 'template_id':template.id})
+        url = reverse('ietf.nomcom.views.edit_template',kwargs={'year':self.nc.year(), 'template_id':template.id})
         login_testing_unauthorized(self, self.chair.user.username, url)
         response = self.client.get(url)
         self.assertEqual(response.status_code, 200)
@@ -1247,7 +1244,7 @@ class FeedbackLastSeenTests(TestCase):
         self.nc = NomComFactory.create(**nomcom_kwargs_for_year())
         self.author = PersonFactory.create().email_set.first().address
         self.member = self.nc.group.role_set.filter(name='member').first().person
-        self.nominee = self.nc.nominee_set.first()
+        self.nominee = self.nc.nominee_set.order_by('pk').first()
         self.position = self.nc.position_set.first()
         for type_id in ['comment','nomina','questio']:
             f = FeedbackFactory.create(author=self.author,nomcom=self.nc,type_id=type_id)
@@ -1262,7 +1259,7 @@ class FeedbackLastSeenTests(TestCase):
         clean_test_public_keys_dir(self)
 
     def test_feedback_index_badges(self):
-        url = reverse('nomcom_view_feedback',kwargs={'year':self.nc.year()})
+        url = reverse('ietf.nomcom.views.view_feedback',kwargs={'year':self.nc.year()})
         login_testing_unauthorized(self, self.member.user.username, url)
         provide_private_key_to_test_client(self)
         response = self.client.get(url)
@@ -1287,7 +1284,7 @@ class FeedbackLastSeenTests(TestCase):
         self.assertEqual( len(q('.label-success')), 0 )
 
     def test_feedback_nominee_badges(self):
-        url = reverse('nomcom_view_feedback_nominee',kwargs={'year':self.nc.year(),'nominee_id':self.nominee.id})
+        url = reverse('ietf.nomcom.views.view_feedback_nominee', kwargs={'year':self.nc.year(), 'nominee_id':self.nominee.id})
         login_testing_unauthorized(self, self.member.user.username, url)
         provide_private_key_to_test_client(self)
         response = self.client.get(url)
@@ -1324,22 +1321,21 @@ class NewActiveNomComTests(TestCase):
         settings.DAYS_TO_EXPIRE_NOMINATION_LINK = self.saved_days_to_expire_nomination_link
 
     def test_help(self):
-        url = reverse('nomcom_chair_help',kwargs={'year':self.nc.year()})
+        url = reverse('ietf.nomcom.views.configuration_help',kwargs={'year':self.nc.year()})
         login_testing_unauthorized(self, self.chair.user.username, url)
         response = self.client.get(url)
         self.assertEqual(response.status_code,200)
 
     def test_accept_reject_nomination_edges(self):
-
-        np = self.nc.nominee_set.first().nomineeposition_set.first()
-
+        self.client.logout()
+        np = self.nc.nominee_set.order_by('pk').first().nomineeposition_set.order_by('pk').first()
         kwargs={'year':self.nc.year(),
                 'nominee_position_id':np.id,
                 'state':'accepted',
                 'date':np.time.strftime("%Y%m%d"),
                 'hash':get_hash_nominee_position(np.time.strftime("%Y%m%d"),np.id),
                }
-        url = reverse('nomcom_process_nomination_status', kwargs=kwargs)
+        url = reverse('ietf.nomcom.views.process_nomination_status', kwargs=kwargs)
         response = self.client.get(url)
         self.assertEqual(response.status_code,403)
         self.assertTrue('already was' in unicontent(response))
@@ -1349,21 +1345,21 @@ class NewActiveNomComTests(TestCase):
         np.save()
         kwargs['date'] = np.time.strftime("%Y%m%d")
         kwargs['hash'] = get_hash_nominee_position(np.time.strftime("%Y%m%d"),np.id)
-        url = reverse('nomcom_process_nomination_status', kwargs=kwargs)
+        url = reverse('ietf.nomcom.views.process_nomination_status', kwargs=kwargs)
         response = self.client.get(url)
         self.assertEqual(response.status_code,403)
         self.assertTrue('Link expired' in unicontent(response))
 
         kwargs['hash'] = 'bad'
-        url = reverse('nomcom_process_nomination_status', kwargs=kwargs)
+        url = reverse('ietf.nomcom.views.process_nomination_status', kwargs=kwargs)
         response = self.client.get(url)
         self.assertEqual(response.status_code,403)
         self.assertTrue('Bad hash!' in unicontent(response))
 
     def test_accept_reject_nomination_comment(self):
-        np = self.nc.nominee_set.first().nomineeposition_set.first()
+        np = self.nc.nominee_set.order_by('pk').first().nomineeposition_set.order_by('pk').first()
         hash = get_hash_nominee_position(np.time.strftime("%Y%m%d"),np.id)
-        url = reverse('nomcom_process_nomination_status',
+        url = reverse('ietf.nomcom.views.process_nomination_status',
                       kwargs={'year':self.nc.year(),
                               'nominee_position_id':np.id,
                               'state':'accepted',
@@ -1387,7 +1383,7 @@ class NewActiveNomComTests(TestCase):
         self.assertEqual(Feedback.objects.count(),feedback_count_before+1)
 
     def test_provide_private_key(self):
-        url = reverse('nomcom_private_key',kwargs={'year':self.nc.year()})
+        url = reverse('ietf.nomcom.views.private_key',kwargs={'year':self.nc.year()})
         login_testing_unauthorized(self,self.chair.user.username,url)
         response = self.client.get(url)
         self.assertEqual(response.status_code,200)
@@ -1395,7 +1391,7 @@ class NewActiveNomComTests(TestCase):
         self.assertEqual(response.status_code,302)
 
     def test_email_pasting(self):
-        url = reverse('nomcom_private_feedback_email',kwargs={'year':self.nc.year()})
+        url = reverse('ietf.nomcom.views.private_feedback_email',kwargs={'year':self.nc.year()})
         login_testing_unauthorized(self,self.chair.user.username,url)
         response = self.client.get(url)
         self.assertEqual(response.status_code,200)
@@ -1415,7 +1411,7 @@ Junk body for testing
         self.assertEqual(Feedback.objects.count(),fb_count_before+1)
 
     def test_simple_feedback_pending(self):
-        url = reverse('nomcom_view_feedback_pending',kwargs={'year':self.nc.year() })
+        url = reverse('ietf.nomcom.views.view_feedback_pending',kwargs={'year':self.nc.year() })
         login_testing_unauthorized(self, self.chair.user.username, url)
         provide_private_key_to_test_client(self)
 
@@ -1453,7 +1449,7 @@ Junk body for testing
         self.assertEqual(np.nominee.feedback_set.count(),fb_count_before+1)
 
         fb = FeedbackFactory(nomcom=self.nc,type_id=None)
-        nominee = self.nc.nominee_set.first()
+        nominee = self.nc.nominee_set.order_by('pk').first()
         position = self.nc.position_set.exclude(nomineeposition__nominee=nominee).first()
         self.assertIsNotNone(position)
         fb_count_before = nominee.feedback_set.count()
@@ -1524,7 +1520,7 @@ Junk body for testing
         self.assertEqual(np.nominee.feedback_set.count(),fb_count_before+1)
 
     def test_complicated_feedback_pending(self):
-        url = reverse('nomcom_view_feedback_pending',kwargs={'year':self.nc.year() })
+        url = reverse('ietf.nomcom.views.view_feedback_pending',kwargs={'year':self.nc.year() })
         login_testing_unauthorized(self, self.chair.user.username, url)
         provide_private_key_to_test_client(self)
 
@@ -1539,7 +1535,7 @@ Junk body for testing
         fb0 = FeedbackFactory(nomcom=self.nc,type_id=None)
         fb1 = FeedbackFactory(nomcom=self.nc,type_id=None)
         fb2 = FeedbackFactory(nomcom=self.nc,type_id=None)
-        nominee = self.nc.nominee_set.first()
+        nominee = self.nc.nominee_set.order_by('pk').first()
         new_position_for_nominee = self.nc.position_set.exclude(nomineeposition__nominee=nominee).first()
 
         # Initial formset
@@ -1598,7 +1594,7 @@ Junk body for testing
 
     def test_feedback_unrelated(self):
         FeedbackFactory(nomcom=self.nc,type_id='junk')
-        url=reverse('nomcom_view_feedback_unrelated',kwargs={'year':self.nc.year()})
+        url=reverse('ietf.nomcom.views.view_feedback_unrelated',kwargs={'year':self.nc.year()})
         login_testing_unauthorized(self,self.chair.user.username,url)
         provide_private_key_to_test_client(self)
         response = self.client.get(url)
@@ -1611,7 +1607,7 @@ Junk body for testing
                                  variables='',
                                  type_id='plain',
                                  content='test content')
-        url=reverse('nomcom_list_templates',kwargs={'year':self.nc.year()})
+        url=reverse('ietf.nomcom.views.list_templates',kwargs={'year':self.nc.year()})
         login_testing_unauthorized(self,self.chair.user.username,url)
         response = self.client.get(url)
         self.assertEqual(response.status_code,200)
@@ -1623,7 +1619,7 @@ Junk body for testing
                                             variables='',
                                             type_id='plain',
                                             content='test content')
-        url=reverse('nomcom_edit_template',kwargs={'year':self.nc.year(),'template_id':template.id})
+        url=reverse('ietf.nomcom.views.edit_template',kwargs={'year':self.nc.year(),'template_id':template.id})
         login_testing_unauthorized(self,self.chair.user.username,url)
         response = self.client.get(url)
         self.assertEqual(response.status_code,200)
@@ -1633,7 +1629,7 @@ Junk body for testing
         self.assertEqual('more interesting test content',template.content)
         
     def test_list_positions(self):
-        url = reverse('nomcom_list_positions',kwargs={'year':self.nc.year()})
+        url = reverse('ietf.nomcom.views.list_positions',kwargs={'year':self.nc.year()})
         login_testing_unauthorized(self,self.chair.user.username,url)
         response = self.client.get(url)
         self.assertEqual(response.status_code,200)
@@ -1642,7 +1638,7 @@ Junk body for testing
         position = self.nc.position_set.filter(nomineeposition__isnull=False).first()
         f = FeedbackFactory(nomcom=self.nc)
         f.positions.add(position)
-        url = reverse('nomcom_remove_position',kwargs={'year':self.nc.year(),'position_id':position.id})
+        url = reverse('ietf.nomcom.views.remove_position',kwargs={'year':self.nc.year(),'position_id':position.id})
         login_testing_unauthorized(self,self.chair.user.username,url)
         response = self.client.get(url)
         self.assertEqual(response.status_code,200)
@@ -1654,14 +1650,14 @@ Junk body for testing
 
     def test_remove_invalid_position(self):
         no_such_position_id = self.nc.position_set.aggregate(Max('id'))['id__max']+1
-        url = reverse('nomcom_remove_position',kwargs={'year':self.nc.year(),'position_id':no_such_position_id})
+        url = reverse('ietf.nomcom.views.remove_position',kwargs={'year':self.nc.year(),'position_id':no_such_position_id})
         login_testing_unauthorized(self,self.chair.user.username,url)
         response = self.client.get(url)
         self.assertEqual(response.status_code, 404)
 
     def test_edit_position(self):
         position = self.nc.position_set.filter(is_open=True).first()
-        url = reverse('nomcom_edit_position',kwargs={'year':self.nc.year(),'position_id':position.id})
+        url = reverse('ietf.nomcom.views.edit_position',kwargs={'year':self.nc.year(),'position_id':position.id})
         login_testing_unauthorized(self,self.chair.user.username,url)
         response = self.client.get(url)
         self.assertEqual(response.status_code, 200)
@@ -1673,21 +1669,21 @@ Junk body for testing
 
     def test_edit_invalid_position(self):
         no_such_position_id = self.nc.position_set.aggregate(Max('id'))['id__max']+1
-        url = reverse('nomcom_edit_position',kwargs={'year':self.nc.year(),'position_id':no_such_position_id})
+        url = reverse('ietf.nomcom.views.edit_position',kwargs={'year':self.nc.year(),'position_id':no_such_position_id})
         login_testing_unauthorized(self,self.chair.user.username,url)
         response = self.client.get(url)
         self.assertEqual(response.status_code, 404)
 
     def test_edit_nominee(self):
-        nominee = self.nc.nominee_set.first()
+        nominee = self.nc.nominee_set.order_by('pk').first()
         new_email = EmailFactory(person=nominee.person)
-        url = reverse('nomcom_edit_nominee',kwargs={'year':self.nc.year(),'nominee_id':nominee.id})
+        url = reverse('ietf.nomcom.views.edit_nominee',kwargs={'year':self.nc.year(),'nominee_id':nominee.id})
         login_testing_unauthorized(self,self.chair.user.username,url)
         response = self.client.get(url)
         self.assertEqual(response.status_code, 200)
         response = self.client.post(url,{'nominee_email':new_email.address})
         self.assertEqual(response.status_code, 302)
-        nominee = self.nc.nominee_set.first()
+        nominee = self.nc.nominee_set.order_by('pk').first()
         self.assertEqual(nominee.email,new_email)
 
     def test_request_merge(self):
@@ -1705,7 +1701,7 @@ Junk body for testing
                                          'duplicate_persons':[nominee2.person.pk]})
         self.assertEqual(response.status_code, 302)
         self.assertEqual(len(outbox),1)
-        self.assertTrue(all([str(x.person.pk) in unicode(outbox[0]) for x in [nominee1,nominee2]]))
+        self.assertTrue(all([str(x.person.pk) in outbox[0].get_payload(decode=True) for x in [nominee1,nominee2]]))
 
 
 class NomComIndexTests(TestCase):
@@ -1736,17 +1732,17 @@ class NoPublicKeyTests(TestCase):
 
     def test_not_yet(self):
         # Warn reminder mail
-        self.do_common_work(reverse('nomcom_send_reminder_mail',kwargs={'year':self.nc.year(),'type':'accept'}),True)
+        self.do_common_work(reverse('ietf.nomcom.views.send_reminder_mail',kwargs={'year':self.nc.year(),'type':'accept'}),True)
         # No nominations
-        self.do_common_work(reverse('nomcom_private_nominate',kwargs={'year':self.nc.year()}),False)
+        self.do_common_work(reverse('ietf.nomcom.views.private_nominate',kwargs={'year':self.nc.year()}),False)
         # No feedback
-        self.do_common_work(reverse('nomcom_private_feedback',kwargs={'year':self.nc.year()}),False)
+        self.do_common_work(reverse('ietf.nomcom.views.private_feedback',kwargs={'year':self.nc.year()}),False)
         # No feedback email
-        self.do_common_work(reverse('nomcom_private_feedback_email',kwargs={'year':self.nc.year()}),False)
+        self.do_common_work(reverse('ietf.nomcom.views.private_feedback_email',kwargs={'year':self.nc.year()}),False)
         # No questionnaire responses
-        self.do_common_work(reverse('nomcom_private_questionnaire',kwargs={'year':self.nc.year()}),False)
+        self.do_common_work(reverse('ietf.nomcom.views.private_questionnaire',kwargs={'year':self.nc.year()}),False)
         # Warn on edit nomcom
-        self.do_common_work(reverse('nomcom_edit_nomcom',kwargs={'year':self.nc.year()}),True)
+        self.do_common_work(reverse('ietf.nomcom.views.edit_nomcom',kwargs={'year':self.nc.year()}),True)
 
 class MergePersonTests(TestCase):
     def setUp(self):

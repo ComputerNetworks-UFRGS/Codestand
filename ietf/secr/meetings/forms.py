@@ -22,7 +22,9 @@ SESSION_DAYS = ((2,'Monday'),
                 (4,'Wednesday'),
                 (5,'Thursday'),
                 (6,'Friday'))
-                
+        
+SESSION_DURATION_RE = re.compile(r'^\d{2}:\d{2}')
+
 #----------------------------------------------------------
 # Helper Functions
 #----------------------------------------------------------
@@ -86,6 +88,14 @@ class TimeChoiceField(forms.ChoiceField):
 #----------------------------------------------------------
 # Forms
 #----------------------------------------------------------
+class MeetingSelectForm(forms.Form):
+    meeting = forms.ChoiceField()
+
+    def __init__(self,*args,**kwargs):
+        choices = kwargs.pop('choices')
+        super(MeetingSelectForm, self).__init__(*args,**kwargs)
+        self.fields['meeting'].widget.choices = choices
+
 class MeetingModelForm(forms.ModelForm):
     idsubmit_cutoff_time_utc     = ietf.utils.fields.DurationField()
     idsubmit_cutoff_warning_days = ietf.utils.fields.DurationField()
@@ -186,6 +196,13 @@ class TimeSlotForm(forms.Form):
     duration = ietf.utils.fields.DurationField()
     name = forms.CharField(help_text='Name that appears on the agenda')
     
+    def clean_duration(self):
+        '''Limit to HH:MM format'''
+        duration = self.data['duration']
+        if not SESSION_DURATION_RE.match(duration):
+            raise forms.ValidationError('{} value has an invalid format. It must be in HH:MM format'.format(duration))
+        return self.cleaned_data['duration']
+
 class NonSessionForm(TimeSlotForm):
     short = forms.CharField(max_length=32,label='Short Name',help_text='Enter an abbreviated session name (used for material file names)',required=False)
     type = forms.ModelChoiceField(queryset=TimeSlotTypeName.objects.filter(used=True).exclude(slug__in=('session',)),empty_label=None)
@@ -194,6 +211,11 @@ class NonSessionForm(TimeSlotForm):
         help_text='Required for Session types: other, plenary',
         required=False)
     show_location = forms.BooleanField(required=False)
+
+    def __init__(self,*args,**kwargs):
+        super(NonSessionForm, self).__init__(*args,**kwargs)
+        self.fields["time"].widget.attrs["placeholder"] = "HH:MM"
+        self.fields["duration"].widget.attrs["placeholder"] = "HH:MM"
 
     def clean(self):
         super(NonSessionForm, self).clean()

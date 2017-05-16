@@ -5,8 +5,7 @@ from django.contrib import messages
 from django.forms.formsets import formset_factory
 from django.forms.models import inlineformset_factory
 from django.http import HttpResponse
-from django.shortcuts import render_to_response, get_object_or_404, redirect
-from django.template import RequestContext
+from django.shortcuts import render, get_object_or_404, redirect
 
 from ietf.group.models import Group, GroupEvent, GroupURL, Role, ChangeStateGroupEvent
 from ietf.group.utils import save_group_in_history
@@ -84,16 +83,15 @@ def add(request):
                     group_url.save()
 
             messages.success(request, 'The Area was created successfully!')
-            return redirect('areas')
+            return redirect('ietf.secr.areas.views.list_areas')
     else:
         # display initial forms
         area_form = AddAreaModelForm()
         awp_formset = AWPFormSet(prefix='awp')
 
-    return render_to_response('areas/add.html', {
+    return render(request, 'areas/add.html', {
         'area_form': area_form,
         'awp_formset': awp_formset},
-        RequestContext(request, {}),
     )
 
 @role_required('Secretariat')
@@ -146,19 +144,18 @@ def edit(request, name):
                                               time=new_area.time)
                 
                 messages.success(request, 'The Area entry was changed successfully')
-                return redirect('areas_view', name=name)
+                return redirect('ietf.secr.areas.views.view', name=name)
         else:
-            return redirect('areas_view', name=name)
+            return redirect('ietf.secr.areas.views.view', name=name)
     else:
         form = AreaForm(instance=area)
         awp_formset = AWPFormSet(instance=area)
 
-    return render_to_response('areas/edit.html', {
+    return render(request, 'areas/edit.html', {
         'area': area,
         'form': form,
         'awp_formset': awp_formset,
         },
-        RequestContext(request,{}),
     )
 
 @role_required('Secretariat')
@@ -178,10 +175,7 @@ def list_areas(request):
 
     results = Group.objects.filter(type="area").order_by('name')
     
-    return render_to_response('areas/list.html', {
-        'results': results},
-        RequestContext(request, {}),
-    )
+    return render(request, 'areas/list.html', { 'results': results} )
 
 @role_required('Secretariat')
 def people(request, name):
@@ -221,16 +215,15 @@ def people(request, name):
                 Role.objects.create(name_id='pre-ad',group=area,email=email,person=person)
                 
                 messages.success(request, 'New Area Director added successfully!')
-                return redirect('areas_view', name=name)
+                return redirect('ietf.secr.areas.views.view', name=name)
     else:
         form = AreaDirectorForm()
 
     directors = area.role_set.filter(name__slug__in=('ad','pre-ad'))
-    return render_to_response('areas/people.html', {
+    return render(request, 'areas/people.html', {
         'area': area,
         'form': form,
         'directors': directors},
-        RequestContext(request, {}),
     )
 
 @role_required('Secretariat')
@@ -286,7 +279,7 @@ def modify(request, name):
             
             messages.success(request, 'Voting rights have been granted successfully!')
 
-        return redirect('areas_view', name=name)
+        return redirect('ietf.secr.areas.views.view', name=name)
 
 @role_required('Secretariat')
 def view(request, name):
@@ -310,8 +303,7 @@ def view(request, name):
         pass
     directors = area.role_set.filter(name__slug__in=('ad','pre-ad'))
     
-    return render_to_response('areas/view.html', {
+    return render(request, 'areas/view.html', {
         'area': area,
         'directors': directors},
-        RequestContext(request, {}),
     )

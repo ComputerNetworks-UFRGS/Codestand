@@ -1,7 +1,7 @@
 from django.contrib.auth.models import User
 from django.db import models
 from django.db.models import signals
-from django.core.urlresolvers import reverse as urlreverse
+from django.urls import reverse as urlreverse
 
 from ietf.doc.models import Document, DocEvent, State
 from ietf.group.models import Group
@@ -28,7 +28,7 @@ class CommunityList(models.Model):
         if self.user:
             return urlreverse(ietf.community.views.view_list, kwargs={ 'username': self.user.username })
         elif self.group:
-            return urlreverse("group_docs", kwargs={ 'acronym': self.group.acronym })
+            return urlreverse("ietf.group.views.group_documents", kwargs={ 'acronym': self.group.acronym })
         return ""
 
 

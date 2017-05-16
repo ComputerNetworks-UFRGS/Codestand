@@ -7,7 +7,7 @@ from django.shortcuts import render, get_object_or_404, redirect
 from django.http import HttpResponseForbidden, Http404
 from django.utils.html import mark_safe
 from django.contrib.auth.decorators import login_required
-from django.core.urlresolvers import reverse as urlreverse
+from django.urls import reverse as urlreverse
 
 import debug                            # pyflakes:ignore
 
@@ -31,7 +31,7 @@ def choose_material_type(request, acronym):
 class UploadMaterialForm(forms.Form):
     title = forms.CharField(max_length=Document._meta.get_field("title").max_length)
     name = forms.CharField(max_length=Document._meta.get_field("name").max_length)
-    abstract = forms.CharField(max_length=Document._meta.get_field("abstract").max_length,widget=forms.Textarea)
+    abstract = forms.CharField(max_length=Document._meta.get_field("abstract").max_length,widget=forms.Textarea, strip=False)
     state = forms.ModelChoiceField(State.objects.all(), empty_label=None)
     material = forms.FileField(label='File')
 
@@ -73,7 +73,7 @@ class UploadMaterialForm(forms.Form):
 
         existing = Document.objects.filter(type=self.doc_type, name=name)
         if existing:
-            url = urlreverse("material_edit", kwargs={ 'name': existing[0].name, 'action': 'revise' })
+            url = urlreverse('ietf.doc.views_material.edit_material', kwargs={ 'name': existing[0].name, 'action': 'revise' })
             raise forms.ValidationError(mark_safe("Can't upload: %s with name %s already exists. Choose another title and name for what you're uploading or <a href=\"%s\">revise the existing %s</a>." % (self.doc_type.name, name, url, name)))
 
         return name
@@ -151,7 +151,7 @@ def edit_material(request, name=None, acronym=None, action=None, doc_type=None):
                 events.append(e)
 
             if prev_title != doc.title:
-                e = DocEvent(doc=doc, by=request.user.person, type='changed_document')
+                e = DocEvent(doc=doc, rev=doc.rev, by=request.user.person, type='changed_document')
                 e.desc = u"Changed title to <b>%s</b>" % doc.title
                 if prev_title:
                     e.desc += u" from %s" % prev_title
@@ -166,7 +166,7 @@ def edit_material(request, name=None, acronym=None, action=None, doc_type=None):
             if events:
                 doc.save_with_history(events)
 
-            return redirect("doc_view", name=doc.name)
+            return redirect("ietf.doc.views_doc.document_main", name=doc.name)
     else:
         form = UploadMaterialForm(document_type, action, group, doc)
 

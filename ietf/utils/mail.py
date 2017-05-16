@@ -1,6 +1,14 @@
 # Copyright The IETF Trust 2007, All Rights Reserved
 
-from email.utils import make_msgid, formatdate, formataddr, parseaddr, getaddresses
+import copy
+import datetime
+import smtplib
+import sys
+import textwrap
+import time
+import traceback
+
+from email.utils import make_msgid, formatdate, formataddr as simple_formataddr, parseaddr, getaddresses
 from email.mime.text import MIMEText
 from email.mime.message import MIMEMessage
 from email.mime.multipart import MIMEMultipart
@@ -8,20 +16,18 @@ from email.header import Header
 from email import message_from_string
 from email import charset as Charset
 
-import smtplib
 from django.conf import settings
 from django.contrib import messages
-from django.core.exceptions import ImproperlyConfigured
+from django.core.exceptions import ImproperlyConfigured, ValidationError
+from django.core.validators import validate_email
 from django.template.loader import render_to_string
 from django.template import Context,RequestContext
+
+import debug                            # pyflakes:ignore
+
 import ietf
-from ietf.utils.log import log
-import sys
-import time
-import copy
-import textwrap
-import traceback
-import datetime
+from ietf.utils.log import log, unreachable
+from ietf.utils.text import isascii
 
 # Testing mode:
 # import ietf.utils.mail
@@ -164,7 +170,8 @@ def send_mail_subj(request, to, frm, stemplate, template, context, *args, **kwar
     Send an email message, exactly as send_mail(), but the
     subject field is a template.
     '''
-    subject = render_to_string(stemplate, context, context_instance=mail_context(request)).replace("\n"," ").strip()
+    unreachable()                       # 03 Mar 2017
+    subject = render_to_string(stemplate, context ).replace("\n"," ").strip()
     return send_mail(request, to, frm, subject, template, context, *args, **kwargs)
 
 def send_mail(request, to, frm, subject, template, context, *args, **kwargs):
@@ -174,24 +181,34 @@ def send_mail(request, to, frm, subject, template, context, *args, **kwargs):
     The body is a text/plain rendering of the template with the context.
     extra is a dict of extra headers to add.
     '''
-    txt = render_to_string(template, context, context_instance=mail_context(request))
+    txt = render_to_string(template, context, request=request)
     return send_mail_text(request, to, frm, subject, txt, *args, **kwargs)
 
 def encode_message(txt):
-    if isinstance(txt, unicode):
-        msg = MIMEText(txt.encode('utf-8'), 'plain', 'UTF-8')
-    else:
-        msg = MIMEText(txt)
-    return msg
+    assert isinstance(txt, unicode)
+    return MIMEText(txt.encode('utf-8'), 'plain', 'UTF-8')
 
 def send_mail_text(request, to, frm, subject, txt, cc=None, extra=None, toUser=False, bcc=None):
     """Send plain text message."""
     msg = encode_message(txt)
     return send_mail_mime(request, to, frm, subject, msg, cc, extra, toUser, bcc)
         
+def formataddr(addrtuple):
+    """
+    Takes a name and email address, and inspects the name to see if it needs
+    to be encoded in an email.header.Header before being used in an email.message
+    address field.  Does what's needed, and returns a string value suitable for
+    use in a To: or Cc: email header field.
+    """
+    name, addr = addrtuple
+    if name and not isascii(name):
+        name = str(Header(name, 'utf-8'))
+    return simple_formataddr((name, addr))
+
 def condition_message(to, frm, subject, msg, cc, extra):
+
     if isinstance(frm, tuple):
-	frm = formataddr(frm)
+        frm = formataddr(frm)
     if isinstance(to, list) or isinstance(to, tuple):
         to = ", ".join([isinstance(addr, tuple) and formataddr(addr) or addr for addr in to if addr])
     if isinstance(cc, list) or isinstance(cc, tuple):
@@ -289,6 +306,7 @@ def send_mail_mime(request, to, frm, subject, msg, cc=None, extra=None, toUser=F
 def parse_preformatted(preformatted, extra={}, override={}):
     """Parse preformatted string containing mail with From:, To:, ...,"""
     msg = message_from_string(preformatted.encode("utf-8"))
+    msg.set_charset('UTF-8')
 
     for k, v in override.iteritems():
          if k in msg:
@@ -314,7 +332,8 @@ def send_mail_preformatted(request, preformatted, extra={}, override={}):
     extra headers as needed)."""
 
     (msg,headers,bcc) = parse_preformatted(preformatted, extra, override)
-    send_mail_text(request, msg['To'], msg["From"], msg["Subject"], msg.get_payload(), extra=headers, bcc=bcc)
+    txt = msg.get_payload().decode(str(msg.get_charset()))
+    send_mail_text(request, msg['To'], msg["From"], msg["Subject"], txt, extra=headers, bcc=bcc)
     return msg
 
 def send_mail_message(request, message, extra={}):
@@ -324,6 +343,8 @@ def send_mail_message(request, message, extra={}):
     e = extra.copy()
     if message.reply_to:
         e['Reply-to'] = message.reply_to
+    if message.msgid:
+        e['Message-ID'] = message.msgid
 
     return send_mail_text(request, message.to, message.frm, message.subject,
                           message.body, cc=message.cc, bcc=message.bcc, extra=e)
@@ -418,3 +439,9 @@ def send_error_to_secretariat(msg):
         (extype,value) = sys.exc_info()[:2]
         log("SMTP Exception: %s : %s" % (extype,value))
     
+def is_valid_email(address):
+    try:
+        validate_email(address)
+        return True
+    except ValidationError:
+        return False

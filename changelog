@@ -1,3 +1,915 @@
+ietfdb (6.50.1) ietf; urgency=medium
+
+  This is a bugfix release, which also introduces some schema changes,
+  in preparation for later data migrations.  From the commit log:
+
+  * Merged in [13336] from rcross@amsl.com:
+    Fixed an issue where deferring a ballot causes 500 error in Telechat app.
+    Fixes #1342.  
+
+  * Merged in [13333] from rcross@amsl.com:
+    Corrected the Management Item Details link in telechat agenda_package.txt.
+    Fixes #2158.  
+
+  * Merged in [13328] from rcross@amsl.com:
+    Set parent of new areas to IESG.  Fixes #2011.
+
+  * Updated the utils.DumpInfo model to match the database.
+
+  * Merged in [13324] from rcross@amsl.com:
+    Disallow multi-day interim meetings with non-consecutive dates.  
+    Fixes #2193.   
+
+  * Merged in [13309] from rcross@amsl.com:
+    Fixed the Edit button of session request view.  Fixes #2285.   
+
+  * Merged in [13308] from rcross@amsl.com: Add ability for secretariat to
+    skip announcement of regular interim meetings.  Fixes #2210.  
+
+  * Merged in [13303] from rcross@amsl.com:
+    Session admin edit fails if no resources selected.  Fixes #2211.
+
+  * Added a guard to prevent problems with legacy drafts without any draft 
+    state.
+
+  * Tweaked the DRAFT_NAMES_WITH_DOT setting for another draft name 
+    exception.
+
+  * Merged in [13293] from rcross@amsl.com:
+    Improve help messages for multi-day and series interim meeting types.  
+    Fixes #2194.   
+
+  * Merged in [13292] from rcross@amsl.com:
+    Fixes #2002.  Trailing comma in Liaison cc_contacts field causes 
+    invalid email address error.   
+
+  * Merged in [13291] from rcross@amsl.com:
+    Change From address of session request notifications from 
+    session_request_developers@ietf.org to session-request@ietf.org.  Fix 
+    requester information in session request cancellation email.  Fixes #1621.  
+
+  * Updated doc resources.py with EditedAuthorsDocEventResource
+
+  * Updated the makeresources command to use the current 
+    AppCommand.handle_app_config() interface.
+
+  * Merged in [13276] from rcross@amsl.com:
+    Add group field to Roles add form validation.  Fixes #2292.   
+
+  * Merged in [13275] from rcross@amsl.com:
+    Refactor to prevent secretariat recordings entry page from timing out.  
+    Fixes #2287.   
+
+  * Merged in [13274] from rcross@amsl.com:
+    Indicate which schedule is the official schedule in Select a Schedule
+    drop-down.  Fixes #1456.  
+
+  * Aligned the availability of roles edit buttons on a group's about page
+    with the roles that the group edit GroupForm will accept.  Avoids
+    presentin edit forms without any fields and some server 500 errors. 
+
+  * Changed the alignment for the RFC 'Errata' label within the document name
+    and title column to consistently put it at the right side of the column,
+    for a tidier appearance.
+
+  * Fixed an issue with the author extraction code.
+
+  * Fixed a place where the LastCallDocEvent expiry value was set as a date 
+    instead of a datetime.
+
+  * Merged in [13246] from rjsparks@nostrum.com:
+    Distinguish group that have session requests from those that do not on 
+    the materials/editable-groups page. Fixes #2284.  
+
+  * Tweaked the test coverage percentage numbers shown in the release test
+    coverage chart to use only 3 decimal digits, not 12 ...
+
+  * Return a person search string instead of bombing out if there are 
+    multiple identical names where one don't have an active email address.
+
+ -- Henrik Levkowetz <henrik@levkowetz.com>  14 May 2017 10:00:50 +0000
+
+
+ietfdb (6.50.0) ietf; urgency=medium
+
+  This is a small feature release which provides a management command to
+  create / delete a set of related test and development data for a dummy
+  nomcom ('ietf/manage.py create_dummy_nomcom'), and adds statistics charts
+  for release coverage and frequency.  Room resources can now be marked as in
+  use or not, to control which resources are shown on the session request
+  form.  A few bugs have also been addressed, as indicated in the commit log:
+
+  * Merged in [13230] from rjsparks@nostrum.com:
+    Added scripts to create/delete a dummy nomcom to use in development
+    environments.  Fixes #2283. 
+
+  * Added charts for test coverage and release frequency.
+
+  * Fixed an if-statement which incorrectly disabled coverage testing when 
+    the parallel testing count was set to 1.
+
+  * Removed the 'Document' tab introduced in 6.48.0
+
+  * Moved the caching of htmlized documents into Document.htmlized() in 
+    order to avoid caching failed htmliztions (usually because of a missing 
+    .txt file).
+
+  * Added filtering of room resources in the session request form based on 
+    the 'used' flag of the room resource name.  Tweaked admin to show 'used' 
+    for ResourceAssociations.  Added Flipchart and U-shape-layout resources 
+    through a data migration, and added/modified resource icons.
+
+  * Replaced an old unworkable email addesss in the 404 page with the current
+    bugreport address, now configured in settings.py.
+
+  * Tweaked the use of the -p option of bin/mkrelease.  Added
+    sbirkholz@amsl.com to the release email addressees.
+
+ -- Henrik Levkowetz <henrik@levkowetz.com>  19 Apr 2017 12:11:10 +0000
+
+ietfdb (6.49.1) ietf; urgency=medium
+
+  **IETF 98 code sprint release 2**
+
+  This release collects the remaining sprint contributions, and in particular
+  contains the move of the downref registry to the datatracker which has been
+  requested by the IESG.  This release also reverts some of the changes made in
+  6.48.0 with respect to presentation of htmlized drafts and RFCs.
+
+  Excerpts from the commit log:
+
+  * Merged in [13181] and [13205] from housley@vigilsec.com:
+    This provides the downref registry work requested in ticket #2069. The
+    registry has been imported to the database and can be shown, and entries
+    can be added to the registry.  Dowref registry tests have been added to
+    the last call test case.  Fixes issue #2069.
+
+  * Merged in [13212] from rcross@amsl.com:
+    Fixed an issue in telechat app where ballot positions for WG actions are
+    incorrect.  Fixes #1336.  
+
+  * Merged in [13197] from rcross@amsl.com:
+    Fixed an issue with bin/merge-person-records when User.last_login == None.  
+    Fixes #2274.   
+
+  * Merged in [13183] from rcross@amsl.com:
+    Fixed error when selecting a document on the Telechat agenda that does 
+    not have a writeup.  Fixes #2262.   
+
+  * Changed the signature of ietf.utils.aliases.dump_sublist() to include a 
+    list of the alias domains, in order to be able to generate IRTF group 
+    aliases @irtf.org.  Updated ietf/bin/generate-*-aliases accordingly.
+
+  * Trying to re-apply already run migrations after loading a new databases 
+    dump runs into the problem that new tables created by the migrations 
+    linger, even if the tables loaded from the dump match the non-migrated 
+    state.  Having lists of the tables matching the latest release available 
+    makes it easy to construct an sql command to dump the extra tables, so the 
+    migrations can be run.  Adding generation and saving of a table list to 
+    bin/mkrelease.
+
+  * Reverted the search result rows to the pre-6.48.0 state.
+
+  * Changed some tests to use unicontent(r) instead of r.content, which 
+    decodes non-ascii content according to the response charset.
+
+  * Added some debug functionality which makes it possible to see from 
+    where (python source file and line) an SQL query comes when looking at the 
+    sql query summary available at the bottom of pages in debug mode, on 
+    INTERNAL_IPS.
+
+  * Extended the DRAFT_NAMES_WITH_DOT regexp.
+
+  * Expand the milestone information on the document metainfo tab a bit.
+
+  * Fixed a bug in the json_agenda data, now calculating room midpoints 
+    correctly.
+
+  * Changed a test case to look at the html being verified, rather than the 
+    whole page, to avoid test failures due to for instance new menu entries.
+
+  * Getting to the floorplans for a meeting venue required going via the
+    agenda, which can take time to load.  Escpecially on a handheld device,
+    when you want to see where the room of your next session is, it would be
+    useful to have a menu entry to go directly to the meeting floor-plans.
+    Adding one.
+
+ -- Henrik Levkowetz <henrik@levkowetz.com>  14 Apr 2017 12:50:00 +0000
+
+
+ietfdb (6.49.0) ietf; urgency=medium
+
+  **IETF 98 code sprint release 1**
+
+  This release contains datatracker bugfixes and enhancements from the IETF-98
+  Code Sprint, where we had a record number of commits :-) The release brings
+  in many useful bugfixes and enhancements, as described below. Many thanks to
+  everyone who contributed!
+
+  * Changed to use doc.canonical_name instead of doc.name when computing 
+    the cache key for htmlized documents in order to trigger a new generation 
+    when a draft goes to RFC.
+
+  * Merged in [13137] from rcross@amsl.com:
+    Added CANCELLED message to agenda for 'other' session types.
+
+  * Merged in [13135] from peter@akayla.com:
+    Added document titles to HTML titles.  Fixes #1957.  
+
+  * Upgraded phantomjs in the docker image to 1.9.8.
+
+  * Merged in [13134] from lars@netapp.com:
+    Shrink all images with image_optim.  
+
+  * Merged in [13129] from lars@netapp.com:
+    Replaced a table with div.  
+
+  * Merged in [13125] from rcross@amsl.com:
+
+    Added a REST API endpoint to notify Datatracker that new session recording
+    files are available, triggering an import.  For use by the Meetech crew.
+
+  * Changed the creation of temporary test dirs to use names which include 
+    the test class name, in order to make it possible to run test cases in 
+    parallel.  Disabled coverage testing when running in parallel (those 
+    classes cannot be pickled and distributed to the test runner threads, and 
+    also won't pass coverage data back).  Tweaked the TestCase.tempdir() method.
+
+  * Modified an API test to make it pickleable (for parallel test runs).
+
+  * Merged in [13120] from rjsparks@nostrum.com:
+    Be more explicit on review message subject lines. Fixes #2103.  
+
+  * Merged in [13118] from lars@netapp.com:
+    Updated vnu.jar and fixed various HTML5 nits it found during a test crawl. 
+
+  * Merged in [13115] from mahoney@nostrum.com:
+    Added draftname to email subject for review request (addresses #2144).  
+
+  * Made relative paths work for the create_group_wikis commnand.  Added 
+    wiki and svn dir patterns to docker/settings_local.py.
+
+  * Merged in [13114] from rcross@amsl.com:
+    Added the meetecho address to settings.AUDIO_IMPORT_EMAIL.   
+
+  * Merged in [13113] from rcross@amsl.com:
+    Added a Country column to meeting/NN/proceedings/attendees.  Fixes #2228.   
+
+  * Merged in [13112] from lars@netapp.com:
+    Fixed various RemovedInDjango20Warning warnings.  
+
+  * Merged in [13109] from lars@netapp.com:
+    Renamed crawl_history to make_rev_history, which is more descriptive.
+    Fixes #2224 (thanks, Robert!) by generating graphs for the entire revision
+    history of a doc, both forward and backward in time.  
+
+  * Tweaked docker/run slightly.  Added 2 utility scripts docker/mailserver 
+    and docker/devserver, to start a debug smtp server and a development 
+    webserver in separate terminal windws.  These assume that the docker image 
+    already is running.  Tweaked the settings_local in docker/ to send email to 
+    the debug smtp server.
+
+  * Changed docker/run in order to more easily be able to run multiple 
+    terminals against the docker enviroment, and also start the dev server and 
+    a debug smtp server in separate terminal windows.
+
+  * Merged in [13108] from lars@netapp.com:
+    Changed 'ID Tracker' to 'Datatracker' in various places. Addresses #2100. 
+
+  * Merged in [13107] from lars@netapp.com:
+    Changes to bower.json to correctly pick up assets for some new versions of
+    various packages we use.  
+
+  * Merged in [13102] from lars@netapp.com:
+    Updated bootstrap-datepicker3 to 1.6.4.  
+
+  * Merged in [13101] from lars@netapp.com:
+    Updated jquery.tablesorter to v2.28.5.  
+
+  * Merged in [13100] from lars@netapp.com:
+    Removed empty template directory.  
+
+  * Merged in [13099] from lars@netapp.com:
+    Removed outdated (and unused) bootstrap version. 
+
+  * Refined the selection of commit log info lines.
+
+  * Merged in [13098] from lars@netapp.com:
+    Updated bootstrap to 3.3.7.  
+
+  * Updated DRAFT_NAMES_WITH_DOT for another dot draft.
+
+  * Improved traceback for a logger.error() message.
+
+ -- Henrik Levkowetz <henrik@levkowetz.com>  29 Mar 2017 20:01:18 +0000
+
+
+ietfdb (6.48.2) ietf; urgency=medium
+
+  Another small patch release to fix internal issues and annoyances
+  users have expressed with some changes from 6.48.0:
+
+  * Reverted some links to htmlized draft versions, on request.
+
+  * Added an ALLOWED_HOSTS setting to settings_testcrawl.
+
+  * Removed list emails from the ADMINS setting, and added localhost to 
+    ALLOWED_HOSTS.
+
+  * Another fix for get_file_path().
+
+ -- Henrik Levkowetz <henrik@levkowetz.com>  23 Mar 2017 04:01:01 -0700
+
+
+ietfdb (6.48.1) ietf; urgency=medium
+
+  This is a small patch release to catch up with patches for 6.48.0 before
+  generating the IETF-98 sprint participant branches.
+
+  * Added better handling of missing documents (such as rfc575, which was
+    never issued, but is still requested.)
+
+  * Improved Document.get_file_path() to return even more correct draft
+    paths.
+
+  * Changed some test assertions so they provide more information on failure.
+
+  * Tweaked the 'rev' pattern, and added handling of revision number format
+    exceptios when breaking apart name and rev for documents which don't use
+    the charter rev model.
+
+  * Tweaks to docker/copydb.
+
+  * On request, reverted the document rendering on the document status page 
+    to the old look.
+
+  * Changed where to look for the text version of drafts, to always look in
+    the comprehensive ID archive
+
+  * Reverted a bad css change from the rfcmarkup work.
+
+  * Made Document.htmlized() be a bit smarter about handling documents 
+    which have not been provided in .txt format.
+
+ -- Henrik Levkowetz <henrik@levkowetz.com>  22 Mar 2017 12:37:06 +0000
+
+
+ietfdb (6.48.0) ietf; urgency=medium
+
+  **HTMLized drafts and RFCs**
+
+  This introduces improved htmlization of drafts and RFCs in the datatracker,
+  using the code originally developed for tools.ietf.org.  This initial
+  changeset does not update all internal links to point at the htmlized
+  document instead of at the document meta-information tab; it is expected
+  that further work will change some, but certainly not all, of the internal
+  document links to do so.
+
+  Document search-result lines (and lines in document lists which use the same
+  format) now link to the document meta-information tab using a circled 'i'
+  information symbol, while the text link points at the htmlized text.  This
+  may also change, pending feedback from users.
+
+  Here's the changeset: https://tools.ietf.org/tools/ietfdb/changeset/13041
+
+ -- Henrik Levkowetz <henrik@levkowetz.com>  21 Mar 2017 13:02:37 +0000
+
+
+ietfdb (6.47.2) ietf; urgency=medium
+
+  This is a patch release with bug fixes related to ballot grids and
+  secretariat meeting functionality, and internal enhancements.  It also
+  clears the way for the upcoming merge in of new draft htmlization code from
+  tools.ietf.org.
+
+  From the commit log:
+
+  * Added a check to bin/mkrelease, preventing releases with both schema 
+    change migrations and data migrations.  Data migrations often take some 
+    time, which will delay the time between the schema changes and deployment 
+    of the matching new code.
+
+  * Refined the test crawler a bit, to avoid extracting URLs from html which
+    is outside the datatracker's control, such as uploaded WG agendas.  (These
+    could lead to false warnings about problems with the datatracker's links).
+    Also exempted some pages with known-bad character issues from html
+    validation, and refined the error reporting for html validation failures.
+
+  * Added a utility function to create temporary directories with distinct
+    name based on test-class name and given labels.  This will help in
+    parallelizing the runs.
+
+  * Silenced an unnecessary error which could occur when looking for charter
+    documents for groups (such as bofs) without them, when asking the REST API
+    for group descriptions.
+
+  * Merged in [13022] from rcross@amsl.com:
+    Fixed the interim meeting edit form returning 500 when the duration field
+    is empty.  Fixes #2206.  
+
+  * Merged in [13021] from rcross@amsl.com:
+    Fixed an issue where editing an interim meeting duration does not update
+    underlying timeslot duration.  Fixes #2203.  
+
+  * Merged in [13018] from rcross@amsl.com:
+    Fixed an issue with interim meeting time-zone getting reset on edit.
+    Fixes issue #2204.  
+
+  * Merged in [13017] from rcross@amsl.com:
+    Added placeholders and validations to secretariat non-session time input 
+    fields.  Fixes #2208.   
+
+  * Applied a patch from rjsparks@nostrum.com to make ballot grids show for 
+    statchg documents in ietf last call.
+
+  * Added more email validation for draft submission author emails, and 
+    blocked some paths that could lead to bad email addresses ('none') being 
+    set as document author email addresses.
+
+ -- Henrik Levkowetz <henrik@levkowetz.com>  20 Mar 2017 12:02:49 +0000
+
+
+ietfdb (6.47.1) ietf; urgency=medium
+
+  This is a small patch release which provides a few bug fixes and
+  enhancements:  If no description is available for a group in the database,
+  the first paragraph of the charter (if available) is provided in the REST
+  API, in order to better support the new www.ietf.org website.  For cases
+  where email issue reports is wanted, there is now an email address provided
+  in the page footer, in addition to the issue tracker address.  Bugfixes
+  as shown in the commit log:
+
+  * Improved the log.assertion() and unreachable() functions to send a 
+    deeper traceback when reporting by email, rather than just the last stack 
+    frame.
+
+  * Merged in [12990] and [12991] from rcross@amsl.com:
+    Refactor session audio file import.  Add informative email.  Fixes #2164.
+
+  * Made the default navbar colour match the production navbar, rather than 
+    the dev navbar.  Gives 500 errors in production a regular navbar, rather 
+    than a dev navbar.
+
+  * Require bleach<2.0.0.  Bleach 2 requires html5lib 1.x, which requires a 
+    rewrite of ietf.utils.html.
+
+  * Modified the REST API to provide group descriptions taken from the 
+    group charters if group.description is blank.
+
+  * Added a text() methods on Document, to help with display of htmlized text.
+
+  * Added a guard against trying to fetch milestones for a group value of 
+    None.
+
+  * Added a link to report bugs by email to the page footer.
+
+  * Fixed a reverse url lookup issue in a template.
+
+ -- Henrik Levkowetz <henrik@levkowetz.com>  13 Mar 2017 17:09:40 +0000
+
+
+ietfdb (6.47.0) ietf; urgency=medium
+
+  **New document WG states: Waiting for Implementation, and Held by WG**
+
+  This is a mixed feature and bugfix release.  It adds two new document WG
+  States, provides several internal enhancements, and removes a bunch of dead
+  code.  Bugfixes are as indicated in this excerpt from the commit log:
+
+  * Added a data migration which adds 2 new document WG states: 'Waiting for
+    Implementation' and 'Held by WG'.
+
+  * Added a 'rev' field to DocEvent, and removed the corresponding field from
+    NewRevisionDocEvent and SubmissionDocEvent.  Added a migration for an
+    initial schema change, one data migration to copy and infer revision
+    information, another schema migration to remove extraneous revision field,
+    and another data migration to fix up bad timestamps and bad revision info
+    from the period 2016-09-10 to 2016-10-04.  Updated more than 200 instances
+    of DocEvent creation to supply a 'rev' value.
+
+  * Fixed a problem with assertion() and unreachable(), which could break if
+    certain names (like 'args') were set in the calling frame.
+
+  * Removed dead code marked as unreachable in the previous release, and added
+    unreachable marks for newly identified probable dead code.
+
+  * Added a msgid (Message-ID) field to the Message model, and added needed
+    migrations for the field.  The first migration creates the new column with
+    NULL values for existing rows, the second adds creation of msgid values by
+    default for new rows.
+
+  * Added a data migration to add author information to existing reviews.
+
+  * Added code to create all appropriate aliases when a Person record is
+    created, both in ietfauth and in PersonFactory.  This was not consistently
+    done earlier, leading to test-suite failures for test factory persons with
+    more than one given name.
+
+  * Added document author information for review document objects.
+
+  * Improved handling of a case where a meeting floor have been defined, but
+    no floor image uploaded yet.
+
+  * Changed email notification code for reviews done, in order to save the
+    message as a Message instance before sending it.  Added test code to check
+    that a Message instance is created and matches what goes out.
+
+  * Merged in [12917] from rcross@amsl.com: Fixes #2207.
+    bin/merge-person-records remove _meta.get_all_related_objects() deprecated
+    in Django 1.10.  
+
+  * Merged in [12950] from rcross@amsl.com: Provide material management access
+    to Area Group chairs.  Fixes #2219.
+
+  * Changed the state choices in the document adoption form to exclude the few
+    that should not be available, rather than explicitly list all others.
+    This makes it possible to add new document WG states without editing the
+    code, in many cases.
+
+ -- Henrik Levkowetz <henrik@levkowetz.com>  07 Mar 2017 10:38:08 +0000
+
+ietfdb (6.46.1) ietf; urgency=medium
+
+  This is a bugfix release with some minor enhancements.  From the commit
+  log:
+
+  * Merged in [12932] from rjsparks@nostrum.com:
+    Changed primary but inactive email addresses to the most recently touched
+    active email for a Person. If a person has more than one primary email,
+    make all but the first be not primary. Fixes #2214.  
+
+  * Merged in [12930] from rjsparks@nostrum.com:
+    Use the Role email associated with a reviewer as the From when emailing 
+    a review. Fixes #2201.  
+
+  * Created a special function, log.unreachable(), to mark code unreachable, 
+    and changed a function name from log.affirm() to log.assertion().
+
+  * Added ordering to Role, and a roles section at the top of the personal 
+    profile page.
+
+  * Added svn symlink check and creation to the test suite setup.  Forced test
+    settings to use an empty INTERNAL_IPS list for improved consistency in
+    code coverage figures.
+
+  * Preparation for dead code removal: Marked probable dead code with 
+    affirm() statements which will signal if we ever reach that point in the 
+    code.  If no signals seen, the marked functions/methods will be removed 
+    after one release cycle.
+
+  * Removed a big chunk of dead code: placement.py and related.
+
+  * Cleaned up the remaining explicit url names, using dotted-paths to view
+    functions instead.  In total almost 700 changes.
+
+  * Tweaked an import to make Python 2to3 able to handle it, while testing
+    conversion to Python 3 by means of the 2to3 tool.
+
+  * Fixed an issue that left html meta-characters unescaped in the
+    release-notes shown under /release/
+
+  * Added an alert on the login form, to be shown if a user's password has 
+    been cleared.  Adjusted url reverse strings to match the changed view 
+    function.
+
+  * Tweaked the wording on the account creation whitelisting page to 
+    emphasise the wording to be asked then emailing a querent.
+
+  * Personal profile pages already show the primary (unicode) name of a 
+    person.  Added the asciified name in parentheses, if different from the 
+    primary name, in the page header.
+
+  * Tweaked the release script's bower update part.
+
+ -- Henrik Levkowetz <henrik@levkowetz.com>  01 Mar 2017 12:27:16 +0000
+
+
+ietfdb (6.46.0) ietf; urgency=medium
+
+  **Name i18n improvements, tweaks to Group Pages and Account Setup**
+
+  This release introduces use of non-ascii names in the name parts of outgoing
+  emails instead of always using asciified names.  It improves the account
+  setup workflow, improves the ease of editing group attributes and makes it
+  more apparent which attributes can be edited.  It also adds a code quality
+  assurance tool which makes easy notification on unexpected states available,
+  and applies it to one difficult-to-debug issue.  There are also a number of
+  bugfixes, as usual.  From the commit log:
+
+  * Changes to address ease of editing various group attributes, in particular
+    intended to make it easier to see that you can edit things like the
+    external/additional URLs:
+
+    - Added the ability to edit individual fields in a group's about page, and
+      added edit buttons for editable fields on the about page, just as for
+      documents (the ability to edit all editable fields already was available
+      from the 'Edit group' button on the /group//about/ page).
+
+    - Made the tab label for the group-about tab consistently say 'About',
+      instead of 'Charter' for some groups.
+
+    - Shifted the position of the about tab to the start of the tab line.
+
+    - Removed the datatracker account requirement information at the top of the
+      group edit page for users logged in to their account.
+
+    - Tweaked the 'Show update' link on the 'Status Update' line.
+
+    - Changed the label for the external URLs from 'More Info' to 'Additional
+      URLs', which was already in use on the edit form.
+
+  * Fixed a html issue on the review request page.
+
+  * Made some changes to the missing-email submission handling.  This may have
+    fixed the creation of author records containing 'none' email entries, but
+    as I've not been able to reproduce the issue, this is uncertain.
+
+  * Made the logging settings explicit in ietf/settings.py (instead of copying
+    default then modifying), and added enough surrounding information to make
+    it possible to read also for people not very familiar with Python's
+    intricate logging infrastructure.  To a large extent to understand myself
+    how the logging is set up in Django, and where to hook in the affirm()
+    function.
+
+  * Added an affirm($statement) function, which acts like an assert, and
+    lets us trigger an email message with traceback when the statement to
+    affirm is False.  Use instead of assert if we still want the server to
+    produce a response, even if something is wrong with the internal state.
+
+  * Added a log.affirm() call at the point where we may discover new flawed
+    document author records.  Fixed a place where the generation of
+    Person.ascii from Person.name wasn't done well.
+
+  * Changed the AD email list results from get_group_ad_emails() to make more
+    sense when the group is an area, not a wg.
+
+  * Fixed url lookups for doc.views_doc.document_main() to only use
+    dotted-path, and removed the doc_view explicit url name.  Fixes a 500
+    error in /submit/status/NNNN/.
+
+  * Added explicit charset setting and consistent encoding to several email
+    paths through the datatracker.  After introducing support for non-ascii
+    names in email addresses, using role.formatted_email() to insert names
+    into email content doesn't work any more, since uncode names will now be
+    rfc2047-encoded in formatted_email().  Added another method
+    role.name_and_email() for this case.  Replaced another case of '%s <%s>'
+    name-and-email formatting with formataddr().  Fixed some tests which did
+    not send unicode email bodies to the email functions.  Fixes issue #2017.
+
+  * Added a validator to Document.title to prevent control chars in the title
+    (this complements a recent cleanup of more than 120 instances of document
+    titles containing vertical tabs).
+
+  * Changed the New Account creation to require a proper name at the same time
+    as the account password is set, before actually creating the account.
+    Also tweaked the password strength and confirmation code.
+
+ -- Henrik Levkowetz <henrik@levkowetz.com>  24 Feb 2017 10:38:17 +0000
+
+
+ietfdb (6.45.0) ietf; urgency=medium
+
+  **Django 1.10**
+
+  This release upgrades the datatracker to use version 1.10 of the Django
+  framework.  Django 1.10 provides support for unicode login names, the new
+  Argon2 password hasher, and makes available a number of minor conveniences.
+
+  This release also removed support for automatic generation of dotted-path
+  names for the view function in urlpatterns, which seems to violate the DRY
+  (Don't Repeat Yourself) principle in programming.  I plan to have words with
+  the Django developers about this during DjangoCon Europe in May.  That
+  change necessitated a workaround url() function and a lot of clean-up and
+  conversion.  The conversion work is not finished, but we're getting there,
+  and meanwhile everything is functional with Django 1.10.  For the Django
+  1.10 release notes, see [a].
+
+  A full diff of the upgrade changes is available in changeset [12881].
+
+  The next Django release, 1.11, will be the last version which will run on
+  Python 2.7; the following release, 2.0, will require Python 3; probably
+  python 3.4 or higher.  The Django 1.11 release will be a LTS (Long Term
+  Support) release which will get security upgrades for 3 years after its
+  release.  We should upgrade to 1.11 when it's released later this year, and
+  then plan on converting the datatracker code base to Python 3, in order to
+  be ready for Django 2.x before LTS ends some time in 2020.
+
+  [a] https://docs.djangoproject.com/en/1.10/releases/1.10/
+
+ -- Henrik Levkowetz <henrik@levkowetz.com>  20 Feb 2017 11:45:05 +0000
+
+ietfdb (6.44.1) ietf; urgency=medium
+
+  **Non-ASCII name support for email address fields**
+
+  This is a bugfix relelease which provides a reworked email address handling
+  in order to be able to support non-ascii names as part of email address
+  fields.  It also provides reworked generation of user names in the test
+  suite in order to generate names from multiple non-ascii locales.  This
+  fixes issue #2080.  The release also cleans the slate for the upcoming merge
+  in of the Django 1.10 branch.
+
+ -- Henrik Levkowetz <henrik@levkowetz.com>  19 Feb 2017 11:42:27 +0000
+
+ietfdb (6.44.0) ietf; urgency=medium
+
+  **Improved account editing**
+
+  This is a small feature release with some bugfixes.  It introduces the
+  ability for datatracker users to change their username from the current
+  one to one of the (other) active email addresses of their account, and
+  the ability to indicate which of the active email addresses should be
+  considered the primary email address.  It adds a menu endtry for document
+  search, which was not easy to navigate to internally if you didn't know how.
+  Other minor fixes are mentioned in the commit log:
+
+  * Added the ability for logged-in users to change their login (username) 
+    to any of the active email addresses of the account.  Fixes ticket #2052.
+
+  * Tweaked the company name extraction code in class Draft.
+
+  * Added support for indicating the primary email address of one's 
+    datatracker account.  Fixes issue #2106.
+
+  * Merged in [12835] from rcross@amsl.com:
+    Fixes #2202.  Interim sessions appear unordered.  Switch templates to 
+    use ordered assignments() related object manager.  Also removed now unused 
+    template filters.   
+
+  * Added a menu entry for Document Search
+
+  * Fixed an issue with the test-crawler which could cause false positives 
+    for urls containing apostrophe.
+
+  * Fixed a html entity issue.
+
+  * Tweaked the author extraction to recognize short lines as paragraph 
+    ends, not only lines ending in '.' or ':'
+
+  * Stabilized a number of nomcom tests by enforcing queryset ordering.
+
+  * Added more information about submission errors and a full idnits run to 
+    the manual post email sent to the secretariat.
+
+  * Added some updates to /release/about
+
+  * Added ordering by name to group personnel lists in edit and about 
+    views.  This ordering is by the person's profile name, without attempting 
+    to determine which name part is family name or given name.  Fixes #2184.
+
+  * Extended the name_parts() method to consider military rank prefixes.
+
+ -- Henrik Levkowetz <henrik@levkowetz.com>  16 Feb 2017 10:14:00 +0000
+
+
+ietfdb (6.43.0) ietf; urgency=medium
+
+  **Password strength meter**
+
+  This release provides a zxcvbn-based password strenght meter when setting
+  or changing a datatracker user password, and changes the default password
+  hasher from PBKDF2 to BCrypt.  It adds support for datatracker management
+  of additional wikis,  and changes the management of bower-packaged web
+  assets to updating them to the latest minor release on each new datatracker
+  release.  It also fixes a few bugs, and tweaks the IPR declaration pages to
+  provide more complete information for declarations which indicate that 
+  licensing conditions will be provided later.
+
+  From the commit log:
+
+  * Added a change password page, and linked to it from the account profile 
+    page and user menu.  Added zxcvbn-based browser-side password strength 
+    estimation on the various password setting, re-setting, and changing forms. 
+    Added a change password test.  Changed ietfauth/urls.py to not use the 
+    deprecated string form for views in urlpatterns.
+
+  * Re-styled some auth-related forms to use a narrower form body on large 
+    screens, for aesthethic reasons.
+
+  * Added an explicit setting for the password hashers to use, in order to 
+    place the bcrypt hasher first.  This makes BCrypt the default hasher.  
+    Added the django_password_strength app to installed apps.
+
+  * Added the zxcvbn bower component, for use in client-side password 
+    strength estimation.
+
+  * Added django-bcrypt (for bcrypt password hashing) and 
+    django-password-strength (for browser-side zxcvbn password strength 
+    estimation) to the requirements.
+
+  * Added ordering for nomcom  Nominee objects.
+
+  * Expanded the Nominee __unicode__() method to provide unique results by 
+    including the nomcom year.
+
+  * Tweaked the IPR Details page to show the possible a), b), and c) 
+    choices under section 'V' when licensing declaration to be provided later 
+    has been chosen.
+
+  * Added a guard to prevent trying to get a document path for a meeting 
+    document when the document is not associated with a meeting session.
+
+  * Added support for management of trac wikis for explicitly named groups, 
+    such as the IESG and IAOC.  Tweaked the dummy-run handling of the 
+    create_group_wikis management command.
+
+  * Added updating of static web assets to the release script.
+
+  * Fixed a bug in a queryset argument in all_id_text(); __in was not used, 
+    but the value given was a multi-row queryset.
+
+  * @register.simple_tag now (in Django 1.9) needs explicit mark_safe() (or 
+    format_html() which invokes mark_safe()).  Fixed one case which needed this.
+
+ -- Henrik Levkowetz <henrik@levkowetz.com>  10 Feb 2017 10:52:10 +0000
+
+
+ietfdb (6.42.0) ietf; urgency=medium
+
+  **Django 1.9**
+
+  This release upgrades the datatracker to use version 1.9 of the Django
+  framework.  Django 1.9 provides pluggable password validation support,
+  stricter template syntax (which prevents some common mistakes), simplified
+  call syntax for some common API calls, better database consistency checks
+  when creating many-to-many key relationship (preventing references to
+  nonexistent entries), and more [a].  A full diff of the upgrade changes is
+  available in changeset [12764].
+
+  [a] https://docs.djangoproject.com/en/1.9/releases/1.9/
+
+ -- Henrik Levkowetz <henrik@levkowetz.com>  01 Feb 2017 18:12:13 +0000
+
+ietfdb (6.41.1) ietf; urgency=medium
+
+  This is a minor bugfix release in preparation for merging in the Django 1.9
+  upgrade work.  From the commit log:
+
+  * Merged in [12748] from rcross@amsl.com:
+    Added requested resources and people who must be there to email
+    notifications of session requests.  Fixes #2172.  
+
+  * Added notes to PLAN on features of the new django releases we might want
+    to put to use.
+
+  * Fixed an issue with building links from URLs which are already part of a
+    link.  Fixes issue #2175.
+
+  * Fixed a place where missing queryargument data could cause a 500 error.
+
+  * Updated the installation instructions based on feedback from
+    mlarson@amsl.com.
+
+ -- Henrik Levkowetz <henrik@levkowetz.com>  31 Jan 2017 14:08:58 +0000
+
+ietfdb (6.41.0) ietf; urgency=medium
+
+  **IAB programs support and wiki support for teams and directorates**
+
+  This release introduces support for IAB programs, and also extends the
+  creation and permissions management support for Trac wikis to teams and
+  directorates.  There are also some bugfixes.  From the commit log:
+
+  * Changed the title of Section 7 of the IESG agenda as requested.  Fixes 
+    issue #2167.
+
+  * Fixed up the div tree to bring back the section navigation on the IESG
+    agenda page, and fixed the div level and width for the footer.
+
+  * Merged in [12724] from rcross@amsl.com:
+    Resolved an issue with merge_person_records caused by Django 1.8 upgrade.
+    Fixes issue #2141.  
+
+  * Merged in [12722] from rjsparks@nostrum.com:
+    Added programs to the datatracker. Added use of restructuredtext for group
+    about pages. Generalized several places where code handles different group
+    types. Improved testing of group about.  
+
+  * Changed settings_sqlitetest so that local developer additions to context
+    processors and middleware classes are avoided.
+
+  * Added a trac-admin role name, for help in assigning trac-admin rights to
+    trac instances.  Extended the create_group_wikis management command to
+    create and update wikis for groups of type 'team','ag' and 'dir', in
+    addition to 'wg','rg' and 'area'; and also add people with role trac-admin
+    in the group or in the secretariat to those given TRAC_ADMIN permissions
+    in a Trac instance.
+
+  * Changed semantics for can_manage_group() to include chairs etc, and
+    changed calls with the old semantics to use can_manage_group_type().
+    Rewrote can_manage_group() in terms of can_manage_group_type() and
+    additional checks.  Fixes issue #2155.
+
+  * Merged in [12706] from rjsparks@nostrum.com:
+    Restrict editing ReviewSettings.skip_next to team secretaries and the 
+    secretariat. Improve validation of skip_next value. Fixes #2149.  
+
+  * Changed the failure leeway of the code coverage test percentage from 
+    0.005% back to 0.02%.
+
+ -- Henrik Levkowetz <henrik@levkowetz.com>  26 Jan 2017 12:19:19 +0000
+
+
 ietfdb (6.40.4) ietf; urgency=medium
 
   This is a bugfix release, with some enhancements, mostly related to the
@@ -390,7 +1302,7 @@ ietfdb (6.38.2) ietf; urgency=medium
 
 ietfdb (6.38.1) ietf; urgency=medium
 
-  **IETF 97 Code Sprint Release 2**
+  **IETF 97 code sprint release 2**
 
   This release contains a further datatracker enhancement from the IETF-97
   Code Sprint:
@@ -404,7 +1316,7 @@ ietfdb (6.38.1) ietf; urgency=medium
 
 ietfdb (6.38.0) ietf; urgency=medium
 
-  **IETF 97 Code Sprint**
+  **IETF 97 code sprint**
 
   This release contains datatracker bugfixes and enhancements from the IETF-97
   Code Sprint.  This brings in many useful bugfixes and enhancements, as

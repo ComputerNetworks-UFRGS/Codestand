@@ -1,11 +1,14 @@
 # Copyright The IETF Trust 2007, All Rights Reserved
 
-import datetime, os
+import datetime
+import logging
+import os
 
 from django.db import models
 from django.core import checks
+from django.core.cache import caches
 from django.core.exceptions import ValidationError
-from django.core.urlresolvers import reverse as urlreverse
+from django.urls import reverse as urlreverse
 from django.core.validators import URLValidator
 from django.contrib.contenttypes.models import ContentType
 from django.conf import settings
@@ -17,8 +20,12 @@ from ietf.group.models import Group
 from ietf.name.models import ( DocTypeName, DocTagName, StreamName, IntendedStdLevelName, StdLevelName,
     DocRelationshipName, DocReminderTypeName, BallotPositionName, ReviewRequestStateName )
 from ietf.person.models import Email, Person
+from ietf.utils import log
 from ietf.utils.admin import admin_link
+from ietf.utils.rfcmarkup import markup
+from ietf.utils.validators import validate_no_control_chars
 
+logger = logging.getLogger('django')
 
 class StateType(models.Model):
     slug = models.CharField(primary_key=True, max_length=30) # draft, draft-iesg, charter, ...
@@ -65,7 +72,7 @@ class DocumentInfo(models.Model):
     time = models.DateTimeField(default=datetime.datetime.now) # should probably have auto_now=True
 
     type = models.ForeignKey(DocTypeName, blank=True, null=True) # Draft, Agenda, Minutes, Charter, Discuss, Guideline, Email, Review, Issue, Wiki, External ...
-    title = models.CharField(max_length=255)
+    title = models.CharField(max_length=255, validators=[validate_no_control_chars, ])
 
     states = models.ManyToManyField(State, blank=True) # plain state (Active/Expired/...), IESG state, stream state
     tags = models.ManyToManyField(DocTagName, blank=True) # Revised ID Needed, ExternalParty, AD Followup, ...
@@ -91,21 +98,76 @@ class DocumentInfo(models.Model):
         return ext.lstrip(".").lower()
 
     def get_file_path(self):
+        if not hasattr(self, '_cached_file_path'):
+            if self.type_id == "draft":
+                if self.is_dochistory():
+                    self._cached_file_path = settings.INTERNET_ALL_DRAFTS_ARCHIVE_DIR
+                else:
+                    if self.get_state_slug() == "rfc":
+                        self._cached_file_path = settings.RFC_PATH
+                    else:
+                        draft_state = self.get_state('draft')
+                        if draft_state and draft_state.slug == 'active':
+                            self._cached_file_path = settings.INTERNET_DRAFT_PATH
+                        else:
+                            self._cached_file_path = settings.INTERNET_ALL_DRAFTS_ARCHIVE_DIR
+            elif self.type_id in ("agenda", "minutes", "slides", "bluesheets") and self.meeting_related():
+                doc = self.doc if isinstance(self, DocHistory) else self
+                if doc.session_set.exists():
+                    meeting = doc.session_set.first().meeting
+                    self._cached_file_path = os.path.join(meeting.get_materials_path(), self.type_id) + "/"
+                else:
+                    self._cached_file_path = ""
+            elif self.type_id == "charter":
+                self._cached_file_path = settings.CHARTER_PATH
+            elif self.type_id == "conflrev": 
+                self._cached_file_path = settings.CONFLICT_REVIEW_PATH
+            elif self.type_id == "statchg":
+                self._cached_file_path = settings.STATUS_CHANGE_PATH
+            else:
+                self._cached_file_path = settings.DOCUMENT_PATH_PATTERN.format(doc=self)
+        return self._cached_file_path
 
-        if self.type_id == "draft":
-            return settings.INTERNET_DRAFT_PATH
-        elif self.type_id in ("agenda", "minutes", "slides", "bluesheets") and self.meeting_related():
-            doc = self.doc if isinstance(self, DocHistory) else self
-            meeting = doc.session_set.first().meeting
-            return os.path.join(meeting.get_materials_path(), self.type_id) + "/"
-        elif self.type_id == "charter":
-            return settings.CHARTER_PATH
-        elif self.type_id == "conflrev": 
-            return settings.CONFLICT_REVIEW_PATH
-        elif self.type_id == "statchg":
-            return settings.STATUS_CHANGE_PATH
-        else:
-            return settings.DOCUMENT_PATH_PATTERN.format(doc=self)
+    def get_base_name(self):
+        if not hasattr(self, '_cached_base_name'):
+            if self.type_id == 'draft':
+                if self.is_dochistory():
+                    self._cached_base_name = "%s-%s.txt" % (self.doc.name, self.rev)
+                else:
+                    if self.get_state_slug() == 'rfc':
+                        self._cached_base_name = "%s.txt" % self.canonical_name()
+                    else:
+                        self._cached_base_name = "%s-%s.txt" % (self.name, self.rev)
+            elif self.type_id in ["slides", "agenda", "minutes", "bluesheets", ] and self.meeting_related():
+                if self.external_url:
+                    # we need to remove the extension for the globbing below to work
+                    self._cached_base_name = self.external_url
+                else:
+                    self._cached_base_name = "%s.txt" % self.canonical_name() # meeting materials are unversioned at the moment
+            elif self.type_id == 'review':
+                self._cached_base_name = "%s.txt" % self.name
+            else:
+                if self.rev:
+                    self._cached_base_name = "%s-%s.txt" % (self.canonical_name(), self.rev)
+                else:
+                    self._cached_base_name = "%s.txt" % (self.canonical_name(), )
+        return self._cached_base_name
+
+    def get_file_name(self):
+        if not hasattr(self, '_cached_file_name'):
+            self._cached_file_name = os.path.join(self.get_file_path(), self.get_base_name())
+        return self._cached_file_name
+
+    def revisions(self):
+        revisions = []
+        doc = self.doc if isinstance(self, DocHistory) else self
+        for e in doc.docevent_set.filter(type='new_revision').distinct():
+            if e.rev and not e.rev in revisions:
+                revisions.append(e.rev)
+        if not doc.rev in revisions:
+            revisions.append(doc.rev)
+        revisions.sort()
+        return revisions
 
     def href(self, meeting=None):
         """
@@ -225,7 +287,7 @@ class DocumentInfo(models.Model):
             elif state.slug == "repl":
                 rs = self.related_that("replaces")
                 if rs:
-                    return mark_safe("Replaced by " + ", ".join("<a href=\"%s\">%s</a>" % (urlreverse('doc_view', kwargs=dict(name=alias.document)), alias.document) for alias in rs))
+                    return mark_safe("Replaced by " + ", ".join("<a href=\"%s\">%s</a>" % (urlreverse('ietf.doc.views_doc.document_main', kwargs=dict(name=alias.document)), alias.document) for alias in rs))
                 else:
                     return "Replaced"
             elif state.slug == "active":
@@ -250,6 +312,11 @@ class DocumentInfo(models.Model):
                 return state.name
         else:
             return state.name
+
+    def is_rfc(self):
+        if not hasattr(self, '_cached_is_rfc'):
+            self._cached_is_rfc = self.pk and self.type_id == 'draft' and self.states.filter(type='draft',slug='rfc').exists()
+        return self._cached_is_rfc
 
     def author_list(self):
         return ", ".join(email.address for email in self.authors.all())
@@ -344,8 +411,45 @@ class DocumentInfo(models.Model):
     def all_related_that_doc(self, relationship, related=None):
         return list(set([x.target for x in self.all_relations_that_doc(relationship)]))
 
+    def replaces(self):
+        return set([ r.document for r in self.related_that_doc("replaces")])
+
     def replaced_by(self):
-        return [ r.document for r in self.related_that("replaces") ]
+        return set([ r.document for r in self.related_that("replaces") ])
+
+    def text(self):
+        path = self.get_file_name()
+        try:
+            with open(path, 'rb') as file:
+                raw = file.read()
+        except IOError:
+            return None
+        try:
+            text = raw.decode('utf-8')
+        except UnicodeDecodeError:
+            text = raw.decode('latin-1')
+        #
+        return text
+
+    def htmlized(self):
+        name = self.get_base_name()
+        text = self.text()
+        if name.endswith('.html'):
+            return text
+        if not name.endswith('.txt'):
+            return None
+        html = ""
+        if text:
+            cache = caches['htmlized']
+            key = name.split('.')[0]
+            html = cache.get(key)
+            if not html:
+                # The path here has to match the urlpattern for htmlized
+                # documents in order to produce correct intra-document links
+                html = markup(text, path=settings.HTMLIZER_URL_PREFIX)
+                if html:
+                    cache.set(key, html, settings.HTMLIZER_CACHE_TIME)
+        return html
 
     class Meta:
         abstract = True
@@ -397,6 +501,14 @@ class RelatedDocument(models.Model):
 
         return None
 
+    def is_approved_downref(self):
+
+        if self.target.document.get_state().slug == 'rfc':
+           if RelatedDocument.objects.filter(relationship_id='downref-approval', target=self.target):
+              return "Approved Downref"
+
+        return False
+
 class DocumentAuthor(models.Model):
     document = models.ForeignKey('Document')
     author = models.ForeignKey(Email, help_text="Email address used by author for submission")
@@ -436,8 +548,7 @@ class Document(DocumentInfo):
                         filename = self.external_url
                     url = '%sproceedings/%s/%s/%s' % (settings.IETF_HOST_URL,meeting.number,self.type_id,filename)
                 return url
-        return urlreverse('doc_view', kwargs={ 'name': name }, urlconf="ietf.urls")
-
+        return urlreverse('ietf.doc.views_doc.document_main', kwargs={ 'name': name }, urlconf="ietf.urls")
 
     def file_tag(self):
         return u"<%s>" % self.filename_with_rev()
@@ -458,9 +569,9 @@ class Document(DocumentInfo):
         if not hasattr(self, '_canonical_name'):
             name = self.name
             if self.type_id == "draft" and self.get_state_slug() == "rfc":
-                a = self.docalias_set.filter(name__startswith="rfc")
+                a = self.docalias_set.filter(name__startswith="rfc").first()
                 if a:
-                    name = a[0].name
+                    name = a.name
             elif self.type_id == "charter":
                 from ietf.doc.utils_charter import charter_name_for_group # Imported locally to avoid circular imports
                 try:
@@ -503,8 +614,6 @@ class Document(DocumentInfo):
         super(Document, self).save(*args, **kwargs)
 
     def telechat_date(self, e=None):
-        if hasattr(self, '_telechat_date'):
-            return self._telechat_date
         if not e:
             e = self.latest_event(TelechatDocEvent, type="scheduled_for_telechat")
         return e.telechat_date if e and e.telechat_date and e.telechat_date >= datetime.date.today() else None
@@ -556,8 +665,15 @@ class Document(DocumentInfo):
         return mark_safe('<a href="%s">%s-%s</a>' % (self.get_absolute_url(), self.name , self.rev))
 
     def rfc_number(self):
-        n = self.canonical_name()
-        return n[3:] if n.startswith("rfc") else None
+        if not hasattr(self, '_cached_rfc_number'):
+            self._cached_rfc_number = None
+            if self.is_rfc():
+                n = self.canonical_name()
+                if n.startswith("rfc"):
+                    self._cached_rfc_number = n[3:]
+                else:
+                    logger.error("Document self.is_rfc() is True but self.canonical_name() is %s" % n)
+        return self._cached_rfc_number
 
     def ipr(self,states=('posted','removed')):
         """Returns the IPR disclosures against this document (as a queryset over IprDocRel)."""
@@ -602,7 +718,37 @@ class Document(DocumentInfo):
         else:
             event = self.latest_event(type='new_revision')
         return event.time
-        
+
+    def is_dochistory(self):
+        return False
+
+    def fake_history_obj(self, rev):
+        """
+        Mock up a fake DocHistory object with the given revision, for
+        situations where we need an entry but there is none in the DocHistory
+        table.
+        XXX TODO: Add missing objects to DocHistory instead
+        """
+        history = DocHistory.objects.filter(doc=self, rev=rev).order_by("time")
+        if history.exists():
+            return history.first()
+        else:
+            # fake one
+            events = self.docevent_set.order_by("time", "id")
+            rev_events = events.filter(rev=rev)
+            new_rev_events = rev_events.filter(type='new_revision')
+            if new_rev_events.exists():
+                time = new_rev_events.first().time
+            elif rev_events.exists():
+                time = rev_events.first().time
+            else:
+                time = datetime.datetime.fromtimestamp(0)
+            dh = DocHistory(name=self.name, rev=rev, doc=self, time=time, type=self.type, title=self.title,
+                             stream=self.stream, group=self.group)
+
+        return dh
+            
+
 
 class RelatedDocHistory(models.Model):
     source = models.ForeignKey('DocHistory')
@@ -656,6 +802,12 @@ class DocHistory(DocumentInfo):
     def docalias_set(self):
         return self.doc.docalias_set
 
+    def is_dochistory(self):
+        return True
+
+    def related_ipr(self):
+        return self.doc.related_ipr()
+
     class Meta:
         verbose_name = "document history"
         verbose_name_plural = "document histories"
@@ -689,6 +841,7 @@ EVENT_TYPES = [
     ("changed_document", "Changed document metadata"),
     ("added_comment", "Added comment"),
     ("added_message", "Added message"),
+    ("edited_authors", "Edited the documents author list"),
 
     ("deleted", "Deleted document"),
 
@@ -751,6 +904,9 @@ EVENT_TYPES = [
     ("requested_review", "Requested review"),
     ("assigned_review_request", "Assigned review request"),
     ("closed_review_request", "Closed review request"),
+
+    # downref
+    ("downref_approved", "Downref approved"),
     ]
 
 class DocEvent(models.Model):
@@ -759,6 +915,7 @@ class DocEvent(models.Model):
     type = models.CharField(max_length=50, choices=EVENT_TYPES)
     by = models.ForeignKey(Person)
     doc = models.ForeignKey('doc.Document')
+    rev = models.CharField(verbose_name="revision", max_length=16, null=True, blank=True)
     desc = models.TextField()
 
     def for_current_revision(self):
@@ -771,23 +928,15 @@ class DocEvent(models.Model):
     def __unicode__(self):
         return u"%s %s by %s at %s" % (self.doc.name, self.get_type_display().lower(), self.by.plain_name(), self.time)
 
-    def get_rev(self):
-        e = self
-        # check subtypes which has a rev attribute
-        for sub in ['newrevisiondocevent', 'submissiondocevent', ]:
-            if hasattr(e, sub):
-                e = getattr(e, sub)
-                break
-        if hasattr(e, 'rev'):
-            return e.rev
-        else:
-            return None
+    def save(self, *args, **kwargs):
+        super(DocEvent, self).save(*args, **kwargs)        
+        log.assertion('self.rev != None')
 
     class Meta:
         ordering = ['-time', '-id']
         
 class NewRevisionDocEvent(DocEvent):
-    rev = models.CharField(max_length=16)
+    pass
 
 class StateDocEvent(DocEvent):
     state_type = models.ForeignKey(StateType)
@@ -864,7 +1013,7 @@ class BallotDocEvent(DocEvent):
             norecord = BallotPositionName.objects.get(slug="norecord")
             for ad in active_ads:
                 if ad not in seen:
-                    e = BallotPositionDocEvent(type="changed_ballot_position", doc=self.doc, ad=ad)
+                    e = BallotPositionDocEvent(type="changed_ballot_position", doc=self.doc, rev=self.doc.rev, ad=ad)
                     e.by = ad
                     e.pos = norecord
                     e.old_ad = False
@@ -910,7 +1059,6 @@ class AddedMessageEvent(DocEvent):
 
 class SubmissionDocEvent(DocEvent):
     import ietf.submit.models
-    rev = models.CharField(max_length=16)
     submission = models.ForeignKey(ietf.submit.models.Submission)
 
 # dumping store for removed events
@@ -922,3 +1070,10 @@ class DeletedEvent(models.Model):
 
     def __unicode__(self):
         return u"%s by %s %s" % (self.content_type, self.by, self.time)
+
+class EditedAuthorsDocEvent(DocEvent):
+    """ Capture the reasoning or authority for changing a document author list.
+        Allows programs to recognize and not change lists that have been manually verified and corrected.
+        Example 'basis' values might be from ['manually adjusted','recomputed by parsing document', etc.]
+    """
+    basis = models.CharField(help_text="What is the source or reasoning for the changes to the author list",max_length=255)

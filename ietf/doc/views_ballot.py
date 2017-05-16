@@ -4,10 +4,9 @@
 import datetime, json
 
 from django.http import HttpResponseForbidden, HttpResponseRedirect, Http404
-from django.shortcuts import render, render_to_response, get_object_or_404, redirect
-from django.core.urlresolvers import reverse as urlreverse
+from django.shortcuts import render, get_object_or_404, redirect
+from django.urls import reverse as urlreverse
 from django.template.loader import render_to_string
-from django.template import RequestContext
 from django import forms
 from django.conf import settings
 
@@ -91,8 +90,8 @@ def position_label(position_value):
 # -------------------------------------------------
 class EditPositionForm(forms.Form):
     position = forms.ModelChoiceField(queryset=BallotPositionName.objects.all(), widget=forms.RadioSelect, initial="norecord", required=True)
-    discuss = forms.CharField(required=False, widget=forms.Textarea)
-    comment = forms.CharField(required=False, widget=forms.Textarea)
+    discuss = forms.CharField(required=False, widget=forms.Textarea, strip=False)
+    comment = forms.CharField(required=False, widget=forms.Textarea, strip=False)
 
     def __init__(self, *args, **kwargs):
         ballot_type = kwargs.pop("ballot_type")
@@ -117,7 +116,7 @@ def edit_position(request, name, ballot_id):
     if 'ballot_edit_return_point' in request.session:
         return_to_url = request.session['ballot_edit_return_point']
     else:
-        return_to_url = urlreverse("doc_ballot", kwargs=dict(name=doc.name, ballot_id=ballot_id))
+        return_to_url = urlreverse("ietf.doc.views_doc.document_ballot", kwargs=dict(name=doc.name, ballot_id=ballot_id))
 
     # if we're in the Secretariat, we can select an AD to act as stand-in for
     if has_role(request.user, "Secretariat"):
@@ -138,7 +137,7 @@ def edit_position(request, name, ballot_id):
             # save the vote
             clean = form.cleaned_data
 
-            pos = BallotPositionDocEvent(doc=doc, by=login)
+            pos = BallotPositionDocEvent(doc=doc, rev=doc.rev, by=login)
             pos.type = "changed_ballot_position"
             pos.ballot = ballot
             pos.ad = ad
@@ -160,7 +159,7 @@ def edit_position(request, name, ballot_id):
                 changes.append("comment")
 
                 if pos.comment:
-                    e = DocEvent(doc=doc)
+                    e = DocEvent(doc=doc, rev=doc.rev)
                     e.by = ad # otherwise we can't see who's saying it
                     e.type = "added_comment"
                     e.desc = "[Ballot comment]\n" + pos.comment
@@ -172,7 +171,7 @@ def edit_position(request, name, ballot_id):
                 changes.append("discuss")
 
                 if pos.pos.blocking:
-                    e = DocEvent(doc=doc, by=login)
+                    e = DocEvent(doc=doc, rev=doc.rev, by=login)
                     e.by = ad # otherwise we can't see who's saying it
                     e.type = "added_comment"
                     e.desc = "[Ballot %s]\n" % pos.pos.name.lower()
@@ -202,11 +201,11 @@ def edit_position(request, name, ballot_id):
                 qstr=""
                 if request.GET.get('ad'):
                     qstr += "?ad=%s" % request.GET.get('ad')
-                return HttpResponseRedirect(urlreverse("doc_send_ballot_comment", kwargs=dict(name=doc.name, ballot_id=ballot_id)) + qstr)
+                return HttpResponseRedirect(urlreverse('ietf.doc.views_ballot.send_ballot_comment', kwargs=dict(name=doc.name, ballot_id=ballot_id)) + qstr)
             elif request.POST.get("Defer"):
-                return redirect("doc_defer_ballot", name=doc)
+                return redirect('ietf.doc.views_ballot.defer_ballot', name=doc)
             elif request.POST.get("Undefer"):
-                return redirect("doc_undefer_ballot", name=doc)
+                return redirect('ietf.doc.views_ballot.undefer_ballot', name=doc)
             else:
                 return HttpResponseRedirect(return_to_url)
     else:
@@ -222,7 +221,7 @@ def edit_position(request, name, ballot_id):
 
     ballot_deferred = doc.active_defer_event()
 
-    return render_to_response('doc/ballot/edit_position.html',
+    return render(request, 'doc/ballot/edit_position.html',
                               dict(doc=doc,
                                    form=form,
                                    ad=ad,
@@ -232,8 +231,7 @@ def edit_position(request, name, ballot_id):
                                    ballot = ballot,
                                    show_discuss_text=old_pos and old_pos.pos.blocking,
                                    blocking_positions=json.dumps(blocking_positions),
-                                   ),
-                              context_instance=RequestContext(request))
+                                   ))
 
 
 @role_required('Area Director','Secretariat')
@@ -247,12 +245,12 @@ def send_ballot_comment(request, name, ballot_id):
     if 'ballot_edit_return_point' in request.session:
         return_to_url = request.session['ballot_edit_return_point']
     else:
-        return_to_url = urlreverse("doc_ballot", kwargs=dict(name=doc.name, ballot_id=ballot_id))
+        return_to_url = urlreverse("ietf.doc.views_doc.document_ballot", kwargs=dict(name=doc.name, ballot_id=ballot_id))
 
     if 'HTTP_REFERER' in request.META:
         back_url = request.META['HTTP_REFERER']
     else:
-        back_url = urlreverse("doc_ballot", kwargs=dict(name=doc.name, ballot_id=ballot_id))
+        back_url = urlreverse("ietf.doc.views_doc.document_ballot", kwargs=dict(name=doc.name, ballot_id=ballot_id))
 
     # if we're in the Secretariat, we can select an AD to act as stand-in for
     if not has_role(request.user, "Area Director"):
@@ -311,18 +309,17 @@ def send_ballot_comment(request, name, ballot_id):
 
         cc_select_form = CcSelectForm(mailtrigger_slug='ballot_saved',mailtrigger_context={'doc':doc})
   
-    return render_to_response('doc/ballot/send_ballot_comment.html',
-                              dict(doc=doc,
-                                   subject=subject,
-                                   body=body,
-                                   frm=frm,
-                                   to=addrs.as_strings().to,
-                                   ad=ad,
-                                   can_send=d or c,
-                                   back_url=back_url,
-                                   cc_select_form = cc_select_form,
-                                  ),
-                              context_instance=RequestContext(request))
+        return render(request, 'doc/ballot/send_ballot_comment.html',
+                      dict(doc=doc,
+                          subject=subject,
+                          body=body,
+                          frm=frm,
+                          to=addrs.as_strings().to,
+                          ad=ad,
+                          can_send=d or c,
+                          back_url=back_url,
+                          cc_select_form = cc_select_form,
+                      ))
 
 @role_required('Secretariat')
 def clear_ballot(request, name):
@@ -335,12 +332,11 @@ def clear_ballot(request, name):
             create_ballot_if_not_open(doc, by, t.slug)
         if doc.get_state('draft-iesg').slug == 'defer':
             do_undefer_ballot(request,doc)
-        return redirect("doc_view", name=doc.name)
+        return redirect("ietf.doc.views_doc.document_main", name=doc.name)
 
-    return render_to_response('doc/ballot/clear_ballot.html',
+    return render(request, 'doc/ballot/clear_ballot.html',
                               dict(doc=doc,
-                                   back_url=doc.get_absolute_url()),
-                              context_instance=RequestContext(request))
+                                   back_url=doc.get_absolute_url()))
 
 @role_required('Area Director','Secretariat')
 def defer_ballot(request, name):
@@ -388,11 +384,10 @@ def defer_ballot(request, name):
 
         return HttpResponseRedirect(doc.get_absolute_url())
   
-    return render_to_response('doc/ballot/defer_ballot.html',
+    return render(request, 'doc/ballot/defer_ballot.html',
                               dict(doc=doc,
                                    telechat_date=telechat_date,
-                                   back_url=doc.get_absolute_url()),
-                              context_instance=RequestContext(request))
+                                   back_url=doc.get_absolute_url()))
 
 @role_required('Area Director','Secretariat')
 def undefer_ballot(request, name):
@@ -413,14 +408,13 @@ def undefer_ballot(request, name):
         do_undefer_ballot(request,doc)
         return HttpResponseRedirect(doc.get_absolute_url())
   
-    return render_to_response('doc/ballot/undefer_ballot.html',
+    return render(request, 'doc/ballot/undefer_ballot.html',
                               dict(doc=doc,
                                    telechat_date=telechat_date,
-                                   back_url=doc.get_absolute_url()),
-                              context_instance=RequestContext(request))
+                                   back_url=doc.get_absolute_url()))
 
 class LastCallTextForm(forms.Form):
-    last_call_text = forms.CharField(widget=forms.Textarea, required=True)
+    last_call_text = forms.CharField(widget=forms.Textarea, required=True, strip=False)
     
     def clean_last_call_text(self):
         lines = self.cleaned_data["last_call_text"].split("\r\n")
@@ -452,7 +446,7 @@ def lastcalltext(request, name):
             if form.is_valid():
                 t = form.cleaned_data['last_call_text']
                 if t != existing.text:
-                    e = WriteupDocEvent(doc=doc, by=login)
+                    e = WriteupDocEvent(doc=doc, rev=doc.rev, by=login)
                     e.by = login
                     e.type = "changed_last_call_text"
                     e.desc = "Last call announcement was changed"
@@ -477,9 +471,8 @@ def lastcalltext(request, name):
 
                     request_last_call(request, doc)
                     
-                    return render_to_response('doc/draft/last_call_requested.html',
-                                              dict(doc=doc),
-                                              context_instance=RequestContext(request))
+                    return render(request, 'doc/draft/last_call_requested.html',
+                                              dict(doc=doc))
         
         if "regenerate_last_call_text" in request.POST:
             e = generate_last_call_announcement(request, doc)
@@ -497,18 +490,17 @@ def lastcalltext(request, name):
     if not doc.intended_std_level:
         need_intended_status = doc.file_tag()
 
-    return render_to_response('doc/ballot/lastcalltext.html',
+    return render(request, 'doc/ballot/lastcalltext.html',
                               dict(doc=doc,
                                    back_url=doc.get_absolute_url(),
                                    last_call_form=form,
                                    can_request_last_call=can_request_last_call,
                                    can_make_last_call=can_make_last_call,
                                    need_intended_status=need_intended_status,
-                                   ),
-                              context_instance=RequestContext(request))
+                                   ))
 
 class BallotWriteupForm(forms.Form):
-    ballot_writeup = forms.CharField(widget=forms.Textarea, required=True)
+    ballot_writeup = forms.CharField(widget=forms.Textarea, required=True, strip=False)
 
     def clean_ballot_writeup(self):
         return self.cleaned_data["ballot_writeup"].replace("\r", "")
@@ -531,7 +523,7 @@ def ballot_writeupnotes(request, name):
         if form.is_valid():
             t = form.cleaned_data["ballot_writeup"]
             if t != existing.text:
-                e = WriteupDocEvent(doc=doc, by=login)
+                e = WriteupDocEvent(doc=doc, rev=doc.rev, by=login)
                 e.by = login
                 e.type = "changed_ballot_writeup_text"
                 e.desc = "Ballot writeup was changed"
@@ -546,7 +538,7 @@ def ballot_writeupnotes(request, name):
 
                 if has_role(request.user, "Area Director") and not doc.latest_event(BallotPositionDocEvent, ad=login, ballot=ballot):
                     # sending the ballot counts as a yes
-                    pos = BallotPositionDocEvent(doc=doc, by=login)
+                    pos = BallotPositionDocEvent(doc=doc, rev=doc.rev, by=login)
                     pos.ballot = ballot
                     pos.type = "changed_ballot_position"
                     pos.ad = login
@@ -576,33 +568,31 @@ def ballot_writeupnotes(request, name):
                 send_mail_preformatted(request, msg, extra=extra_automation_headers(doc),
                                        override={ "To": "IANA <%s>"%settings.IANA_EVAL_EMAIL, "CC": None, "Bcc": None , "Reply-To": None})
 
-                e = DocEvent(doc=doc, by=login)
+                e = DocEvent(doc=doc, rev=doc.rev, by=login)
                 e.by = login
                 e.type = "sent_ballot_announcement"
                 e.desc = "Ballot has been issued"
                 e.save()
 
-                return render_to_response('doc/ballot/ballot_issued.html',
+                return render(request, 'doc/ballot/ballot_issued.html',
                                           dict(doc=doc,
-                                               back_url=doc.get_absolute_url()),
-                                          context_instance=RequestContext(request))
+                                               back_url=doc.get_absolute_url()))
                         
 
     need_intended_status = ""
     if not doc.intended_std_level:
         need_intended_status = doc.file_tag()
 
-    return render_to_response('doc/ballot/writeupnotes.html',
+    return render(request, 'doc/ballot/writeupnotes.html',
                               dict(doc=doc,
                                    back_url=doc.get_absolute_url(),
                                    ballot_issued=bool(doc.latest_event(type="sent_ballot_announcement")),
                                    ballot_writeup_form=form,
                                    need_intended_status=need_intended_status,
-                                   ),
-                              context_instance=RequestContext(request))
+                                   ))
 
 class BallotRfcEditorNoteForm(forms.Form):
-    rfc_editor_note = forms.CharField(widget=forms.Textarea, label="RFC Editor Note", required=True)
+    rfc_editor_note = forms.CharField(widget=forms.Textarea, label="RFC Editor Note", required=True, strip=False)
 
     def clean_rfc_editor_note(self):
         return self.cleaned_data["rfc_editor_note"].replace("\r", "")
@@ -628,7 +618,7 @@ def ballot_rfceditornote(request, name):
         if form.is_valid():
             t = form.cleaned_data["rfc_editor_note"]
             if t != existing.text:
-                e = WriteupDocEvent(doc=doc, by=login)
+                e = WriteupDocEvent(doc=doc, rev=doc.rev, by=login)
                 e.by = login
                 e.type = "changed_rfc_editor_note_text"
                 e.desc = "RFC Editor Note was changed"
@@ -636,7 +626,7 @@ def ballot_rfceditornote(request, name):
                 e.save()
 
     if request.method == 'POST' and "clear_ballot_rfceditornote" in request.POST:
-        e = WriteupDocEvent(doc=doc, by=login)
+        e = WriteupDocEvent(doc=doc, rev=doc.rev, by=login)
         e.by = login
         e.type = "changed_rfc_editor_note_text"
         e.desc = "RFC Editor Note was cleared"
@@ -646,15 +636,14 @@ def ballot_rfceditornote(request, name):
         # make sure form shows a blank RFC Editor Note
         form = BallotRfcEditorNoteForm(initial=dict(rfc_editor_note=" "))
 
-    return render_to_response('doc/ballot/rfceditornote.html',
+    return render(request, 'doc/ballot/rfceditornote.html',
                               dict(doc=doc,
                                    back_url=doc.get_absolute_url(),
                                    ballot_rfceditornote_form=form,
-                                   ),
-                              context_instance=RequestContext(request))
+                                   ))
 
 class ApprovalTextForm(forms.Form):
-    approval_text = forms.CharField(widget=forms.Textarea, required=True)
+    approval_text = forms.CharField(widget=forms.Textarea, required=True, strip=False)
 
     def clean_approval_text(self):
         return self.cleaned_data["approval_text"].replace("\r", "")
@@ -680,7 +669,7 @@ def ballot_approvaltext(request, name):
             if form.is_valid():
                 t = form.cleaned_data['approval_text']
                 if t != existing.text:
-                    e = WriteupDocEvent(doc=doc, by=login)
+                    e = WriteupDocEvent(doc=doc, rev=doc.rev, by=login)
                     e.by = login
                     e.type = "changed_ballot_approval_text"
                     e.desc = "Ballot approval text was changed"
@@ -701,14 +690,13 @@ def ballot_approvaltext(request, name):
     if not doc.intended_std_level:
         need_intended_status = doc.file_tag()
 
-    return render_to_response('doc/ballot/approvaltext.html',
+    return render(request, 'doc/ballot/approvaltext.html',
                               dict(doc=doc,
                                    back_url=doc.get_absolute_url(),
                                    approval_text_form=form,
                                    can_announce=can_announce,
                                    need_intended_status=need_intended_status,
-                                   ),
-                              context_instance=RequestContext(request))
+                                   ))
 
 @role_required('Secretariat')
 def approve_ballot(request, name):
@@ -737,9 +725,7 @@ def approve_ballot(request, name):
         ballot_writeup += "\n\n" + e.text
 
     if error_duplicate_rfc_editor_note:
-        return render_to_response('doc/draft/rfceditor_note_duplicate_error.html',
-                                  dict(doc=doc),
-                                  context_instance=RequestContext(request))
+        return render(request, 'doc/draft/rfceditor_note_duplicate_error.html', {'doc': doc})
 
     if "NOT be published" in approval_text:
         action = "do_not_publish"
@@ -785,7 +771,7 @@ def approve_ballot(request, name):
         # fixup document
         close_open_ballots(doc, login)
 
-        e = DocEvent(doc=doc, by=login)
+        e = DocEvent(doc=doc, rev=doc.rev, by=login)
         if action == "do_not_publish":
             e.type = "iesg_disapproved"
             e.desc = "Do Not Publish note has been sent to the RFC Editor"
@@ -817,11 +803,10 @@ def approve_ballot(request, name):
 
         return HttpResponseRedirect(doc.get_absolute_url())
 
-    return render_to_response('doc/ballot/approve_ballot.html',
+    return render(request, 'doc/ballot/approve_ballot.html',
                               dict(doc=doc,
                                    action=action,
-                                   announcement=announcement),
-                              context_instance=RequestContext(request))
+                                   announcement=announcement))
 
 
 class MakeLastCallForm(forms.Form):
@@ -880,7 +865,7 @@ def make_last_call(request, name):
             e = add_state_change_event(doc, login, prev_state, new_state, prev_tags=prev_tags, new_tags=new_tags)
             if e:
                 events.append(e)
-            e = LastCallDocEvent(doc=doc, by=login)
+            e = LastCallDocEvent(doc=doc, rev=doc.rev, by=login)
             e.type = "sent_last_call"
             e.desc = "The following Last Call announcement was sent out:<br><br>"
             e.desc += announcement
@@ -921,9 +906,8 @@ def make_last_call(request, name):
         
         form = MakeLastCallForm(initial=initial)
   
-    return render_to_response(templ,
+    return render(request, templ,
                               dict(doc=doc,
                                    form=form,
                                    announcement=announcement,
-                                  ),
-                              context_instance=RequestContext(request))
+                                  ))

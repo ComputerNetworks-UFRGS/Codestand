@@ -1,6 +1,0 @@
-.project
-ietf/settings*
-!ietf/settings.py
-buildbot/
-.pydevproject
-*.pyc

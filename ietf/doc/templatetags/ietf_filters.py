@@ -15,7 +15,6 @@ from django import template
 from django.conf import settings
 from django.utils.html import escape
 from django.template.defaultfilters import truncatewords_html, linebreaksbr, stringfilter, striptags, urlize
-from django.template import resolve_variable
 from django.utils.safestring import mark_safe, SafeData
 from django.utils.html import strip_tags
 
@@ -397,19 +396,8 @@ def has_role(user, role_names):
     return has_role(user, role_names.split(','))
 
 @register.filter
-def stable_dictsort(value, arg):
-    """
-    Like dictsort, except it's stable (preserves the order of items
-    whose sort key is the same). See also bug report
-    http://code.djangoproject.com/ticket/12110
-    """
-    decorated = [(resolve_variable('var.' + arg, {'var' : item}), item) for item in value]
-    decorated.sort(lambda a, b: cmp(a[0], b[0]) if a[0] and b[0] else -1 if b[0] else 1 if a[0] else 0)
-    return [item[1] for item in decorated]
-
-@register.filter
 def ad_area(user):
-    if user and user.is_authenticated():
+    if user and user.is_authenticated:
         from ietf.group.models import Group
         g = Group.objects.filter(role__name__in=("pre-ad", "ad"), role__person__user=user)
         if g:
@@ -428,7 +416,10 @@ def format_history_text(text, trunc_words=25):
 
 @register.filter
 def format_snippet(text, trunc_words=25): 
-    full = keep_spacing(collapsebr(linebreaksbr(mark_safe(sanitize_html(urlize(text))))))
+    # urlize if there aren't already links present
+    if not 'href=' in text:
+        text = urlize(text)
+    full = keep_spacing(collapsebr(linebreaksbr(mark_safe(sanitize_html(text)))))
     snippet = truncatewords_html(full, trunc_words)
     if snippet != full:
         return mark_safe(u'<div class="snippet">%s<button class="btn btn-xs btn-default show-all"><span class="fa fa-caret-down"></span></button></div><div class="hidden full">%s</div>' % (snippet, full))
@@ -437,7 +428,7 @@ def format_snippet(text, trunc_words=25):
 @register.simple_tag
 def doc_edit_button(url_name, *args, **kwargs):
     """Given URL name/args/kwargs, looks up the URL just like "url" tag and returns a properly formatted button for the document material tables."""
-    from django.core.urlresolvers import reverse as urlreverse
+    from django.urls import reverse as urlreverse
     return mark_safe(u'<a class="btn btn-default btn-xs" href="%s">Edit</a>' % (urlreverse(url_name, args=args, kwargs=kwargs)))
 
 @register.filter
@@ -456,9 +447,9 @@ def state(doc, slug):
 @register.filter
 def statehelp(state):
     "Output help icon with tooltip for state."
-    from django.core.urlresolvers import reverse as urlreverse
+    from django.urls import reverse as urlreverse
     tooltip = escape(strip_tags(state.desc))
-    url = urlreverse("state_help", kwargs=dict(type=state.type_id)) + "#" + state.slug
+    url = urlreverse('ietf.doc.views_help.state_help', kwargs=dict(type=state.type_id)) + "#" + state.slug
     return mark_safe('<a class="state-help-icon" href="%s" title="%s">?</a>' % (url, tooltip))
 
 @register.filter
@@ -567,16 +558,6 @@ def document_content(doc):
         return None
     path = os.path.join(doc.get_file_path(),doc.filename_with_rev())
     return get_document_content(doc.name,path,markup=False)
-
-@register.filter
-def session_start_time(session):
-    timeslot = session.official_timeslotassignment().timeslot
-    return timeslot.time
-
-@register.filter
-def session_end_time(session):
-    timeslot = session.official_timeslotassignment().timeslot
-    return timeslot.time + timeslot.duration
 
 @register.filter
 def format_timedelta(timedelta):

@@ -1,10 +1,9 @@
 import datetime, os, re
 
 from django import forms
-from django.shortcuts import render_to_response, get_object_or_404, redirect
+from django.shortcuts import render, get_object_or_404, redirect
 from django.http import Http404, HttpResponseRedirect
-from django.core.urlresolvers import reverse
-from django.template import RequestContext
+from django.urls import reverse
 from django.template.loader import render_to_string
 from django.conf import settings
 
@@ -25,7 +24,7 @@ from ietf.mailtrigger.utils import gather_address_lists
 
 class ChangeStateForm(forms.Form):
     new_state = forms.ModelChoiceField(State.objects.filter(type="statchg", used=True), label="Status Change Evaluation State", empty_label=None, required=True)
-    comment = forms.CharField(widget=forms.Textarea, help_text="Optional comment for the review history.", required=False)
+    comment = forms.CharField(widget=forms.Textarea, help_text="Optional comment for the review history.", required=False, strip=False)
 
 
 @role_required("Area Director", "Secretariat")
@@ -44,7 +43,7 @@ def change_state(request, name, option=None):
             comment = clean['comment'].rstrip()
 
             if comment:
-                c = DocEvent(type="added_comment", doc=status_change, by=login)
+                c = DocEvent(type="added_comment", doc=status_change, rev=status_change.rev, by=login)
                 c.desc = comment
                 c.save()
 
@@ -61,7 +60,7 @@ def change_state(request, name, option=None):
                     if has_role(request.user, "Area Director") and not status_change.latest_event(BallotPositionDocEvent, ad=login, ballot=ballot, type="changed_ballot_position"):
 
                         # The AD putting a status change into iesgeval who doesn't already have a position is saying "yes"
-                        pos = BallotPositionDocEvent(doc=status_change, by=login)
+                        pos = BallotPositionDocEvent(doc=status_change, rev=status_change.rev, by=login)
                         pos.ballot = ballot
                         pos.type = "changed_ballot_position"
                         pos.ad = login
@@ -74,13 +73,12 @@ def change_state(request, name, option=None):
 
                 if new_state.slug == "lc-req":
                     request_last_call(request, status_change)
-                    return render_to_response('doc/draft/last_call_requested.html',
+                    return render(request, 'doc/draft/last_call_requested.html',
                                               dict(doc=status_change,
                                                    url = status_change.get_absolute_url(),
-                                                  ),
-                                              context_instance=RequestContext(request))
+                                                  ))
 
-            return redirect('doc_view', name=status_change.name)
+            return redirect('ietf.doc.views_doc.document_main', name=status_change.name)
     else:
         s = status_change.get_state()
         init = dict(new_state=s.pk if s else None,
@@ -89,13 +87,12 @@ def change_state(request, name, option=None):
                    )
         form = ChangeStateForm(initial=init)
 
-    return render_to_response('doc/change_state.html',
+    return render(request, 'doc/change_state.html',
                               dict(form=form,
                                    doc=status_change,
                                    login=login,
-                                   help_url=reverse('state_help', kwargs=dict(type="status-change")),
-                                   ),
-                              context_instance=RequestContext(request))
+                                   help_url=reverse('ietf.doc.views_help.state_help', kwargs=dict(type="status-change")),
+                                   ))
 
 def send_status_change_eval_email(request,doc):
     msg = render_to_string("doc/eval_email.txt",
@@ -110,7 +107,7 @@ def send_status_change_eval_email(request,doc):
     send_mail_preformatted(request,msg,override=override)
 
 class UploadForm(forms.Form):
-    content = forms.CharField(widget=forms.Textarea, label="Status change text", help_text="Edit the status change text.", required=False)
+    content = forms.CharField(widget=forms.Textarea, label="Status change text", help_text="Edit the status change text.", required=False, strip=False)
     txt = forms.FileField(label=".txt format", help_text="Or upload a .txt file.", required=False)
 
     def clean_content(self):
@@ -161,7 +158,7 @@ def submit(request, name):
 
                 doc.save_with_history(events)
 
-                return redirect('doc_view', name=doc.name)
+                return redirect('ietf.doc.views_doc.document_main', name=doc.name)
 
         elif "reset_text" in request.POST:
 
@@ -192,12 +189,11 @@ def submit(request, name):
 
         form = UploadForm(initial=init)
 
-    return render_to_response('doc/status_change/submit.html',
+    return render(request, 'doc/status_change/submit.html',
                               {'form': form,
                                'next_rev': next_rev,
                                'doc' : doc,
-                              },
-                              context_instance=RequestContext(request))
+                              })
 
 class ChangeTitleForm(forms.Form):
     title = forms.CharField(max_length=255, label="Title", required=True)
@@ -214,25 +210,25 @@ def edit_title(request, name):
 
             status_change.title = form.cleaned_data['title']
 
-            c = DocEvent(type="added_comment", doc=status_change, by=request.user.person)
+            c = DocEvent(type="added_comment", doc=status_change, rev=status_change.rev, by=request.user.person)
             c.desc = "Title changed to '%s'"%status_change.title
             c.save()
 
             status_change.save_with_history([c])
 
-            return redirect("doc_view", name=status_change.name)
+            return redirect("ietf.doc.views_doc.document_main", name=status_change.name)
 
     else:
         init = { "title" : status_change.title }
         form = ChangeTitleForm(initial=init)
 
     titletext = '%s-%s.txt' % (status_change.canonical_name(),status_change.rev)
-    return render_to_response('doc/change_title.html',
+    return render(request, 'doc/change_title.html',
                               {'form': form,
                                'doc': status_change,
                                'titletext' : titletext,
                               },
-                              context_instance = RequestContext(request))
+                          )
 
 @role_required("Area Director", "Secretariat")
 def edit_ad(request, name):
@@ -245,25 +241,25 @@ def edit_ad(request, name):
         if form.is_valid():
             status_change.ad = form.cleaned_data['ad']
 
-            c = DocEvent(type="added_comment", doc=status_change, by=request.user.person)
+            c = DocEvent(type="added_comment", doc=status_change, rev=status_change.rev, by=request.user.person)
             c.desc = "Shepherding AD changed to "+status_change.ad.name
             c.save()
 
             status_change.save_with_history([c])
     
-            return redirect("doc_view", name=status_change.name)
+            return redirect("ietf.doc.views_doc.document_main", name=status_change.name)
 
     else:
         init = { "ad" : status_change.ad_id }
         form = AdForm(initial=init)
 
     titletext = '%s-%s.txt' % (status_change.canonical_name(),status_change.rev)
-    return render_to_response('doc/change_ad.html',
+    return render(request, 'doc/change_ad.html',
                               {'form': form,
                                'doc': status_change,
                                'titletext' : titletext,
                               },
-                              context_instance = RequestContext(request))
+                          )
 
 def newstatus(relateddoc):
 
@@ -308,7 +304,7 @@ def default_approval_text(status_change,relateddoc):
 from django.forms.formsets import formset_factory
 
 class AnnouncementForm(forms.Form):
-    announcement_text = forms.CharField(widget=forms.Textarea, label="Status Change Announcement", help_text="Edit the announcement message.", required=True)
+    announcement_text = forms.CharField(widget=forms.Textarea, label="Status Change Announcement", help_text="Edit the announcement message.", required=True, strip=False)
     label = None
       
     def __init__(self, *args, **kwargs):
@@ -343,7 +339,7 @@ def approve(request, name):
 
             close_open_ballots(status_change, login)
 
-            e = DocEvent(doc=status_change, by=login)
+            e = DocEvent(doc=status_change, rev=status_change.rev, by=login)
             e.type = "iesg_approved"
             e.desc = "IESG has approved the status change"
             e.save()
@@ -356,14 +352,14 @@ def approve(request, name):
 
                 send_mail_preformatted(request,form.cleaned_data['announcement_text'])
 
-                c = DocEvent(type="added_comment", doc=status_change, by=login)
+                c = DocEvent(type="added_comment", doc=status_change, rev=status_change.rev, by=login)
                 c.desc = "The following approval message was sent\n"+form.cleaned_data['announcement_text']
                 c.save()
 
             for rel in status_change.relateddocument_set.filter(relationship__slug__in=STATUSCHANGE_RELATIONS):
                 # Add a document event to each target
-                c = DocEvent(type="added_comment", doc=rel.target.document, by=login)
-                c.desc = "New status of %s approved by the IESG\n%s%s" % (newstatus(rel), settings.IDTRACKER_BASE_URL,reverse('doc_view', kwargs={'name': status_change.name}))
+                c = DocEvent(type="added_comment", doc=rel.target.document, rev=rel.target.document.rev, by=login)
+                c.desc = "New status of %s approved by the IESG\n%s%s" % (newstatus(rel), settings.IDTRACKER_BASE_URL,reverse('ietf.doc.views_doc.document_main', kwargs={'name': status_change.name}))
                 c.save()
 
             return HttpResponseRedirect(status_change.get_absolute_url())
@@ -379,12 +375,11 @@ def approve(request, name):
         for form in formset.forms:
            form.fields['announcement_text'].label=form.label
     
-    return render_to_response('doc/status_change/approve.html',
+    return render(request, 'doc/status_change/approve.html',
                               dict(
                                    doc = status_change,
                                    formset = formset,
-                                   ),
-                              context_instance=RequestContext(request))
+                                   ))
 
 def clean_helper(form, formtype):
         cleaned_data = super(formtype, form).clean()
@@ -494,10 +489,10 @@ def rfc_status_changes(request):
     docs=Document.objects.filter(type__slug='statchg')
     doclist=[x for x in docs]
     doclist.sort(key=lambda obj: obj.get_state().order)
-    return render_to_response('doc/status_change/status_changes.html',
+    return render(request, 'doc/status_change/status_changes.html',
                               {'docs' : doclist,
                               },
-                              context_instance = RequestContext(request))
+                          )
 
 @role_required("Area Director","Secretariat")
 def start_rfc_status_change(request,name):
@@ -552,11 +547,11 @@ def start_rfc_status_change(request,name):
            init['relations'] = relations
         form = StartStatusChangeForm(initial=init)
 
-    return render_to_response('doc/status_change/start.html',
+    return render(request, 'doc/status_change/start.html',
                               {'form':   form,
                                'relation_slugs': relation_slugs,
                               },
-                              context_instance = RequestContext(request))
+                          )
 
 @role_required("Area Director", "Secretariat")
 def edit_relations(request, name):
@@ -580,7 +575,7 @@ def edit_relations(request, name):
             for key in new_relations:
                 status_change.relateddocument_set.create(target=DocAlias.objects.get(name=key),
                                                          relationship_id=new_relations[key])
-            c = DocEvent(type="added_comment", doc=status_change, by=login)
+            c = DocEvent(type="added_comment", doc=status_change, rev=status_change.rev, by=login)
             c.desc = "Affected RFC list changed.\nOLD:"
             for relname,relslug in (set(old_relations.items())-set(new_relations.items())):
                 c.desc += "\n  "+relname+": "+DocRelationshipName.objects.get(slug=relslug).name
@@ -600,13 +595,13 @@ def edit_relations(request, name):
                }
         form = EditStatusChangeForm(initial=init)
 
-    return render_to_response('doc/status_change/edit_relations.html',
+    return render(request, 'doc/status_change/edit_relations.html',
                               {
                                'doc':            status_change, 
                                'form':           form,
                                'relation_slugs': relation_slugs,
                               },
-                              context_instance = RequestContext(request))
+                          )
 
 def generate_last_call_text(request, doc):
 
@@ -632,6 +627,7 @@ def generate_last_call_text(request, doc):
     e.type = 'changed_last_call_text'
     e.by = request.user.person
     e.doc = doc
+    e.rev = doc.rev
     e.desc = 'Last call announcement was generated'
     e.text = unicode(new_text)
     e.save()
@@ -660,7 +656,7 @@ def last_call(request, name):
 
                 t = form.cleaned_data['last_call_text']
                 if t != last_call_event.text:
-                    e = WriteupDocEvent(doc=status_change, by=login)
+                    e = WriteupDocEvent(doc=status_change, rev=status_change.rev, by=login)
                     e.by = login
                     e.type = "changed_last_call_text"
                     e.desc = "Last call announcement was changed"
@@ -683,21 +679,21 @@ def last_call(request, name):
 
                     request_last_call(request, status_change)
 
-                    return render_to_response('doc/draft/last_call_requested.html',
-                                              dict(doc=status_change,
-                                                   url = status_change.get_absolute_url(),
-                                                  ),
-                                              context_instance=RequestContext(request))
+                    return render(request, 'doc/draft/last_call_requested.html',
+                                      dict(doc=status_change,
+                                          url = status_change.get_absolute_url(),
+                                      )
+                                  )
 
         if "regenerate_last_call_text" in request.POST:
             e = generate_last_call_text(request,status_change)
             form = LastCallTextForm(initial=dict(last_call_text=e.text))
             
-    return render_to_response('doc/status_change/last_call.html',
+    return render(request, 'doc/status_change/last_call.html',
                                dict(doc=status_change,
                                     back_url = status_change.get_absolute_url(),
                                     last_call_event = last_call_event,
                                     last_call_form  = form,
                                    ),
-                               context_instance = RequestContext(request))
+                           )
                

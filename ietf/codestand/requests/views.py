@@ -300,12 +300,12 @@ def show(request, pk):
     })
 
 
-def save_project(request, template, project_container=None):
+def save_project(request, is_edit, project_container=None):
     """ Used to create or update a CodeRequest.
         When project container is null then a new
         instance is created in the database
         :param request: HttpResponse
-        :param template: string
+        :param is_edit: boolean
         :param project_container: ProjectContainer
     """
 
@@ -466,8 +466,9 @@ def save_project(request, template, project_container=None):
         proj_form = new_proj
         req_form = new_req
 
-    return render_page(request, template, {
+    return render_page(request, constants.TEMPLATE_REQUESTS_NEW, {
         'projectcontainer': project_container,
+        'isedit': is_edit,
         'projform': proj_form,
         'checked': is_mentor,
         'reqform': req_form,
@@ -554,7 +555,7 @@ def edit(request, pk):
             mentor_form = MentorForm(initial={'mentor': selected_mentor})
             request.session[constants.MENTOR_INSTANCE] = mentor_form
 
-    return save_project(request, constants.TEMPLATE_REQUESTS_EDIT, project_container)
+    return save_project(request, True, project_container)
 
 
 @login_required(login_url=settings.CODESTAND_PREFIX + constants.TEMPLATE_LOGIN)
@@ -574,7 +575,7 @@ def new(request):
 
     request.session[constants.MAINTAIN_STATE] = True
 
-    return save_project(request, constants.TEMPLATE_REQUESTS_NEW)
+    return save_project(request, False)
 
 
 @login_required(login_url=settings.CODESTAND_PREFIX + constants.TEMPLATE_LOGIN)

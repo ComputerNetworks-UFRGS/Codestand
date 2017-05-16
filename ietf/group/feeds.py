@@ -2,7 +2,7 @@
 
 from django.contrib.syndication.views import Feed, FeedDoesNotExist
 from django.utils.feedgenerator import Atom1Feed
-from django.core.urlresolvers import reverse as urlreverse
+from django.urls import reverse as urlreverse
 from django.utils.html import strip_tags
 from django.template.defaultfilters import truncatewords
 
@@ -38,7 +38,7 @@ class GroupChangesFeed(Feed):
 
     def item_link(self, obj):
         if isinstance(obj, DocEvent):
-            return urlreverse("doc_view", kwargs={'name': obj.doc_id })
+            return urlreverse("ietf.doc.views_doc.document_main", kwargs={'name': obj.doc_id })
         elif isinstance(obj, GroupEvent):
             return obj.group.about_url()
 

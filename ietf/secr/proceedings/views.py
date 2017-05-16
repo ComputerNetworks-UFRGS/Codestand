@@ -7,11 +7,10 @@ import debug                            # pyflakes:ignore
 
 from django.conf import settings
 from django.contrib import messages
-from django.core.urlresolvers import reverse
+from django.urls import reverse
 from django.db.models import Max
 from django.http import HttpResponseRedirect
-from django.shortcuts import render_to_response, get_object_or_404, redirect
-from django.template import RequestContext
+from django.shortcuts import render, get_object_or_404, redirect
 
 from ietf.secr.utils.decorators import sec_only
 from ietf.secr.utils.group import get_my_groups
@@ -78,8 +77,11 @@ def get_unmatched_recordings(meeting):
         files = os.listdir(path)
     except OSError:
         files = []
+    url = settings.IETF_AUDIO_URL + 'ietf%s' % meeting.number 
+    recordings = Document.objects.filter(type='recording',external_url__startswith=url)
+    filenames = [ d.external_url.split('/')[-1] for d in recordings ]
     for file in files:
-        if not Document.objects.filter(external_url__endswith=file).exists():
+        if file not in filenames:
             unmatched_recordings.append(file)
     return unmatched_recordings
 
@@ -180,11 +182,10 @@ def ajax_generate_proceedings(request, meeting_num):
     path = os.path.join(settings.SECR_PROCEEDINGS_DIR,meeting.number,'index.html')
     last_run = datetime.datetime.fromtimestamp(os.path.getmtime(path))
 
-    return render_to_response('includes/proceedings_functions.html',{
+    return render(request, 'includes/proceedings_functions.html',{
         'meeting':meeting,
         'last_run':last_run,
         'proceedings_url':proceedings_url},
-        RequestContext(request,{}),
     )
 
 # --------------------------------------------------
@@ -223,11 +224,10 @@ def main(request):
     # we today's date to see if we're past the submissio cutoff
     today = datetime.date.today()
 
-    return render_to_response('proceedings/main.html',{
+    return render(request, 'proceedings/main.html',{
         'meetings': meetings,
         'interim_meetings': interim_meetings,
         'today': today},
-        RequestContext(request,{}),
     )
 
 @sec_only
@@ -254,6 +254,7 @@ def process_pdfs(request, meeting_num):
                 type='changed_document',
                 by=Person.objects.get(name="(System)"),
                 doc=doc,
+                rev=doc.rev,
                 desc='Set URL to PDF version',
             )
             doc.save_with_history([e])
@@ -265,7 +266,7 @@ def process_pdfs(request, meeting_num):
         messages.warning(request, '%s PDF files processed.  %s PowerPoint files still not converted.' % (count, warn_count))
     else:
         messages.success(request, '%s PDF files processed' % count)
-    url = reverse('proceedings_select', kwargs={'meeting_num':meeting_num})
+    url = reverse('ietf.secr.proceedings.views.select', kwargs={'meeting_num':meeting_num})
     return HttpResponseRedirect(url)
 
 @role_required('Secretariat')
@@ -276,7 +277,7 @@ def progress_report(request, meeting_num):
     meeting = get_object_or_404(Meeting, number=meeting_num)
     gen_progress({'meeting':meeting},final=False)
 
-    url = reverse('proceedings_select', kwargs={'meeting_num':meeting_num})
+    url = reverse('ietf.secr.proceedings.views.select', kwargs={'meeting_num':meeting_num})
     return HttpResponseRedirect(url)
 
 @role_required('Secretariat')
@@ -298,7 +299,7 @@ def recording(request, meeting_num):
             
             if Document.objects.filter(type='recording',external_url=external_url):
                 messages.error(request, "Recording already exists")
-                return redirect('proceedings_recording', meeting_num=meeting_num)
+                return redirect('ietf.secr.proceedings.views.recording', meeting_num=meeting_num)
             else:
                 create_recording(session,external_url)
             
@@ -306,17 +307,16 @@ def recording(request, meeting_num):
             create_proceedings(meeting,session.group)
             
             messages.success(request,'Recording added')
-            return redirect('proceedings_recording', meeting_num=meeting_num)
+            return redirect('ietf.secr.proceedings.views.recording', meeting_num=meeting_num)
     
     else:
         form = RecordingForm(meeting=meeting)
     
-    return render_to_response('proceedings/recording.html',{
+    return render(request, 'proceedings/recording.html',{
         'meeting':meeting,
         'form':form,
         'sessions':sessions,
         'unmatched_recordings': get_unmatched_recordings(meeting)},
-        RequestContext(request, {}),
     )
 
 @role_required('Secretariat')
@@ -330,7 +330,7 @@ def recording_edit(request, meeting_num, name):
     if request.method == 'POST':
         button_text = request.POST.get('submit', '')
         if button_text == 'Cancel':
-            return redirect("proceedings_recording", meeting_num=meeting_num)
+            return redirect('ietf.secr.proceedings.views.recording', meeting_num=meeting_num)
             
         form = RecordingEditForm(request.POST, instance=recording)
         if form.is_valid():
@@ -340,21 +340,21 @@ def recording_edit(request, meeting_num, name):
                 type='changed_document',
                 by=request.user.person,
                 doc=recording,
+                rev=recording.rev,
                 desc=u'Changed URL to %s' % recording.external_url,
             )
             recording.save_with_history([e])
 
             create_proceedings(meeting,recording.group)
             messages.success(request,'Recording saved')
-            return redirect('proceedings_recording', meeting_num=meeting_num)
+            return redirect('ietf.secr.proceedings.views.recording', meeting_num=meeting_num)
     else:
         form = RecordingEditForm(instance=recording)
     
-    return render_to_response('proceedings/recording_edit.html',{
+    return render(request, 'proceedings/recording_edit.html',{
         'meeting':meeting,
         'form':form,
         'recording':recording},
-        RequestContext(request, {}),
     )
     
 # TODO - should probably rename this since it's not selecting groups anymore
@@ -382,11 +382,10 @@ def select(request, meeting_num):
     pptx = Document.objects.filter(session__meeting=meeting,type='slides',external_url__endswith='.pptx').exclude(states__slug='deleted')
     ppt_count = ppt.count() + pptx.count()
 
-    return render_to_response('proceedings/select.html', {
+    return render(request, 'proceedings/select.html', {
         'meeting': meeting,
         'last_run': last_run,
         'proceedings_url': proceedings_url,
         'ppt_count': ppt_count},
-        RequestContext(request,{}),
     )
 

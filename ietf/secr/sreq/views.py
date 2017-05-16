@@ -1,17 +1,19 @@
 import datetime
 
+from django.conf import settings
 from django.contrib import messages
 from django.db.models import Q
 from django.http import Http404
-from django.shortcuts import render_to_response, get_object_or_404, redirect
-from django.template import RequestContext
+from django.shortcuts import render, get_object_or_404, redirect
+
+import debug                            # pyflakes:ignore
 
 from ietf.group.models import Group
 from ietf.ietfauth.utils import has_role, role_required
 from ietf.meeting.models import Meeting, Session, Constraint, ResourceAssociation
 from ietf.meeting.helpers import get_meeting
 from ietf.name.models import SessionStatusName, ConstraintName
-from ietf.secr.sreq.forms import SessionForm, GroupSelectForm, ToolStatusForm
+from ietf.secr.sreq.forms import SessionForm, ToolStatusForm
 from ietf.secr.utils.decorators import check_permissions
 from ietf.secr.utils.group import groups_by_session
 from ietf.utils.mail import send_mail
@@ -21,8 +23,6 @@ from ietf.mailtrigger.utils import gather_address_lists
 # -------------------------------------------------
 # Globals
 # -------------------------------------------------
-#TODO: DELETE
-SESSION_REQUEST_EMAIL = 'session-request@ietf.org'
 AUTHORIZED_ROLES=('WG Chair','WG Secretary','RG Chair','IAB Group Chair','Area Director','Secretariat','Team Chair','IRTF Chair')
 
 # -------------------------------------------------
@@ -114,7 +114,7 @@ def send_notification(group,meeting,login,session,action):
     action argument is a string [new|update].
     '''
     (to_email, cc_list) = gather_address_lists('session_requested',group=group,person=login)
-    from_email = ('"IETF Meeting Session Request Tool"','session_request_developers@ietf.org')
+    from_email = (settings.SESSION_REQUEST_FROM_EMAIL)
     subject = '%s - New Meeting Session Request for IETF %s' % (group.acronym, meeting.number)
     template = 'sreq/session_request_notification.txt'
 
@@ -173,11 +173,11 @@ def approve(request, acronym):
         session_save(session)
 
         messages.success(request, 'Third session approved')
-        return redirect('sessions_view', acronym=acronym)
+        return redirect('ietf.secr.sreq.views.view', acronym=acronym)
     else:
         # if an unauthorized user gets here return error
         messages.error(request, 'Not authorized to approve the third session')
-        return redirect('sessions_view', acronym=acronym)
+        return redirect('ietf.secr.sreq.views.view', acronym=acronym)
 
 @check_permissions
 def cancel(request, acronym):
@@ -208,15 +208,14 @@ def cancel(request, acronym):
 
     # send notifitcation
     (to_email, cc_list) = gather_address_lists('session_request_cancelled',group=group,person=login)
-    from_email = ('"IETF Meeting Session Request Tool"','session_request_developers@ietf.org')
+    from_email = (settings.SESSION_REQUEST_FROM_EMAIL)
     subject = '%s - Cancelling a meeting request for IETF %s' % (group.acronym, meeting.number)
     send_mail(request, to_email, from_email, subject, 'sreq/session_cancel_notification.txt',
-              {'login':login,
-               'group':group,
+              {'requester':get_requester_text(login,group),
                'meeting':meeting}, cc=cc_list)
 
     messages.success(request, 'The %s Session Request has been canceled' % group.acronym)
-    return redirect('sessions')
+    return redirect('ietf.secr.sreq.views.main')
 
 @role_required(*AUTHORIZED_ROLES)
 def confirm(request, acronym):
@@ -245,7 +244,7 @@ def confirm(request, acronym):
         button_text = request.POST.get('submit', '')
         if button_text == 'Cancel':
             messages.success(request, 'Session Request has been canceled')
-            return redirect('sessions')
+            return redirect('ietf.secr.sreq.views.main')
 
         # delete any existing session records with status = canceled or notmeet
         Session.objects.filter(group=group,meeting=meeting,status__in=('canceled','notmeet')).delete()
@@ -294,16 +293,15 @@ def confirm(request, acronym):
 
         status_text = 'IETF Agenda to be scheduled'
         messages.success(request, 'Your request has been sent to %s' % status_text)
-        return redirect('sessions')
+        return redirect('ietf.secr.sreq.views.main')
 
     # GET logic
     session_conflicts = session_conflicts_as_string(group, meeting)
 
-    return render_to_response('sreq/confirm.html', {
+    return render(request, 'sreq/confirm.html', {
         'session': form,
         'group': group,
         'session_conflicts': session_conflicts},
-        RequestContext(request, {}),
     )
 
 #Move this into make_initial
@@ -353,7 +351,7 @@ def edit_mtg(request, num, acronym):
     if request.method == 'POST':
         button_text = request.POST.get('submit', '')
         if button_text == 'Cancel':
-            return redirect('sessions_view', acronym=acronym)
+            return redirect('ietf.secr.sreq.views.view', acronym=acronym)
 
         form = SessionForm(request.POST,initial=initial)
         if form.is_valid():
@@ -453,20 +451,19 @@ def edit_mtg(request, num, acronym):
             session_constraint_expire(request,session)
 
             messages.success(request, 'Session Request updated')
-            return redirect('sessions_view', acronym=acronym)
+            return redirect('ietf.secr.sreq.views.view', acronym=acronym)
 
     else:
         if not sessions:
-            return redirect('sessions_new', acronym=acronym)
+            return redirect('ietf.secr.sreq.views.new', acronym=acronym)
         form = SessionForm(initial=initial)
 
-    return render_to_response('sreq/edit.html', {
+    return render(request, 'sreq/edit.html', {
         'is_locked': is_locked,
         'meeting': meeting,
         'form': form,
         'group': group,
         'session_conflicts': session_conflicts},
-        RequestContext(request, {}),
     )
 
 @role_required(*AUTHORIZED_ROLES)
@@ -484,18 +481,9 @@ def main(request):
 
     if is_locked and not has_role(request.user,'Secretariat'):
         message = get_lock_message()
-        return render_to_response('sreq/locked.html', {
+        return render(request, 'sreq/locked.html', {
         'message': message},
-        RequestContext(request, {}),
     )
-
-    # TODO this is not currently used in the main template
-    if request.method == 'POST':
-        button_text = request.POST.get('submit', '')
-        if button_text == 'Group will not meet':
-            return redirect('sessions_no_session', acronym=request.POST['group'])
-        else:
-            return redirect('sessions_new', acronym=request.POST['group'])
 
     meeting = get_meeting()
     scheduled_groups,unscheduled_groups = groups_by_session(request.user, meeting, types=['wg','rg','ag'])
@@ -504,11 +492,6 @@ def main(request):
     if not scheduled_groups and not unscheduled_groups:
         messages.warning(request, 'The account %s is not associated with any groups.  If you have multiple Datatracker accounts you may try another or report a problem to ietf-action@ietf.org' % request.user)
      
-    # load form select with unscheduled groups
-    choices = zip([ g.pk for g in unscheduled_groups ],
-                  [ str(g) for g in unscheduled_groups ])
-    form = GroupSelectForm(choices=choices)
-
     # add session status messages for use in template
     for group in scheduled_groups:
         sessions = group.session_set.filter(meeting=meeting)
@@ -522,13 +505,11 @@ def main(request):
         if group.session_set.filter(meeting=meeting,status='notmeet'):
             group.not_meeting = True
 
-    return render_to_response('sreq/main.html', {
+    return render(request, 'sreq/main.html', {
         'is_locked': is_locked,
-        'form': form,
         'meeting': meeting,
         'scheduled_groups': scheduled_groups,
         'unscheduled_groups': unscheduled_groups},
-        RequestContext(request, {}),
     )
 
 @check_permissions
@@ -545,24 +526,23 @@ def new(request, acronym):
     is_locked = check_app_locked()
     if is_locked and not has_role(request.user,'Secretariat'):
         messages.warning(request, "The Session Request Tool is closed")
-        return redirect('sessions')
+        return redirect('ietf.secr.sreq.views.main')
     
     if request.method == 'POST':
         button_text = request.POST.get('submit', '')
         if button_text == 'Cancel':
-            return redirect('sessions')
+            return redirect('ietf.secr.sreq.views.main')
 
         form = SessionForm(request.POST)
         if form.is_valid():
             # check if request already exists for this group
             if Session.objects.filter(group=group,meeting=meeting).exclude(status__in=('deleted','notmeet')):
                 messages.warning(request, 'Sessions for working group %s have already been requested once.' % group.acronym)
-                return redirect('sessions')
+                return redirect('ietf.secr.sreq.views.main')
 
             # save in user session
             request.session['session_form'] = form.data
-
-            return redirect('sessions_confirm',acronym=acronym)
+            return redirect('ietf.secr.sreq.views.confirm',acronym=acronym)
 
     # the "previous" querystring causes the form to be returned
     # pre-populated with data from last meeeting's session request
@@ -571,7 +551,7 @@ def new(request, acronym):
         previous_sessions = Session.objects.filter(meeting=previous_meeting,group=group).exclude(status__in=('notmeet','deleted')).order_by('id')
         if not previous_sessions:
             messages.warning(request, 'This group did not meet at %s' % previous_meeting)
-            return redirect('sessions_new', acronym=acronym)
+            return redirect('ietf.secr.sreq.views.new', acronym=acronym)
 
         initial = get_initial_session(previous_sessions)
         add_essential_people(group,initial)
@@ -584,12 +564,11 @@ def new(request, acronym):
         add_essential_people(group,initial)
         form = SessionForm(initial=initial)
 
-    return render_to_response('sreq/new.html', {
+    return render(request, 'sreq/new.html', {
         'meeting': meeting,
         'form': form,
         'group': group,
         'session_conflicts': session_conflicts},
-        RequestContext(request, {}),
     )
 
 @check_permissions
@@ -610,7 +589,7 @@ def no_session(request, acronym):
     # skip if state is already notmeet
     if Session.objects.filter(group=group,meeting=meeting,status='notmeet'):
         messages.info(request, 'The group %s is already marked as not meeting' % group.acronym)
-        return redirect('sessions')
+        return redirect('ietf.secr.sreq.views.main')
 
     session = Session(group=group,
                       meeting=meeting,
@@ -624,7 +603,7 @@ def no_session(request, acronym):
 
     # send notification
     (to_email, cc_list) = gather_address_lists('session_request_not_meeting',group=group,person=login)
-    from_email = ('"IETF Meeting Session Request Tool"','session_request_developers@ietf.org')
+    from_email = (settings.SESSION_REQUEST_FROM_EMAIL)
     subject = '%s - Not having a session at IETF %s' % (group.acronym, meeting.number)
     send_mail(request, to_email, from_email, subject, 'sreq/not_meeting_notification.txt',
               {'login':login,
@@ -638,7 +617,7 @@ def no_session(request, acronym):
 
     # redirect
     messages.success(request, 'A message was sent to notify not having a session at IETF %s' % meeting.number)
-    return redirect('sessions')
+    return redirect('ietf.secr.sreq.views.main')
 
 @role_required('Secretariat')
 def tool_status(request):
@@ -651,7 +630,7 @@ def tool_status(request):
     if request.method == 'POST':
         button_text = request.POST.get('submit', '')
         if button_text == 'Back':
-            return redirect('sessions')
+            return redirect('ietf.secr.sreq.views.main')
 
         form = ToolStatusForm(request.POST)
 
@@ -660,13 +639,13 @@ def tool_status(request):
                 meeting.session_request_lock_message = form.cleaned_data['message']
                 meeting.save()
                 messages.success(request, 'Session Request Tool is now Locked')
-                return redirect('sessions')
+                return redirect('ietf.secr.sreq.views.main')
 
         elif button_text == 'Unlock':
             meeting.session_request_lock_message = ''
             meeting.save()
             messages.success(request, 'Session Request Tool is now Unlocked')
-            return redirect('sessions')
+            return redirect('ietf.secr.sreq.views.main')
 
     else:
         if is_locked:
@@ -676,10 +655,9 @@ def tool_status(request):
         else:
             form = ToolStatusForm()
 
-    return render_to_response('sreq/tool_status.html', {
+    return render(request, 'sreq/tool_status.html', {
         'is_locked': is_locked,
         'form': form},
-        RequestContext(request, {}),
     )
 
 @role_required(*AUTHORIZED_ROLES)
@@ -699,9 +677,9 @@ def view(request, acronym, num = None):
     # if there are no session requests yet, redirect to new session request page
     if not sessions:
         if is_locked:
-            return redirect('sessions')
+            return redirect('ietf.secr.sreq.views.main')
         else:
-            return redirect('sessions_new', acronym=acronym)
+            return redirect('ietf.secr.sreq.views.new', acronym=acronym)
 
     # TODO simulate activity records
     activities = [{'act_date':sessions[0].requested.strftime('%b %d, %Y'),
@@ -727,7 +705,7 @@ def view(request, acronym, num = None):
     # build session dictionary (like querydict from new session request form) for use in template
     session = get_initial_session(sessions)
 
-    return render_to_response('sreq/view.html', {
+    return render(request, 'sreq/view.html', {
         'is_locked': is_locked,
         'session': session,
         'activities': activities,
@@ -735,6 +713,5 @@ def view(request, acronym, num = None):
         'group': group,
         'session_conflicts': session_conflicts,
         'show_approve_button': show_approve_button},
-        RequestContext(request, {}),
     )
 

@@ -6,7 +6,7 @@ register = template.Library()
 
 @register.filter
 def managed_groups(user):
-    if not (user and hasattr(user, "is_authenticated") and user.is_authenticated()):
+    if not (user and hasattr(user, "is_authenticated") and user.is_authenticated):
         return []
 
     groups = []
@@ -19,14 +19,14 @@ def managed_groups(user):
     groups.extend(Group.objects.filter(
         role__name__slug='chair',
         role__person__user=user,
-        type__slug__in=('rg', 'wg'),
+        type__slug__in=('rg', 'wg', 'ag'),
         state__slug__in=('active', 'bof')).select_related("type"))
 
     return groups
 
 @register.filter
 def managed_review_groups(user):
-    if not (user and hasattr(user, "is_authenticated") and user.is_authenticated()):
+    if not (user and hasattr(user, "is_authenticated") and user.is_authenticated):
         return []
 
     groups = []

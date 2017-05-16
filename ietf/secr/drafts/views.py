@@ -7,8 +7,7 @@ from django.conf import settings
 from django.contrib import messages
 from django.db.models import Max
 from django.forms.formsets import formset_factory
-from django.shortcuts import render_to_response, get_object_or_404, redirect, render
-from django.template import RequestContext
+from django.shortcuts import render, get_object_or_404, redirect
 
 from ietf.doc.models import Document, DocumentAuthor, DocAlias, DocRelationshipName, RelatedDocument, State
 from ietf.doc.models import DocEvent, NewRevisionDocEvent
@@ -83,6 +82,7 @@ def handle_substate(doc):
         system = Person.objects.get(name="(system)")
         DocEvent.objects.create(type="changed_document",
                                 doc=doc,
+                                rev=doc.rev,
                                 desc="Sub state has been changed to <b>AD Followup</b> from <b>Revised ID Needed</b>",
                                 by=system)
         
@@ -174,6 +174,7 @@ def do_extend(draft, request):
         type='changed_document',
         by=request.user.person,
         doc=draft,
+        rev=draft.rev,
         time=draft.time,
         desc='Extended expiry',
     )
@@ -204,6 +205,7 @@ def do_replace(draft, request):
         type='changed_document',
         by=request.user.person,
         doc=replaced_by,
+        rev=replaced_by.rev,
         time=draft.time,
         desc='This document now replaces <b>%s</b>' % request.session['data']['replaced'],
     )
@@ -402,9 +404,8 @@ def abstract(request, id):
     '''
     draft = get_object_or_404(Document, name=id)
 
-    return render_to_response('drafts/abstract.html', {
+    return render(request, 'drafts/abstract.html', {
         'draft': draft},
-        RequestContext(request, {}),
     )
 
 @role_required('Secretariat')
@@ -486,16 +487,15 @@ def add(request):
             request.session['action'] = 'add'
             
             messages.success(request, 'New draft added successfully!')
-            return redirect('drafts_authors', id=draft.name)
+            return redirect('ietf.secr.drafts.views.authors', id=draft.name)
 
     else:
         form = AddModelForm()
         upload_form = UploadForm()
         
-    return render_to_response('drafts/add.html', {
+    return render(request, 'drafts/add.html', {
         'form': form,
         'upload_form': upload_form},
-        RequestContext(request, {}),
     )
 
 @role_required('Secretariat')
@@ -521,7 +521,7 @@ def announce(request, id):
                            content_type='Multipart/Mixed; Boundary="NextPart"')
             
     messages.success(request, 'Announcement scheduled successfully!')
-    return redirect('drafts_view', id=id)
+    return redirect('ietf.secr.drafts.views.view', id=id)
 
 @role_required('Secretariat')
 def approvals(request):
@@ -532,10 +532,9 @@ def approvals(request):
     approved = Preapproval.objects.all().order_by('name')
     form = None
     
-    return render_to_response('drafts/approvals.html', {
+    return render(request, 'drafts/approvals.html', {
         'form': form,
         'approved': approved},
-        RequestContext(request, {}),
     )
 
 @role_required('Secretariat')
@@ -545,7 +544,7 @@ def author_delete(request, id, oid):
     '''
     DocumentAuthor.objects.get(id=oid).delete()
     messages.success(request, 'The author was deleted successfully')
-    return redirect('drafts_authors', id=id)
+    return redirect('ietf.secr.drafts.views.authors', id=id)
 
 @role_required('Secretariat')
 def authors(request, id):
@@ -570,9 +569,9 @@ def authors(request, id):
             action = request.session.get('action','')
             if action == 'add':
                 del request.session['action']
-                return redirect('drafts_announce', id=id)
+                return redirect('ietf.secr.drafts.views.announce', id=id)
 
-            return redirect('drafts_view', id=id)
+            return redirect('ietf.secr.drafts.views.view', id=id)
 
         if form.is_valid():
             author = form.cleaned_data['email']
@@ -584,15 +583,14 @@ def authors(request, id):
             DocumentAuthor.objects.create(document=draft,author=author,order=order)
             
             messages.success(request, 'Author added successfully!')
-            return redirect('drafts_authors', id=id)
+            return redirect('ietf.secr.drafts.views.authors', id=id)
 
     else: 
         form = AuthorForm()
 
-    return render_to_response('drafts/authors.html', {
+    return render(request, 'drafts/authors.html', {
         'draft': draft,
         'form': form},
-        RequestContext(request, {}),
     )
 
 @role_required('Secretariat')
@@ -610,7 +608,7 @@ def confirm(request, id):
             # TODO do cancel functions from session (ie remove uploaded files?)
             # clear session data
             clear_non_auth(request.session)
-            return redirect('drafts_view', id=id)
+            return redirect('ietf.secr.drafts.views.view', id=id)
 
         action = request.session['action']
         if action == 'revision':
@@ -632,18 +630,17 @@ def confirm(request, id):
         clear_non_auth(request.session)
     
         messages.success(request, '%s action performed successfully!' % action)
-        return redirect('drafts_view', id=id)
+        return redirect('ietf.secr.drafts.views.view', id=id)
 
     details = get_action_details(draft, request.session) 
     email = request.session.get('email','')
     action = request.session.get('action','')
     
-    return render_to_response('drafts/confirm.html', {
+    return render(request, 'drafts/confirm.html', {
         'details': details,
         'email': email,
         'action': action,
         'draft': draft},
-        RequestContext(request, {}),
     )
 
 @role_required('Secretariat')
@@ -661,9 +658,8 @@ def dates(request):
     '''
     meeting = get_meeting()
         
-    return render_to_response('drafts/dates.html', {
+    return render(request, 'drafts/dates.html', {
         'meeting':meeting},
-        RequestContext(request, {}),
     )
 
 @role_required('Secretariat')
@@ -688,7 +684,7 @@ def edit(request, id):
     if request.method == 'POST':
         button_text = request.POST.get('submit', '')
         if button_text == 'Cancel':
-            return redirect('drafts_view', id=id)
+            return redirect('ietf.secr.drafts.views.view', id=id)
 
         form = EditModelForm(request.POST, instance=draft)
         if form.is_valid():
@@ -696,6 +692,7 @@ def edit(request, id):
                 e = DocEvent.objects.create(type='changed_document',
                                             by=request.user.person,
                                             doc=draft,
+                                            rev=draft.rev,
                                             desc='Changed field(s): %s' % ','.join(form.changed_data))
                 # see EditModelForm.save() for detailed logic
                 form.save(commit=False)
@@ -703,7 +700,7 @@ def edit(request, id):
                 
                 messages.success(request, 'Draft modified successfully!')
             
-            return redirect('drafts_view', id=id)
+            return redirect('ietf.secr.drafts.views.view', id=id)
         else:
             #assert False, form.errors
             pass
@@ -731,12 +728,12 @@ def email(request, id):
         if button_text == 'Cancel':
             # clear session data
             clear_non_auth(request.session)
-            return redirect('drafts_view', id=id)
+            return redirect('ietf.secr.drafts.views.view', id=id)
 
         form = EmailForm(request.POST)
         if form.is_valid():
             request.session['email'] = form.data
-            return redirect('drafts_confirm', id=id)
+            return redirect('ietf.secr.drafts.views.confirm', id=id)
     else:
         # the resurrect email body references the last revision number, handle
         # exception if no last revision found
@@ -748,17 +745,16 @@ def email(request, id):
                 type=request.session['action'],
                 input=request.session.get('data', None)))
         except Exception, e:
-            return render_to_response('drafts/error.html', { 'error': e},)
+            return render(request, 'drafts/error.html', { 'error': e},)
         
         # for "revision" action skip email page and go directly to confirm
         if request.session['action'] == 'revision':
             request.session['email'] = form.initial
-            return redirect('drafts_confirm', id=id)
+            return redirect('ietf.secr.drafts.views.confirm', id=id)
 
-    return render_to_response('drafts/email.html', {
+    return render(request, 'drafts/email.html', {
         'form': form,
         'draft': draft},
-        RequestContext(request, {}),
     )
 
 @role_required('Secretariat')
@@ -776,21 +772,20 @@ def extend(request, id):
     if request.method == 'POST':
         button_text = request.POST.get('submit', '')
         if button_text == 'Cancel':
-            return redirect('drafts_view', id=id)
+            return redirect('ietf.secr.drafts.views.view', id=id)
 
         form = ExtendForm(request.POST)
         if form.is_valid():
             request.session['data'] = form.cleaned_data
             request.session['action'] = 'extend'
-            return redirect('drafts_email', id=id)
+            return redirect('ietf.secr.drafts.views.email', id=id)
 
     else:
         form = ExtendForm(initial={'revision_date':datetime.date.today().isoformat()})
 
-    return render_to_response('drafts/extend.html', {
+    return render(request, 'drafts/extend.html', {
         'form': form,
         'draft': draft},
-        RequestContext(request, {}),
     )
     
 @role_required('Secretariat')
@@ -812,13 +807,13 @@ def makerfc(request, id):
     # raise error if draft intended standard is empty
     if not draft.intended_std_level:
         messages.error(request, 'ERROR: intended RFC status is not set')
-        return redirect('drafts_view', id=id)
+        return redirect('ietf.secr.drafts.views.view', id=id)
 
     ObsFormset = formset_factory(RfcObsoletesForm, extra=15, max_num=15)
     if request.method == 'POST':
         button_text = request.POST.get('submit', '')
         if button_text == 'Cancel':
-            return redirect('drafts_view', id=id)
+            return redirect('ietf.secr.drafts.views.view', id=id)
 
         form = RfcModelForm(request.POST, instance=draft)
         obs_formset = ObsFormset(request.POST, prefix='obs')
@@ -833,6 +828,7 @@ def makerfc(request, id):
             e = DocEvent.objects.create(type='published_rfc',
                                         by=request.user.person,
                                         doc=rfc,
+                                        rev=draft.rev,
                                         desc="Published RFC")
 
             # change state
@@ -855,7 +851,7 @@ def makerfc(request, id):
             rfc.save_with_history([e])
 
             messages.success(request, 'RFC created successfully!')
-            return redirect('drafts_view', id=id)
+            return redirect('ietf.secr.drafts.views.view', id=id)
         else:
             # assert False, (form.errors, obs_formset.errors)
             pass      
@@ -863,11 +859,10 @@ def makerfc(request, id):
         form = RfcModelForm(instance=draft)
         obs_formset = ObsFormset(prefix='obs')
     
-    return render_to_response('drafts/makerfc.html', {
+    return render(request, 'drafts/makerfc.html', {
         'form': form,
         'obs_formset': obs_formset,
         'draft': draft},
-        RequestContext(request, {}),
     )
 
 @role_required('Secretariat')
@@ -879,9 +874,8 @@ def nudge_report(request):
     docs = Document.objects.filter(type='draft',states__slug='active')
     docs = docs.filter(states=12,tags='need-rev')
                 
-    return render_to_response('drafts/report_nudge.html', {
+    return render(request, 'drafts/report_nudge.html', {
         'docs': docs},
-        RequestContext(request, {}),
     )
     
 @role_required('Secretariat')
@@ -899,21 +893,20 @@ def replace(request, id):
     if request.method == 'POST':
         button_text = request.POST.get('submit', '')
         if button_text == 'Cancel':
-            return redirect('drafts_view', id=id)
+            return redirect('ietf.secr.drafts.views.view', id=id)
 
         form = ReplaceForm(request.POST, draft=draft)
         if form.is_valid():
             request.session['data'] = form.cleaned_data
             request.session['action'] = 'replace'
-            return redirect('drafts_email', id=id)
+            return redirect('ietf.secr.drafts.views.email', id=id)
 
     else:
         form = ReplaceForm(draft=draft)
 
-    return render_to_response('drafts/replace.html', {
+    return render(request, 'drafts/replace.html', {
         'form': form,
         'draft': draft},
-        RequestContext(request, {}),
     )
 
 @role_required('Secretariat')
@@ -925,7 +918,7 @@ def resurrect(request, id):
     '''
     
     request.session['action'] = 'resurrect'
-    return redirect('drafts_email', id=id)
+    return redirect('ietf.secr.drafts.views.email', id=id)
 
 @role_required('Secretariat')
 def revision(request, id):
@@ -939,7 +932,7 @@ def revision(request, id):
     if request.method == 'POST':
         button_text = request.POST.get('submit', '')
         if button_text == 'Cancel':
-            return redirect('drafts_view', id=id)
+            return redirect('ietf.secr.drafts.views.view', id=id)
 
         upload_form = UploadForm(request.POST, request.FILES, draft=draft)
         form = RevisionModelForm(request.POST, instance=draft)
@@ -954,17 +947,16 @@ def revision(request, id):
             request.session['revision'] = revision
             request.session['file_type'] = file_type_list
             
-            return redirect('drafts_email', id=id)
+            return redirect('ietf.secr.drafts.views.email', id=id)
 
     else:
         form = RevisionModelForm(instance=draft,initial={'revision_date':datetime.date.today().isoformat()})
         upload_form = UploadForm(draft=draft)
         
-    return render_to_response('drafts/revision.html', {
+    return render(request, 'drafts/revision.html', {
         'form': form,
         'upload_form': upload_form,
         'draft': draft},
-        RequestContext(request, {}),
     )
 
 @role_required('Secretariat')
@@ -1028,15 +1020,14 @@ def search(request):
             
             # if there's just one result go straight to view
             if len(results) == 1:
-                return redirect('drafts_view', id=results[0].name)
+                return redirect('ietf.secr.drafts.views.view', id=results[0].name)
     else:
         active_state = State.objects.get(type='draft',slug='active')
         form = SearchForm(initial={'state':active_state.pk})
 
-    return render_to_response('drafts/search.html', {
+    return render(request, 'drafts/search.html', {
         'results': results,
         'form': form},
-        RequestContext(request, {}),
     )
 
 @role_required('Secretariat')
@@ -1053,7 +1044,7 @@ def update(request, id):
     if request.method == 'POST':
         button_text = request.POST.get('submit', '')
         if button_text == 'Cancel':
-            return redirect('drafts_view', id=id)
+            return redirect('ietf.secr.drafts.views.view', id=id)
 
         upload_form = UploadForm(request.POST, request.FILES, draft=draft)
         form = RevisionModelForm(request.POST, instance=draft)
@@ -1068,17 +1059,16 @@ def update(request, id):
             request.session['data']['filename'] = filename
             request.session['file_type'] = file_type_list
        
-            return redirect('drafts_email', id=id)
+            return redirect('ietf.secr.drafts.views.email', id=id)
 
     else:
         form = RevisionModelForm(instance=draft,initial={'revision_date':datetime.date.today().isoformat()})
         upload_form = UploadForm(draft=draft)
         
-    return render_to_response('drafts/revision.html', {
+    return render(request, 'drafts/revision.html', {
         'form': form,
         'upload_form':upload_form,
         'draft': draft},
-        RequestContext(request, {}),
     )
 
 @role_required('Secretariat')
@@ -1133,13 +1123,12 @@ def view(request, id):
     except AttributeError:
         pass
 
-    return render_to_response('drafts/view.html', {
+    return render(request, 'drafts/view.html', {
         'is_active': is_active,
         'is_expired': is_expired,
         'is_withdrawn': is_withdrawn,
         'is_development': is_development,
         'draft': draft},
-        RequestContext(request, {}),
     )
 
 @role_required('Secretariat')
@@ -1155,7 +1144,7 @@ def withdraw(request, id):
     if request.method == 'POST':
         button_text = request.POST.get('submit', '')
         if button_text == 'Cancel':
-            return redirect('drafts_view', id=id)
+            return redirect('ietf.secr.drafts.views.view', id=id)
 
         form = WithdrawForm(request.POST)
         if form.is_valid():
@@ -1163,14 +1152,13 @@ def withdraw(request, id):
             request.session['data'] = form.data
             request.session['action'] = 'withdraw'
             
-            return redirect('drafts_email', id=id)
+            return redirect('ietf.secr.drafts.views.email', id=id)
 
     else:
         form = WithdrawForm()
 
-    return render_to_response('drafts/withdraw.html', {
+    return render(request, 'drafts/withdraw.html', {
         'draft': draft,
         'form': form},
-        RequestContext(request, {}),
     )
     

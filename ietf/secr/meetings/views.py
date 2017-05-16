@@ -5,13 +5,12 @@ import time
 
 from django.conf import settings
 from django.contrib import messages
-from django.core.urlresolvers import reverse
+from django.urls import reverse
 from django.db.models import Max
 from django.forms.formsets import formset_factory
 from django.forms.models import inlineformset_factory
 from django.http import HttpResponseRedirect, HttpResponse
-from django.shortcuts import render_to_response, get_object_or_404, redirect
-from django.template import RequestContext
+from django.shortcuts import render, get_object_or_404, redirect
 from django.utils.functional import curry
 
 from ietf.ietfauth.utils import role_required
@@ -21,7 +20,7 @@ from ietf.meeting.models import Meeting, Session, Room, TimeSlot, SchedTimeSessA
 from ietf.group.models import Group, GroupEvent
 from ietf.person.models import Person
 from ietf.secr.meetings.blue_sheets import create_blue_sheets
-from ietf.secr.meetings.forms import ( BaseMeetingRoomFormSet, MeetingModelForm,
+from ietf.secr.meetings.forms import ( BaseMeetingRoomFormSet, MeetingModelForm, MeetingSelectForm,
     MeetingRoomForm, NewSessionForm, NonSessionEditForm, NonSessionForm, TimeSlotForm,
     UploadBlueSheetForm, get_next_slot )
 from ietf.secr.proceedings.views import build_choices
@@ -100,7 +99,7 @@ def build_nonsession(meeting,schedule):
         return None
     
     delta = meeting.date - last_meeting.date
-    system = Person.objects.get(name='(system)')
+    system = Person.objects.get(name='(System)')
     secretariat = Group.objects.get(acronym='secretariat')
     
     for slot in TimeSlot.objects.filter(meeting=last_meeting,type__in=('break','reg','other','plenary','lead')):
@@ -296,7 +295,7 @@ def add(request):
     if request.method == 'POST':
         button_text = request.POST.get('submit', '')
         if button_text == 'Cancel':
-            return redirect('meetings')
+            return redirect('ietf.secr.meetings.views.main')
 
         form = MeetingModelForm(request.POST)
         if form.is_valid():
@@ -318,15 +317,14 @@ def add(request):
             make_materials_directories(meeting)
 
             messages.success(request, 'The Meeting was created successfully!')
-            return redirect('meetings')
+            return redirect('ietf.secr.meetings.views.main')
     else:
         # display initial forms
         max_number = Meeting.objects.filter(type='ietf').aggregate(Max('number'))['number__max']
         form = MeetingModelForm(initial={'number':int(max_number) + 1})
 
-    return render_to_response('meetings/add.html', {
+    return render(request, 'meetings/add.html', {
         'form': form},
-        RequestContext(request, {}),
     )
 
 @role_required('Secretariat')
@@ -350,17 +348,16 @@ def blue_sheet(request, meeting_id):
             file = request.FILES['file']
             handle_upload_file(file,file.name,meeting,'bluesheets')
             messages.success(request, 'File Uploaded')
-            return redirect('meetings_blue_sheet', meeting_id=meeting.number)
+            return redirect('ietf.secr.meetings.views.blue_sheet', meeting_id=meeting.number)
     else:
         form = UploadBlueSheetForm()
 
-    return render_to_response('meetings/blue_sheet.html', {
+    return render(request, 'meetings/blue_sheet.html', {
         'meeting': meeting,
         'url': url,
         'form': form,
         'last_run': last_run,
         'uploaded_files': uploaded_files},
-        RequestContext(request, {}),
     )
 
 @role_required('Secretariat')
@@ -377,7 +374,7 @@ def blue_sheet_generate(request, meeting_id):
         create_blue_sheets(meeting, groups)
 
         messages.success(request, 'Blue Sheets generated')
-    return redirect('meetings_blue_sheet', meeting_id=meeting.number)
+    return redirect('ietf.secr.meetings.views.blue_sheet', meeting_id=meeting.number)
 
 @role_required('Secretariat')
 def blue_sheet_redirect(request):
@@ -391,7 +388,7 @@ def blue_sheet_redirect(request):
         meeting = qs[0]
     else:
         meeting = Meeting.objects.filter(type='ietf').order_by('-date')[0]
-    return redirect('meetings_blue_sheet', meeting_id=meeting.number)
+    return redirect('ietf.secr.meetings.views.blue_sheet', meeting_id=meeting.number)
 
 @role_required('Secretariat')
 def edit_meeting(request, meeting_id):
@@ -412,21 +409,20 @@ def edit_meeting(request, meeting_id):
     if request.method == 'POST':
         button_text = request.POST.get('submit','')
         if button_text == 'Cancel':
-            return redirect('meetings_view', meeting_id=meeting_id)
+            return redirect('ietf.secr.meetings.views.view', meeting_id=meeting_id)
 
         form = MeetingModelForm(request.POST, instance=meeting)
         if form.is_valid():
             form.save()
             messages.success(request,'The meeting entry was changed successfully')
-            return redirect('meetings_view', meeting_id=meeting_id)
+            return redirect('ietf.secr.meetings.views.view', meeting_id=meeting_id)
 
     else:
         form = MeetingModelForm(instance=meeting)
 
-    return render_to_response('meetings/edit_meeting.html', {
+    return render(request, 'meetings/edit_meeting.html', {
         'meeting': meeting,
         'form' : form, },
-        RequestContext(request,{}),
     )
 
 @role_required('Secretariat')
@@ -437,15 +433,14 @@ def main(request):
     meetings = Meeting.objects.filter(type='ietf').order_by('-number')
 
     if request.method == 'POST':
-        return redirect('meetings_view', meeting_id=request.POST['group'])
+        return redirect('ietf.secr.meetings.views.view', meeting_id=request.POST['meeting'])
 
     choices = [ (str(x.number),str(x.number)) for x in meetings ]
-    form = GroupSelectForm(choices=choices)
+    form = MeetingSelectForm(choices=choices)
 
-    return render_to_response('meetings/main.html', {
+    return render(request, 'meetings/main.html', {
         'form': form,
         'meetings': meetings},
-        RequestContext(request, {}),
     )
 
 @role_required('Secretariat')
@@ -492,7 +487,7 @@ def non_session(request, meeting_id, schedule_name):
                                   name=name,
                                   short=short,
                                   group=group,
-                                  requested_by=Person.objects.get(name='(system)'),
+                                  requested_by=Person.objects.get(name='(System)'),
                                   status_id='sched',
                                   type=type,
                              )
@@ -504,19 +499,18 @@ def non_session(request, meeting_id, schedule_name):
                                             schedule=schedule)
 
             messages.success(request, 'Non-Sessions updated successfully')
-            return redirect('meetings_non_session', meeting_id=meeting_id, schedule_name=schedule_name)
+            return redirect('ietf.secr.meetings.views.non_session', meeting_id=meeting_id, schedule_name=schedule_name)
     else:
         form = NonSessionForm(initial={'show_location':True})
 
     if TimeSlot.objects.filter(meeting=meeting,type='other',location__isnull=True):
         messages.warning(request, 'There are non-session items which do not have a room assigned')
 
-    return render_to_response('meetings/non_session.html', {
+    return render(request, 'meetings/non_session.html', {
         'slots': slots,
         'form': form,
         'meeting': meeting,
         'schedule': schedule},
-        RequestContext(request, {}),
     )
 
 @role_required('Secretariat')
@@ -535,13 +529,13 @@ def non_session_delete(request, meeting_id, schedule_name, slot_id):
         for session in session_objects:
             if session.materials.exclude(states__slug='deleted'):
                 messages.error(request, 'Materials have already been uploaded for "%s".  You must delete those before deleting the timeslot.' % slot.name)
-                return redirect('meetings_non_session', meeting_id=meeting_id, schedule_name=schedule_name)
+                return redirect('ietf.secr.meetings.views.non_session', meeting_id=meeting_id, schedule_name=schedule_name)
         else:
             Session.objects.filter(pk__in=[ x.pk for x in session_objects ]).delete()
     slot.delete()
 
     messages.success(request, 'Non-Session timeslot deleted successfully')
-    return redirect('meetings_non_session', meeting_id=meeting_id, schedule_name=schedule_name)
+    return redirect('ietf.secr.meetings.views.non_session', meeting_id=meeting_id, schedule_name=schedule_name)
 
 @role_required('Secretariat')
 def non_session_edit(request, meeting_id, schedule_name, slot_id):
@@ -556,7 +550,7 @@ def non_session_edit(request, meeting_id, schedule_name, slot_id):
     if request.method == 'POST':
         button_text = request.POST.get('submit', '')
         if button_text == 'Cancel':
-            return redirect('meetings_non_session', meeting_id=meeting_id, schedule_name=schedule_name)
+            return redirect('ietf.secr.meetings.views.non_session', meeting_id=meeting_id, schedule_name=schedule_name)
 
         form = NonSessionEditForm(request.POST,meeting=meeting, session=session)
         if form.is_valid():
@@ -574,7 +568,7 @@ def non_session_edit(request, meeting_id, schedule_name, slot_id):
             session.save()
 
             messages.success(request, 'Location saved')
-            return redirect('meetings_non_session', meeting_id=meeting_id, schedule_name=schedule_name)
+            return redirect('ietf.secr.meetings.views.non_session', meeting_id=meeting_id, schedule_name=schedule_name)
 
     else:
         # we need to pass the session to the form in order to disallow changing
@@ -585,12 +579,11 @@ def non_session_edit(request, meeting_id, schedule_name, slot_id):
                    'short':session.short}
         form = NonSessionEditForm(meeting=meeting,session=session,initial=initial)
 
-    return render_to_response('meetings/non_session_edit.html', {
+    return render(request, 'meetings/non_session_edit.html', {
         'meeting': meeting,
         'form': form,
         'schedule': schedule,
         'slot': slot},
-        RequestContext(request, {}),
     )
 
 @role_required('Secretariat')
@@ -620,13 +613,12 @@ def notifications(request, meeting_id):
         send_notifications(meeting,groups,request.user.person)
 
         messages.success(request, "Notifications Sent")
-        return redirect('meetings_view', meeting_id=meeting.number)
+        return redirect('ietf.secr.meetings.views.view', meeting_id=meeting.number)
 
-    return render_to_response('meetings/notifications.html', {
+    return render(request, 'meetings/notifications.html', {
         'meeting': meeting,
         'groups': sorted(groups, key=lambda a: a.acronym),
         'last_notice': last_notice },
-        RequestContext(request, {}),
     )
 
 @role_required('Secretariat')
@@ -651,7 +643,7 @@ def remove_session(request, meeting_id, acronym):
         session.save()
 
     messages.success(request, '%s Session removed from agenda' % (group.acronym))
-    return redirect('meetings_select_group', meeting_id=meeting.number)
+    return redirect('ietf.secr.meetings.views.select_group', meeting_id=meeting.number)
 
 @role_required('Secretariat')
 def rooms(request, meeting_id, schedule_name):
@@ -669,7 +661,7 @@ def rooms(request, meeting_id, schedule_name):
     if request.method == 'POST':
         button_text = request.POST.get('submit', '')
         if button_text == 'Cancel':
-            return redirect('meetings', meeting_id=meeting_id,schedule_name=schedule_name)
+            return redirect('ietf.secr.meetings.views.main', meeting_id=meeting_id,schedule_name=schedule_name)
 
         formset = RoomFormset(request.POST, instance=meeting, prefix='room')
         if formset.is_valid():
@@ -687,15 +679,14 @@ def rooms(request, meeting_id, schedule_name):
                         build_timeslots(meeting,room=form.instance)
 
             messages.success(request, 'Meeting Rooms changed successfully')
-            return redirect('meetings_rooms', meeting_id=meeting_id, schedule_name=schedule_name)
+            return redirect('ietf.secr.meetings.views.rooms', meeting_id=meeting_id, schedule_name=schedule_name)
     else:
         formset = RoomFormset(instance=meeting, prefix='room')
 
-    return render_to_response('meetings/rooms.html', {
+    return render(request, 'meetings/rooms.html', {
         'meeting': meeting,
         'schedule': schedule,
         'formset': formset},
-        RequestContext(request, {}),
     )
 
 @role_required('Secretariat')
@@ -735,7 +726,7 @@ def schedule(request, meeting_id, schedule_name, acronym):
     if request.method == 'POST':
         button_text = request.POST.get('submit', '')
         if button_text == 'Cancel':
-            return redirect('meetings_select_group', meeting_id=meeting_id,schedule_name=schedule_name)
+            return redirect('ietf.secr.meetings.views.select_group', meeting_id=meeting_id,schedule_name=schedule_name)
 
         formset = NewSessionFormset(request.POST,initial=initial)
 
@@ -797,19 +788,18 @@ def schedule(request, meeting_id, schedule_name, acronym):
             if has_changed:
                 messages.success(request, 'Session(s) Scheduled for %s.' % group.acronym )
 
-            return redirect('meetings_select_group', meeting_id=meeting_id,schedule_name=schedule_name)
+            return redirect('ietf.secr.meetings.views.select_group', meeting_id=meeting_id,schedule_name=schedule_name)
 
     else:
         formset = NewSessionFormset(initial=initial)
 
-    return render_to_response('meetings/schedule.html', {
+    return render(request, 'meetings/schedule.html', {
         'group': group,
         'meeting': meeting,
         'schedule': schedule,
         'show_request': True,
         'session': legacy_session,
         'formset': formset},
-        RequestContext(request, {}),
     )
 
 @role_required('Secretariat')
@@ -820,10 +810,9 @@ def select(request, meeting_id, schedule_name):
     meeting = get_object_or_404(Meeting, number=meeting_id)
     schedule = get_object_or_404(Schedule, meeting=meeting, name=schedule_name)
     
-    return render_to_response('meetings/select.html', {
+    return render(request, 'meetings/select.html', {
         'meeting': meeting,
         'schedule': schedule},
-        RequestContext(request, {}),
     )
     
 @role_required('Secretariat')
@@ -840,9 +829,9 @@ def select_group(request, meeting_id, schedule_name):
     if request.method == 'POST':
         group = request.POST.get('group',None)
         if group:
-            redirect_url = reverse('meetings_schedule', kwargs={'meeting_id':meeting_id,'acronym':group,'schedule_name':schedule_name})
+            redirect_url = reverse('ietf.secr.meetings.views.schedule', kwargs={'meeting_id':meeting_id,'acronym':group,'schedule_name':schedule_name})
         else:
-            redirect_url = reverse('meetings_select_group',kwargs={'meeting_id':meeting_id,'schedule_name':schedule_name})
+            redirect_url = reverse('ietf.secr.meetings.views.select_group',kwargs={'meeting_id':meeting_id,'schedule_name':schedule_name})
             messages.error(request, 'No group selected')
 
         return HttpResponseRedirect(redirect_url)
@@ -862,14 +851,13 @@ def select_group(request, meeting_id, schedule_name):
     irtfs = filter(lambda a: a.type_id=='rg' and a.state_id in ('active','proposed'), unscheduled_groups)
     irtf_form = GroupSelectForm(choices=build_choices(irtfs))
 
-    return render_to_response('meetings/select_group.html', {
+    return render(request, 'meetings/select_group.html', {
         'group_form': group_form,
         'bof_form': bof_form,
         'irtf_form': irtf_form,
         'scheduled_groups': scheduled_groups,
         'meeting': meeting,
         'schedule': schedule},
-        RequestContext(request, {}),
     )
 
 @role_required('Secretariat')
@@ -913,7 +901,7 @@ def times(request, meeting_id, schedule_name):
             # assert False, (new_time, time_seen)
             if new_time in time_seen:
                 messages.error(request, 'There is already a timeslot for %s.  To change you must delete the old one first.' % new_time.strftime('%a %H:%M'))
-                return redirect('meetings_times', meeting_id=meeting_id,schedule_name=schedule_name)
+                return redirect('ietf.secr.meetings.views.times', meeting_id=meeting_id,schedule_name=schedule_name)
 
             for room in meeting.room_set.all():
                 TimeSlot.objects.create(type_id='session',
@@ -924,17 +912,16 @@ def times(request, meeting_id, schedule_name):
                                         duration=duration)
 
             messages.success(request, 'Timeslots created')
-            return redirect('meetings_times', meeting_id=meeting_id,schedule_name=schedule_name)
+            return redirect('ietf.secr.meetings.views.times', meeting_id=meeting_id,schedule_name=schedule_name)
 
     else:
         form = TimeSlotForm()
 
-    return render_to_response('meetings/times.html', {
+    return render(request, 'meetings/times.html', {
         'form': form,
         'meeting': meeting,
         'schedule': schedule,
         'times': times},
-        RequestContext(request, {}),
     )
 
 @role_required('Secretariat')
@@ -952,7 +939,7 @@ def times_edit(request, meeting_id, schedule_name, time):
     if request.method == 'POST':
         button_text = request.POST.get('submit', '')
         if button_text == 'Cancel':
-            return redirect('meetings_times', meeting_id=meeting_id,schedule_name=schedule_name)
+            return redirect('ietf.secr.meetings.views.times', meeting_id=meeting_id,schedule_name=schedule_name)
 
         form = TimeSlotForm(request.POST)
         if form.is_valid():
@@ -971,7 +958,7 @@ def times_edit(request, meeting_id, schedule_name, time):
                 timeslot.save()
 
             messages.success(request, 'TimeSlot saved')
-            return redirect('meetings_times', meeting_id=meeting_id,schedule_name=schedule_name)
+            return redirect('ietf.secr.meetings.views.times', meeting_id=meeting_id,schedule_name=schedule_name)
 
     else:
         # we need to pass the session to the form in order to disallow changing
@@ -985,11 +972,10 @@ def times_edit(request, meeting_id, schedule_name, time):
                    'name':timeslots.first().name}
         form = TimeSlotForm(initial=initial)
 
-    return render_to_response('meetings/times_edit.html', {
+    return render(request, 'meetings/times_edit.html', {
         'meeting': meeting,
         'schedule': schedule,
         'form': form},
-        RequestContext(request, {}),
     )
 
 @role_required('Secretariat')
@@ -1006,7 +992,7 @@ def times_delete(request, meeting_id, schedule_name, time):
     TimeSlot.objects.filter(meeting=meeting,time=dtime).delete()
 
     messages.success(request, 'Timeslot deleted')
-    return redirect('meetings_times', meeting_id=meeting_id,schedule_name=schedule_name)
+    return redirect('ietf.secr.meetings.views.times', meeting_id=meeting_id,schedule_name=schedule_name)
 
 @role_required('Secretariat')
 def unschedule(request, meeting_id, schedule_name, session_id):
@@ -1021,7 +1007,7 @@ def unschedule(request, meeting_id, schedule_name, session_id):
     # TODO: change session state?
 
     messages.success(request, 'Session unscheduled')
-    return redirect('meetings_select_group', meeting_id=meeting_id, schedule_name=schedule_name)
+    return redirect('ietf.secr.meetings.views.select_group', meeting_id=meeting_id, schedule_name=schedule_name)
 
 @role_required('Secretariat')
 def view(request, meeting_id):
@@ -1039,7 +1025,6 @@ def view(request, meeting_id):
     '''
     meeting = get_object_or_404(Meeting, number=meeting_id)
     
-    return render_to_response('meetings/view.html', {
+    return render(request, 'meetings/view.html', {
         'meeting': meeting},
-        RequestContext(request, {}),
     )

@@ -3,8 +3,7 @@ from django.contrib.auth.models import User
 from django.db import IntegrityError
 from django.forms.models import inlineformset_factory
 from django.http import HttpResponseRedirect
-from django.shortcuts import render_to_response, get_object_or_404, redirect
-from django.template import RequestContext
+from django.shortcuts import render, get_object_or_404, redirect
 
 from ietf.ietfauth.utils import role_required
 from ietf.person.models import Person, Email, Alias
@@ -47,11 +46,10 @@ def add(request):
     else:
         form = NameForm()
 
-    return render_to_response('rolodex/add.html', {
+    return render(request, 'rolodex/add.html', {
         'form': form,
         'results': results,
         'name': name},
-        RequestContext(request, {}),
     )
 
 @role_required('Secretariat')
@@ -74,7 +72,7 @@ def add_proceed(request):
         post_data = request.session['post_data']
     else:
         messages.error('ERROR: unable to save session data (enable cookies)') # pylint: disable=no-value-for-parameter
-        return redirect('rolodex_add')
+        return redirect('ietf.secr.rolodex.views.add')
 
     name = post_data['name']
 
@@ -99,14 +97,13 @@ def add_proceed(request):
             person.save()
             
             messages.success(request, 'The Rolodex entry was added successfully')
-            return redirect('rolodex_view', id=person.id)
+            return redirect('ietf.secr.rolodex.views.view', id=person.id)
     else:
         form = NewPersonForm(initial={'name':name,'ascii':name})
 
-    return render_to_response('rolodex/add_proceed.html', {
+    return render(request, 'rolodex/add_proceed.html', {
         'name': name,
         'form': form},
-        RequestContext(request, {}),
     )
 
 @role_required('Secretariat')
@@ -136,12 +133,9 @@ def delete(request, id):
             #person.delete()
             
             messages.warning(request, 'This feature is disabled')
-            return redirect('rolodex')
+            return redirect('ietf.secr.rolodex.views.search')
 
-    return render_to_response('rolodex/delete.html', {
-        'person': person},
-        RequestContext(request, {}),
-    )
+    return render(request, 'rolodex/delete.html', { 'person': person}, )
     
 @role_required('Secretariat')
 def edit(request, id):
@@ -164,7 +158,7 @@ def edit(request, id):
     if request.method == 'POST':
         button_text = request.POST.get('submit', '')
         if button_text == 'Cancel':
-            return redirect('rolodex_view', id=id)
+            return redirect('ietf.secr.rolodex.views.view', id=id)
 
         person_form = EditPersonForm(request.POST, instance=person)
         email_formset = EmailFormset(request.POST, instance=person, prefix='email')
@@ -183,7 +177,7 @@ def edit(request, id):
             # add new names to alias
             
             messages.success(request, 'The Rolodex entry was changed successfully')
-            return redirect('rolodex_view', id=id)
+            return redirect('ietf.secr.rolodex.views.view', id=id)
 
     else:
         person_form = EditPersonForm(instance=person)
@@ -194,11 +188,10 @@ def edit(request, id):
         # initialize formsets
         email_formset = EmailFormset(instance=person, prefix='email')
             
-    return render_to_response('rolodex/edit.html', {
+    return render(request, 'rolodex/edit.html', {
         'person': person,
         'person_form': person_form, 
         'email_formset': email_formset},
-        RequestContext(request, {}),
     )
 
 @role_required('Secretariat')
@@ -242,18 +235,17 @@ def search(request):
             
             # if there's just one result go straight to view
             if len(results) == 1:
-                return redirect('rolodex_view', id=results[0].person.id)
+                return redirect('ietf.secr.rolodex.views.view', id=results[0].person.id)
 
             if not results:
                 not_found = 'No record found' 
     else:
         form = SearchForm()
     
-    return render_to_response('rolodex/search.html', {
+    return render(request, 'rolodex/search.html', {
         'results' : results,
         'form': form,
         'not_found': not_found},
-        RequestContext(request, {}),
     )
 
 @role_required('Secretariat')
@@ -276,9 +268,8 @@ def view(request, id):
     person.emails = person.email_set.filter(active=True)
     roles = person.role_set.all().order_by('name__name','group__acronym')
     
-    return render_to_response('rolodex/view.html', {
+    return render(request, 'rolodex/view.html', {
         'person': person,
         'roles': roles},
-        RequestContext(request, {}),
     )
 

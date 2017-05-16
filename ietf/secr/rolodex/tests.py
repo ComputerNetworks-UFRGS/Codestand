@@ -1,4 +1,4 @@
-from django.core.urlresolvers import reverse
+from django.urls import reverse
 
 from ietf.utils.test_utils import TestCase
 from ietf.person.models import Person
@@ -10,7 +10,7 @@ SECR_USER='secretary'
 class RolodexTestCase(TestCase):
     def test_main(self):
         "Main Test"
-        url = reverse('rolodex')
+        url = reverse('ietf.secr.rolodex.views.search')
         self.client.login(username="secretary", password="secretary+password")
         response = self.client.get(url)
         self.assertEqual(response.status_code, 200)
@@ -19,7 +19,7 @@ class RolodexTestCase(TestCase):
         "View Test"
         make_test_data()
         person = Person.objects.all()[0]
-        url = reverse('rolodex_view', kwargs={'id':person.id})
+        url = reverse('ietf.secr.rolodex.views.view', kwargs={'id':person.id})
         self.client.login(username="secretary", password="secretary+password")
         response = self.client.get(url)
         self.assertEqual(response.status_code, 200)

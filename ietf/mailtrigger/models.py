@@ -4,6 +4,10 @@ from django.db import models
 from django.template import Template, Context
 
 from email.utils import parseaddr
+from ietf.utils.mail import formataddr
+
+
+import debug                            # pyflakes:ignore
 
 from ietf.group.models import Role
 
@@ -14,7 +18,7 @@ def clean_duplicates(addrlist):
         if (name,addr)==('',''):
             retval.add(a)
         elif name:
-            retval.add('"%s" <%s>'%(name,addr))
+            retval.add(formataddr((name,addr)))
         else:
             retval.add(addr)
     return list(retval) 
@@ -200,7 +204,7 @@ class Recipient(models.Model):
             doc=submission.existing_document()
             if doc:
                 old_authors = [i.author.formatted_email() for i in doc.documentauthor_set.all() if not i.author.invalid_address()]
-                new_authors = [u'"%s" <%s>' % (author["name"], author["email"]) for author in submission.authors_parsed() if author["email"]]
+                new_authors = [ formataddr((author["name"], author["email"])) for author in submission.authors_parsed() if author["email"]]
                 addrs.extend(old_authors)
                 if doc.group and set(old_authors)!=set(new_authors):
                     if doc.group.type_id in ['wg','rg','ag']:
@@ -212,7 +216,7 @@ class Recipient(models.Model):
                     if doc.stream_id and doc.stream_id not in ['ietf']:
                         addrs.extend(Recipient.objects.get(slug='stream_managers').gather(**{'streams':[doc.stream_id]}))
             else:
-                addrs.extend([u"%s <%s>" % (author["name"], author["email"]) for author in submission.authors_parsed() if author["email"]])
+                addrs.extend([formataddr((author["name"], author["email"])) for author in submission.authors_parsed() if author["email"]])
                 if submission.submitter_parsed()["email"]: 
                     addrs.append(submission.submitter)
         return addrs

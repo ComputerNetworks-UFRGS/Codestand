@@ -1,16 +1,17 @@
 # -*- coding: utf-8 -*-
+from __future__ import unicode_literals
 
 import json
 from pyquery import PyQuery
 
-from django.core.urlresolvers import reverse as urlreverse
+from django.urls import reverse as urlreverse
 
 import debug                            # pyflakes:ignore
 
 from ietf.person.factories import EmailFactory,PersonFactory
 from ietf.person.models import Person
-from ietf.utils.test_utils import TestCase
 from ietf.utils.test_data import make_test_data
+from ietf.utils.test_utils import TestCase
 from ietf.utils.mail import outbox, empty_outbox
 
 
@@ -34,14 +35,16 @@ class PersonTests(TestCase):
 
     def test_profile(self):
         person = PersonFactory(with_bio=True)
-
+        
         self.assertTrue(person.photo is not None)
         self.assertTrue(person.photo.name is not None)
 
         url = urlreverse("ietf.person.views.profile", kwargs={ "email_or_name": person.plain_name()})
         r = self.client.get(url)
-        self.assertEqual(r.status_code, 200)
-        self.assertIn(person.photo_name(), r.content)
+        #debug.show('person.name')
+        #debug.show('person.plain_name()')
+        #debug.show('person.photo_name()')
+        self.assertContains(r, person.photo_name(), status_code=200)
         q = PyQuery(r.content)
         self.assertIn("Photo of %s"%person, q("div.bio-text img.bio-photo").attr("alt"))
 

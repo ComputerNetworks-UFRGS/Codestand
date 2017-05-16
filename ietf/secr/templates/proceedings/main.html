@@ -26,7 +26,7 @@
         {% for meeting in meetings %}
           <tr class = "{% cycle 'row1' 'row2' %}{% if meeting.get_submission_correction_date < today %} frozen{% else %} open{% endif %}">
             <td>
-              <a href="{% url "proceedings_select" meeting_num=meeting.number %}">{{ meeting.number }}</a>
+              <a href="{% url 'ietf.secr.proceedings.views.select' meeting_num=meeting.number %}">{{ meeting.number }}</a>
             </td>
           </tr>
         {% endfor %}
@@ -35,7 +35,7 @@
     {% if user|has_role:"Secretariat" %}
         <div class="button-group">
           <ul id="proceedings-meeting-buttons">
-            <li><button onclick="window.location='{% url "meetings_add" %}'">Add</button></li>
+            <li><button onclick="window.location='{% url "ietf.secr.meetings.views.add" %}'">Add</button></li>
           </ul>
         </div> <!-- button-group -->
     {% endif %}

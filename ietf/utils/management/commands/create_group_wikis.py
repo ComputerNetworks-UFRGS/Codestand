@@ -4,8 +4,6 @@ import os
 import copy
 import syslog
 import pkg_resources
-from optparse import make_option
-#from optparse import make_option
 
 from trac.core import TracError
 from trac.env import Environment
@@ -16,6 +14,7 @@ from trac.wiki.model import WikiPage
 
 from django.conf import settings
 from django.core.management.base import BaseCommand, CommandError
+from django.db.models import Q
 from django.template.loader import render_to_string
 
 import debug                            # pyflakes:ignore
@@ -30,17 +29,18 @@ syslog.openlog(logtag, syslog.LOG_PID, syslog.LOG_USER)
 class Command(BaseCommand):
     help = "Create group wikis for WGs, RGs and Areas which don't have one."
 
-    option_list = BaseCommand.option_list + (
-        make_option('--wiki-dir-pattern', dest='wiki_dir_pattern',
+    def add_arguments(self, parser):
+        parser.add_argument('--wiki-dir-pattern', dest='wiki_dir_pattern',
             default=settings.TRAC_WIKI_DIR_PATTERN,
-            help='A pattern with %s placeholder for group wiki path'),
-        make_option('--svn-dir-pattern', dest='svn_dir_pattern',
+            help='A pattern with %s placeholder for group wiki path')
+        parser.add_argument('--svn-dir-pattern', dest='svn_dir_pattern',
             default=settings.TRAC_SVN_DIR_PATTERN,
-            help='A pattern with %s placeholder for group svn path'),
-        make_option('--group-list', '-g', dest='group_list', help='Limit processing to groups with the given acronyms (a comma-separated list)'),
-        make_option('--dummy-run', '-n', default=False, action='store_true', dest='dummy_run', help='Make no changes, just show what would be done'),
-    )
-    
+            help='A pattern with %s placeholder for group svn path')
+        parser.add_argument('--group-list', '-g', dest='group_list', help='Limit processing to groups with the given acronyms (a comma-separated list)')
+        parser.add_argument('--dummy-run', '-n', default=False, action='store_true', dest='dummy_run', help='Make no changes, just show what would be done')
+
+    secretariat = Group.objects.get(acronym='secretariat')
+
     def note(self, msg):
         if self.verbosity > 1:
             self.stdout.write(msg)
@@ -70,17 +70,21 @@ class Command(BaseCommand):
         return self.do_cmd(settings.SVN_ADMIN_COMMAND, *args)
 
     def create_svn(self, svn):
-        self.note("  Creating svn repository: %s" % svn)
-        if not os.path.exists(os.path.dirname(svn)):
-            msg = "Intended to create '%s', but parent directory is missing" % svn
-            self.log(msg)
-            return msg
-        err, out= self.svn_admin_cmd("create", svn )
-        if err:
-            msg = "Error %s creating svn repository %s:\n   %s" % (err, svn, out)
-            self.log(msg)
-            return msg
-        return None
+        if self.dummy_run:
+            self.note("  Would create svn repository: %s" % svn)
+            return "Dummy run, no svn repo created"
+        else:
+            self.note("  Creating svn repository: %s" % svn)
+            if not os.path.exists(os.path.dirname(svn)):
+                msg = "Intended to create '%s', but parent directory is missing" % svn
+                self.log(msg)
+                return msg
+            err, out= self.svn_admin_cmd("create", svn )
+            if err:
+                msg = "Error %s creating svn repository %s:\n   %s" % (err, svn, out)
+                self.log(msg)
+                return msg
+        return ""
 
     # --- trac ---
 
@@ -160,7 +164,7 @@ class Command(BaseCommand):
         # custom pages and settings.
         if self.dummy_run:
             self.note("Would create Trac for group '%s' at %s" % (group.acronym, group.trac_dir))
-            return None, None
+            return None, "Dummy run, no trac created"
         else:
             try:
                 self.note("Creating Trac for group '%s' at %s" % (group.acronym, group.trac_dir))
@@ -171,7 +175,7 @@ class Command(BaseCommand):
                 self.maybe_add_group_url(group, 'Issue tracker', settings.TRAC_ISSUE_URL_PATTERN % group.acronym)
                 # Use custom assets (if any) from the master setup
                 self.symlink_to_master_assets(group, env)
-                if group.type_id == 'wg':
+                if group.type_id in ['wg', 'rg', ]:
                     self.add_wg_draft_states(group, env)
                 self.add_custom_wiki_pages(group, env)
                 self.add_default_wiki_pages(group, env)
@@ -179,7 +183,7 @@ class Command(BaseCommand):
                 # Components (i.e., drafts) will be handled during components
                 # update later
                 # Permissions will be handled during permission update later.
-                return env, None
+                return env, ""
             except TracError as e:
                 msg = "While creating Trac instance for %s: %s" % (group, e)
                 self.log(msg)
@@ -198,7 +202,8 @@ class Command(BaseCommand):
                 if not user in permissions:
                     permissions[user] = []
                 permissions[user].append(action)
-            roles = group.role_set.filter(name_id__in=['chair', 'secr', 'ad'])
+            roles = ( list( group.role_set.filter(name_id__in=set(['chair', 'secr', 'ad', 'trac-admin', ]+group.features.admin_roles)))
+                    + list(self.secretariat.role_set.filter(name_id__in=['trac-admin', ]) ))
             users = []
             for role in roles:
                 user = role.email.address.lower()
@@ -251,7 +256,8 @@ class Command(BaseCommand):
         urls = [ u for u in group.groupurl_set.all() if name.lower() in u.name.lower() ]
         if not urls:
             self.note("  adding %s %s URL ..." % (group.acronym, name.lower()))
-            group.groupurl_set.add(GroupURL(group=group, name=name, url=url))
+            url = GroupURL.objects.create(group=group, name=name, url=url)
+            group.groupurl_set.add(url)
 
     def add_custom_pages(self, group, env):
         for template_name in settings.TRAC_WIKI_PAGES_TEMPLATES:
@@ -270,6 +276,8 @@ class Command(BaseCommand):
         self.svn_dir_pattern = options.get('svn_dir_pattern', settings.TRAC_SVN_DIR_PATTERN)
         self.group_list = options.get('group_list', None)
         self.dummy_run = options.get('dummy_run', False)
+        self.wiki_dir_pattern = os.path.join(settings.BASE_DIR, '..', self.wiki_dir_pattern)
+        self.svn_dir_pattern = os.path.join(settings.BASE_DIR, '..', self.svn_dir_pattern)
 
         if not self.group_list is None:
             self.group_list = self.group_list.split('.')
@@ -286,11 +294,12 @@ class Command(BaseCommand):
         if not os.path.exists(os.path.dirname(self.svn_dir_pattern)):
             raise CommandError('The SVN base direcory specified for the SVN directories (%s) does not exist.' % os.path.dirname(self.svn_dir_pattern))
 
-        groups = Group.objects.filter(
-                        type__slug__in=['wg','rg','area'],
-                        state__slug='active',
-                    ).order_by('acronym')
+        gfilter  = Q(type__slug__in=settings.TRAC_CREATE_GROUP_TYPES, state__slug='active')
+        gfilter |= Q(acronym__in=settings.TRAC_CREATE_GROUP_ACRONYMS)
+
+        groups = Group.objects.filter(gfilter).order_by('acronym')
         if self.group_list:
+            
             groups = groups.filter(acronym__in=self.group_list)
 
         for group in groups:
@@ -309,8 +318,7 @@ class Command(BaseCommand):
                     if not trac_env: 
                         self.errors.append(msg)
                 else:
-                    if not self.dummy_run:
-                        trac_env = Environment(group.trac_dir)
+                    trac_env = Environment(group.trac_dir)
 
                 if not trac_env and not self.dummy_run:
                     continue

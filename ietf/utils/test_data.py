@@ -1,4 +1,8 @@
+# Copyright The IETF Trust 2017, All Rights Reserved
 # -*- coding: utf-8 -*-
+
+from __future__ import unicode_literals
+
 import datetime
 
 from django.conf import settings
@@ -10,8 +14,8 @@ from ietf.doc.models import Document, DocAlias, State, DocumentAuthor, BallotTyp
 from ietf.group.models import Group, GroupHistory, Role, RoleHistory
 from ietf.iesg.models import TelechatDate
 from ietf.ipr.models import HolderIprDisclosure, IprDocRel, IprDisclosureStateName, IprLicenseTypeName
-from ietf.meeting.models import Meeting
-from ietf.name.models import StreamName, DocRelationshipName
+from ietf.meeting.models import Meeting, ResourceAssociation
+from ietf.name.models import StreamName, DocRelationshipName, RoomResourceName
 from ietf.person.models import Person, Email
 from ietf.group.utils import setup_default_community_list_for_group
 from ietf.review.models import (ReviewRequest, ReviewerSettings, ReviewResultName, ReviewTypeName, ReviewTeamSettings )
@@ -133,6 +137,7 @@ def make_test_data():
     group = Group.objects.create(
         name="Martian Special Interest Group",
         acronym="mars",
+        description="This group discusses mars issues.",
         state_id="active",
         type_id="wg",
         parent=area,
@@ -159,6 +164,7 @@ def make_test_data():
     group = Group.objects.create(
         name="Asteroid Mining Equipment Standardization Group",
         acronym="ames",
+        description="This group works towards standardization of asteroid mining equipment.",
         state_id="proposed",
         type_id="wg",
         parent=area,
@@ -181,10 +187,22 @@ def make_test_data():
     group.save()
     setup_default_community_list_for_group(group)
 
+    # frfarea AG
+    frfarea = Group.objects.create(
+        name="Far Future Area Group",
+        acronym="frfarea",
+        description="This group discusses future space colonization issues.",
+        state_id="active",
+        type_id="ag",
+        parent=area,
+        list_email="frfarea-ag@ietf.org",
+        )
+
     # irg RG
     irg_rg = Group.objects.create(
         name="Internet Research Group",
         acronym="irg",
+        description="This group handles internet research.",
         state_id="active",
         type_id="rg",
         parent=irtf,
@@ -225,6 +243,9 @@ def make_test_data():
     create_person(ames_wg, "secr", name="Mr Secretary", username="amessecretary")
     ames_wg.role_set.get_or_create(name_id='ad',person=ad,email=ad.role_email('ad'))
     ames_wg.save()
+
+    frfarea.role_set.get_or_create(name_id='chair',person=ad,email=ad.role_email('ad'))
+    frfarea.save()
 
     create_person(irg_rg, "chair", name="Irg Chair Man", username="irgchairman")
 
@@ -285,6 +306,7 @@ def make_test_data():
         type="started_iesg_process",
         by=ad,
         doc=draft,
+        rev=draft.rev,
         desc="Started IESG process",
         )
 
@@ -301,6 +323,7 @@ def make_test_data():
         ballot_type=BallotType.objects.get(doc_type="draft", slug="approve"),
         by=ad,
         doc=draft,
+        rev=draft.rev,
         desc="Created ballot",
         )
 
@@ -377,10 +400,56 @@ def make_test_data():
     rfc_for_status_change_test_factory('draft-ietf-random-otherthing',9998,'inf')
     rfc_for_status_change_test_factory('draft-was-never-issued',14,'unkn')
 
+    # Session Request ResourceAssociation
+    name = RoomResourceName.objects.get(slug='project')
+    ResourceAssociation.objects.create(name=name,icon='projector.png',desc='Projector in room')
+    
     # Instances of the remaining document types 
     # (Except liaison, liai-att, and recording  which the code in ietf.doc does not use...)
     # Meeting-related documents are created in make_meeting_test_data, and
     # associated with a session
+
+    return draft
+
+def make_downref_test_data():
+    # Add an additional draft that has a downref
+    ad = Person.objects.get(user__username="ad")
+    mars_wg = Group.objects.get(acronym="mars")
+
+    draft = Document.objects.create(
+        name="draft-ietf-mars-approved-document",
+        time=datetime.datetime.now(),
+        type_id="draft",
+        title="Martian Network Frameworks",
+        stream_id="ietf",
+        group=mars_wg,
+        abstract="Frameworks for building Martian networks.",
+        rev="01",
+        pages=2,
+        intended_std_level_id="ps",
+        ad=ad,
+        expires=datetime.datetime.now() + datetime.timedelta(days=settings.INTERNET_DRAFT_DAYS_TO_EXPIRE),
+        notify="aliens@example.mars",
+        note="",
+        )
+
+    draft.set_state(State.objects.get(used=True, type="draft", slug="active"))
+    draft.set_state(State.objects.get(used=True, type="draft-iesg", slug="rfcqueue"))
+    draft.set_state(State.objects.get(used=True, type="draft-stream-%s" % draft.stream_id, slug="wg-doc"))
+
+    DocAlias.objects.create(
+        document=draft,
+        name=draft.name,
+        )
+
+    DocumentAuthor.objects.create(
+        document=draft,
+        author=Email.objects.get(address="aread@ietf.org"),
+        order=1,
+        )
+
+    rfc_doc_alias = DocAlias.objects.get(name='rfc9998')
+    RelatedDocument.objects.create(source=draft, target=rfc_doc_alias, relationship_id='downref-approval')
 
     return draft
 

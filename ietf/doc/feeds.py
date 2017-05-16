@@ -4,7 +4,7 @@ import datetime
 
 from django.contrib.syndication.views import Feed, FeedDoesNotExist
 from django.utils.feedgenerator import Atom1Feed, Rss201rev2Feed
-from django.core.urlresolvers import reverse as urlreverse
+from django.urls import reverse as urlreverse
 from django.template.defaultfilters import truncatewords, truncatewords_html, date as datefilter, linebreaks
 from django.utils.html import strip_tags
 
@@ -24,7 +24,7 @@ class DocumentChangesFeed(Feed):
     def link(self, obj):
 	if obj is None:
 	    raise FeedDoesNotExist
-        return urlreverse("doc_history", kwargs=dict(name=obj.canonical_name()))
+        return urlreverse('ietf.doc.views_doc.document_history', kwargs=dict(name=obj.canonical_name()))
 
     def subtitle(self, obj):
         return "History of change entries for %s." % obj.display_name()
@@ -35,7 +35,7 @@ class DocumentChangesFeed(Feed):
 	return events
 
     def item_title(self, item):
-        return u"[%s] %s [rev. %s]" % (item.by, truncatewords(strip_tags(item.desc), 15), item.get_rev())
+        return u"[%s] %s [rev. %s]" % (item.by, truncatewords(strip_tags(item.desc), 15), item.rev)
 
     def item_description(self, item):
         return truncatewords_html(format_textarea(item.desc), 20)
@@ -47,7 +47,7 @@ class DocumentChangesFeed(Feed):
 	return unicode(item.by)
 
     def item_link(self, item):
-        return urlreverse("doc_history", kwargs=dict(name=item.doc.canonical_name())) + "#history-%s" % item.pk
+        return urlreverse('ietf.doc.views_doc.document_history', kwargs=dict(name=item.doc.canonical_name())) + "#history-%s" % item.pk
 
 class InLastCallFeed(Feed):
     title = "Documents in Last Call"

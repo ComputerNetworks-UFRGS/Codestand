@@ -7,7 +7,7 @@ from StringIO import StringIO
 from textwrap import wrap
 
 from django.conf import settings
-from django.core.urlresolvers import reverse as urlreverse
+from django.urls import reverse as urlreverse
 
 from ietf.doc.models import ( Document, DocAlias, State, DocEvent,
     BallotPositionDocEvent, NewRevisionDocEvent, TelechatDocEvent, WriteupDocEvent )
@@ -24,7 +24,7 @@ from ietf.utils.test_utils import login_testing_unauthorized
 class StatusChangeTests(TestCase):
     def test_start_review(self):
 
-        url = urlreverse('start_rfc_status_change')
+        url = urlreverse('ietf.doc.views_status_change.start_rfc_status_change')
         login_testing_unauthorized(self, "secretary", url)
 
         # normal get should succeed and get a reasonable form
@@ -77,7 +77,7 @@ class StatusChangeTests(TestCase):
     def test_change_state(self):
 
         doc = Document.objects.get(name='status-change-imaginary-mid-review')
-        url = urlreverse('status_change_change_state',kwargs=dict(name=doc.name))
+        url = urlreverse('ietf.doc.views_status_change.change_state',kwargs=dict(name=doc.name))
 
         login_testing_unauthorized(self, "ad", url)
 
@@ -105,7 +105,7 @@ class StatusChangeTests(TestCase):
         # successful change to Last Call Requested
         messages_before = len(outbox)
         doc.ad = Person.objects.get(user__username='ad')
-        doc.save_with_history([DocEvent.objects.create(doc=doc, type="changed_document", by=Person.objects.get(user__username="secretary"), desc="Test")])
+        doc.save_with_history([DocEvent.objects.create(doc=doc, rev=doc.rev, type="changed_document", by=Person.objects.get(user__username="secretary"), desc="Test")])
         lc_req_pk = str(State.objects.get(slug='lc-req',type__slug='statchg').pk)
         r = self.client.post(url,dict(new_state=lc_req_pk))
         self.assertEquals(r.status_code, 200)
@@ -126,7 +126,7 @@ class StatusChangeTests(TestCase):
 
     def test_edit_notices(self):
         doc = Document.objects.get(name='status-change-imaginary-mid-review')
-        url = urlreverse('status_change_notices',kwargs=dict(name=doc.name))
+        url = urlreverse('ietf.doc.views_doc.edit_notify;status-change',kwargs=dict(name=doc.name))
 
         login_testing_unauthorized(self, "ad", url)
 
@@ -161,7 +161,7 @@ class StatusChangeTests(TestCase):
 
     def test_edit_title(self):
         doc = Document.objects.get(name='status-change-imaginary-mid-review')
-        url = urlreverse('status_change_title',kwargs=dict(name=doc.name))
+        url = urlreverse('ietf.doc.views_status_change.edit_title',kwargs=dict(name=doc.name))
 
         login_testing_unauthorized(self, "ad", url)
 
@@ -180,7 +180,7 @@ class StatusChangeTests(TestCase):
 
     def test_edit_ad(self):
         doc = Document.objects.get(name='status-change-imaginary-mid-review')
-        url = urlreverse('status_change_ad',kwargs=dict(name=doc.name))
+        url = urlreverse('ietf.doc.views_status_change.edit_ad',kwargs=dict(name=doc.name))
 
         login_testing_unauthorized(self, "ad", url)
 
@@ -200,7 +200,7 @@ class StatusChangeTests(TestCase):
 
     def test_edit_telechat_date(self):
         doc = Document.objects.get(name='status-change-imaginary-mid-review')
-        url = urlreverse('status_change_telechat_date',kwargs=dict(name=doc.name))
+        url = urlreverse('ietf.doc.views_doc.telechat_date;status-change',kwargs=dict(name=doc.name))
 
         login_testing_unauthorized(self, "ad", url)
 
@@ -245,7 +245,7 @@ class StatusChangeTests(TestCase):
 
     def test_edit_lc(self):
         doc = Document.objects.get(name='status-change-imaginary-mid-review')
-        url = urlreverse('status_change_last_call',kwargs=dict(name=doc.name))
+        url = urlreverse('ietf.doc.views_status_change.last_call',kwargs=dict(name=doc.name))
 
         login_testing_unauthorized(self, "ad", url)
 
@@ -253,7 +253,7 @@ class StatusChangeTests(TestCase):
         doc.relateddocument_set.create(target=DocAlias.objects.get(name='rfc9999'),relationship_id='tois')
         doc.relateddocument_set.create(target=DocAlias.objects.get(name='rfc9998'),relationship_id='tohist')
         doc.ad = Person.objects.get(name='Ad No2')
-        doc.save_with_history([DocEvent.objects.create(doc=doc, type="changed_document", by=Person.objects.get(user__username="secretary"), desc="Test")])
+        doc.save_with_history([DocEvent.objects.create(doc=doc, rev=doc.rev, type="changed_document", by=Person.objects.get(user__username="secretary"), desc="Test")])
         
         # get
         r = self.client.get(url)
@@ -289,7 +289,7 @@ class StatusChangeTests(TestCase):
 
     def test_approve(self):
         doc = Document.objects.get(name='status-change-imaginary-mid-review')
-        url = urlreverse('status_change_approve',kwargs=dict(name=doc.name))
+        url = urlreverse('ietf.doc.views_status_change.approve',kwargs=dict(name=doc.name))
 
         login_testing_unauthorized(self, "secretary", url)
         
@@ -331,7 +331,7 @@ class StatusChangeTests(TestCase):
 
     def test_edit_relations(self):
         doc = Document.objects.get(name='status-change-imaginary-mid-review')
-        url = urlreverse('status_change_relations',kwargs=dict(name=doc.name))
+        url = urlreverse('ietf.doc.views_status_change.edit_relations',kwargs=dict(name=doc.name))
 
         login_testing_unauthorized(self, "secretary", url)
         
@@ -395,7 +395,7 @@ class StatusChangeTests(TestCase):
 class StatusChangeSubmitTests(TestCase):
     def test_initial_submission(self):
         doc = Document.objects.get(name='status-change-imaginary-mid-review')
-        url = urlreverse('status_change_submit',kwargs=dict(name=doc.name))
+        url = urlreverse('ietf.doc.views_status_change.submit',kwargs=dict(name=doc.name))
         login_testing_unauthorized(self, "ad", url)
 
         # normal get
@@ -417,12 +417,11 @@ class StatusChangeSubmitTests(TestCase):
         self.assertEqual(doc.rev,u'00')
         with open(path) as f:
             self.assertEqual(f.read(),"Some initial review text\n")
-            f.close()
         self.assertTrue( "mid-review-00" in doc.latest_event(NewRevisionDocEvent).desc)
 
     def test_subsequent_submission(self):
         doc = Document.objects.get(name='status-change-imaginary-mid-review')
-        url = urlreverse('status_change_submit',kwargs=dict(name=doc.name))
+        url = urlreverse('ietf.doc.views_status_change.submit',kwargs=dict(name=doc.name))
         login_testing_unauthorized(self, "ad", url)
 
         # A little additional setup 
@@ -433,7 +432,7 @@ class StatusChangeSubmitTests(TestCase):
             f.write('This is the old proposal.')
             f.close()
         # Put the old proposal into IESG review (exercises ballot tab when looking at an older revision below)
-        state_change_url = urlreverse('status_change_change_state',kwargs=dict(name=doc.name))
+        state_change_url = urlreverse('ietf.doc.views_status_change.change_state',kwargs=dict(name=doc.name))
         iesgeval_pk = str(State.objects.get(slug='iesgeval',type__slug='statchg').pk)
         r = self.client.post(state_change_url,dict(new_state=iesgeval_pk))
         self.assertEqual(r.status_code, 302)
@@ -473,16 +472,14 @@ class StatusChangeSubmitTests(TestCase):
         self.assertTrue(q('textarea')[0].text.strip().startswith("Provide a description"))
 
         # make sure we can see the old revision
-        url = urlreverse('doc_view',kwargs=dict(name=doc.name,rev='00'))
+        url = urlreverse('ietf.doc.views_doc.document_main',kwargs=dict(name=doc.name,rev='00'))
         r = self.client.get(url)
         self.assertEqual(r.status_code,200)
         self.assertTrue("This is the old proposal." in unicontent(r))
 
     def setUp(self):
         make_test_data()
-        self.test_dir = os.path.abspath("tmp-status-change-testdir")
-        if not os.path.exists(self.test_dir):
-            os.mkdir(self.test_dir)
+        self.test_dir = self.tempdir('status-change')
         self.saved_status_change_path = settings.STATUS_CHANGE_PATH
         settings.STATUS_CHANGE_PATH = self.test_dir
 

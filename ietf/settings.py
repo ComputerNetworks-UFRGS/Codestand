@@ -11,9 +11,8 @@ import warnings
 
 warnings.simplefilter("always", DeprecationWarning)
 warnings.filterwarnings("ignore", message="Report.file_reporters will no longer be available in Coverage.py 4.2", module="coverage.report")
-warnings.filterwarnings("ignore", message="initial_data fixtures are deprecated. Use data migrations instead.", module="django.core.management.commands.loaddata")
 warnings.filterwarnings("ignore", message="The popen2 module is deprecated.  Use the subprocess module.", module="ietf.utils.pipe")
-warnings.filterwarnings("ignore", message="django.contrib.contenttypes.generic is deprecated and will be removed in Django 1.9.", module="south.modelsinspector")
+
 
 try:
     import syslog
@@ -39,15 +38,25 @@ SERVER_MODE = 'production'
 IETF_DOMAIN = 'ietf.org'
 
 ADMINS = (
-    ('IETF Django Developers', 'django-project@' + IETF_DOMAIN),
-    ('GMail Tracker Archive', 'ietf.tracker.archive+errors@gmail.com'),
     ('Henrik Levkowetz', 'henrik@levkowetz.com'),
     ('Robert Sparks', 'rjsparks@nostrum.com'),
     ('Ole Laursen', 'olau@iola.dk'),
     ('Ryan Cross', 'rcross@amsl.com'),
+    ('Glen Barney', 'glen@amsl.com'),
+    ('Matt Larson', 'mlarson@amsl.com'),
 )
 
-ALLOWED_HOSTS = [".ietf.org", ".ietf.org.", "209.208.19.216", "4.31.198.44", ]
+BUG_REPORT_EMAIL = "datatracker-project@ietf.org"
+
+PASSWORD_HASHERS = [
+    'django.contrib.auth.hashers.Argon2PasswordHasher',
+    'django.contrib.auth.hashers.BCryptSHA256PasswordHasher',
+    'django.contrib.auth.hashers.PBKDF2PasswordHasher',
+    'django.contrib.auth.hashers.SHA1PasswordHasher',
+    'django.contrib.auth.hashers.CryptPasswordHasher',
+]
+
+ALLOWED_HOSTS = [".ietf.org", ".ietf.org.", "209.208.19.216", "4.31.198.44", "127.0.0.1", "localhost:8000", ]
 
 
 # Server name of the tools server
@@ -69,7 +78,7 @@ DATABASES = {
         'ENGINE': 'django.db.backends.mysql',
         'USER': 'ietf',
         #'PASSWORD': 'ietf',
-        #'OPTIONS': {},
+        'OPTIONS': {'sql_mode': 'STRICT_TRANS_TABLES', },
     },
 }
 
@@ -125,6 +134,7 @@ OLD_PHOTO_DIRS = [
 IETF_HOST_URL = 'https://www.ietf.org/'
 IETF_ID_URL = IETF_HOST_URL + 'id/'
 IETF_ID_ARCHIVE_URL = IETF_HOST_URL + 'archive/id/'
+IETF_AUDIO_URL = IETF_HOST_URL + 'audio/'
 
 
 # Absolute path to the directory static files should be collected to.
@@ -161,11 +171,6 @@ AUTHENTICATION_BACKENDS = ( 'django.contrib.auth.backends.ModelBackend', )
 # ------------------------------------------------------------------------
 # Django/Python Logging Framework Modifications
 
-# enable HTML error emails
-from django.utils.log import DEFAULT_LOGGING
-LOGGING = DEFAULT_LOGGING.copy()
-LOGGING['handlers']['mail_admins']['include_html'] = True
-
 # Filter out "Invalid HTTP_HOST" emails
 # Based on http://www.tiwoc.de/blog/2013/03/django-prevent-email-notification-on-suspiciousoperation/
 from django.core.exceptions import SuspiciousOperation
@@ -175,11 +180,7 @@ def skip_suspicious_operations(record):
         if isinstance(exc_value, SuspiciousOperation):
             return False
     return True
-LOGGING['filters']['skip_suspicious_operations'] = {
-    '()': 'django.utils.log.CallbackFilter',
-    'callback': skip_suspicious_operations,
-}
-LOGGING['handlers']['mail_admins']['filters'] += [ 'skip_suspicious_operations' ]
+
 # Filter out UreadablePostError:
 from django.http import UnreadablePostError
 def skip_unreadable_post(record):
@@ -188,14 +189,93 @@ def skip_unreadable_post(record):
         if isinstance(exc_value, UnreadablePostError):
             return False
     return True
-LOGGING['filters']['skip_unreadable_posts'] = {
-    '()': 'django.utils.log.CallbackFilter',
-    'callback': skip_unreadable_post,
+
+# Copied from DEFAULT_LOGGING as of Django 1.10.5 on 22 Feb 2017, and modified
+# to incorporate html logging, invalid http_host filtering, and more.
+# Changes from the default has comments.
+
+# The Python logging flow is as follows:
+# (see https://docs.python.org/2.7/howto/logging.html#logging-flow)
+#
+#   Init: get a Logger: logger = logging.getLogger(name)
+#
+#   Logging call, e.g. logger.error(level, msg, *args, exc_info=(...), extra={...})
+#   --> Logger (discard if level too low for this logger)
+#       (create log record from level, msg, args, exc_info, extra)
+#       --> Filters (discard if any filter attach to logger rejects record)
+#           --> Handlers (discard if level too low for handler)
+#               --> Filters (discard if any filter attached to handler rejects record)
+#                   --> Formatter (format log record and emit)
+#
+
+LOGGING = {
+    'version': 1,
+    'disable_existing_loggers': False,
+    #
+    'loggers': {
+        'django': {
+            'handlers': ['console', 'mail_admins'],
+            'level': 'INFO',
+        },
+        'django.server': {
+            'handlers': ['django.server'],
+            'level': 'INFO',
+            'propagate': False,
+        },
+    },
+    #
+    # No logger filters
+    #
+    'handlers': {
+        'console': {
+            'level': 'INFO',
+            'filters': ['require_debug_true'],
+            'class': 'logging.StreamHandler',
+        },
+        'django.server': {
+            'level': 'INFO',
+            'class': 'logging.StreamHandler',
+            'formatter': 'django.server',
+        },
+        'mail_admins': {
+            'level': 'ERROR',
+            'filters': [
+                'require_debug_false',
+                'skip_suspicious_operations', # custom
+                'skip_unreadable_posts', # custom
+            ],
+            'class': 'django.utils.log.AdminEmailHandler',
+            'include_html': True,       # non-default
+        }
+    },
+    #
+    # All these are used by handlers
+    'filters': {
+        'require_debug_false': {
+            '()': 'django.utils.log.RequireDebugFalse',
+        },
+        'require_debug_true': {
+            '()': 'django.utils.log.RequireDebugTrue',
+        },
+        # custom filter, function defined above:
+        'skip_suspicious_operations': {
+            '()': 'django.utils.log.CallbackFilter',
+            'callback': skip_suspicious_operations,
+        },
+        # custom filter, function defined above:
+        'skip_unreadable_posts': {
+            '()': 'django.utils.log.CallbackFilter',
+            'callback': skip_unreadable_post,
+        },
+    },
+    # And finally the formatters
+    'formatters': {
+        'django.server': {
+            '()': 'django.utils.log.ServerFormatter',
+            'format': '[%(server_time)s] %(message)s',
+        }
+    },
 }
-LOGGING['handlers']['mail_admins']['filters'] += [ 'skip_unreadable_posts' ]
-
-
-
 
 # End logging
 # ------------------------------------------------------------------------
@@ -251,18 +331,19 @@ if DEBUG:
     TEMPLATES[0]['OPTIONS']['string_if_invalid'] = "** No value found for '%s' **"
 
 
-MIDDLEWARE_CLASSES = (
+MIDDLEWARE = (
     'django.middleware.csrf.CsrfViewMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
+    'django.contrib.auth.middleware.SessionAuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.http.ConditionalGetMiddleware',
-    'ietf.middleware.SQLLogMiddleware',
+    'ietf.middleware.sql_log_middleware',
     'ietf.middleware.SMTPExceptionMiddleware',
-    'ietf.middleware.RedirectTrailingPeriod',
+    'ietf.middleware.redirect_trailing_period_middleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
-    'ietf.middleware.UnicodeNfkcNormalization',
+    'ietf.middleware.unicode_nfkc_normalization_middleware',
 )
 
 ROOT_URLCONF = 'ietf.urls'
@@ -287,12 +368,14 @@ INSTALLED_APPS = (
     'django.contrib.sites',
     'django.contrib.staticfiles',
     # External apps 
+    'anora',
     'bootstrap3',
+    'django_markup',
+    'django_password_strength',
     'djangobwr',
     'form_utils',
     'tastypie',
     'widget_tweaks',
-    'django_markup',
     # IETF apps
     'ietf.api',
     'ietf.community',
@@ -380,10 +463,6 @@ TEST_DIFF_FAILURE_DIR = "/tmp/test/failure/"
 
 TEST_GHOSTDRIVER_LOG_PATH = "ghostdriver.log"
 
-TEST_MATERIALS_DIR = "tmp-meeting-materials-dir"
-
-TEST_BLUESHEET_DIR = "tmp-bluesheet-dir"
-
 # These are regexes
 TEST_URL_COVERAGE_EXCLUDE = [
     r"^\^admin/",
@@ -435,15 +514,22 @@ TEST_CODE_COVERAGE_REPORT_FILE = os.path.join(TEST_CODE_COVERAGE_REPORT_DIR, "in
 # WG Chair configuration
 MAX_WG_DELEGATES = 3
 
+# These states aren't available in forms with drop-down choices for new
+# document state:
+GROUP_STATES_WITH_EXTRA_PROCESSING = ["sub-pub", "rfc-edit", ]
+
+
 DATE_FORMAT = "Y-m-d"
 DATETIME_FORMAT = "Y-m-d H:i T"
 
+
+DRAFT_NAMES_WITH_DOT = "(draft-[a-z0-9-]+-(ion-sig-uni4\.0|pilc-2\.5g3g|trade-iotp-v1\.0-[a-z]+|msword-template-v2\.0|1240\.his|(ieee)?802\.[0-9a-z]+(-[a-z0-9-]+)?))"
 URL_REGEXPS = {
     "acronym": r"(?P<acronym>[-a-z0-9]+)",
     "charter": r"(?P<name>charter-[-a-z0-9]+)",
     "date": r"(?P<date>\d{4}-\d{2}-\d{2})",
-    "name": r"(?P<name>[A-Za-z0-9._+-]+)",
-    "rev": r"(?P<rev>[0-9-]+)",
+    "name": r"(?P<name>([A-Za-z0-9_+-]+?|%s))" % DRAFT_NAMES_WITH_DOT,
+    "rev": r"(?P<rev>[0-9]{1,2}(-[0-9]{2})?)",
     "owner": r"(?P<owner>[-A-Za-z0-9\'+._]+@[A-Za-z0-9-._]+)",
     "schedule_name": r"(?P<name>[A-Za-z0-9-:_]+)",
 }
@@ -509,12 +595,28 @@ CACHES = {
     'default': {
         'BACKEND': 'django.core.cache.backends.memcached.MemcachedCache',
         'LOCATION': '127.0.0.1:11211',
-    }
+        'OPTIONS': {
+            'MAX_ENTRIES': 10000,       # 10,000
+        },
+    },
+    'htmlized': {
+        'BACKEND': 'django.core.cache.backends.filebased.FileBasedCache',
+        'LOCATION': '/var/cache/datatracker/htmlized',
+        'OPTIONS': {
+            'MAX_ENTRIES': 100000,      # 100,000
+        },
+    },
 }
 
-IPR_EMAIL_FROM = 'ietf-ipr@ietf.org'
+HTMLIZER_VERSION = 1
+HTMLIZER_URL_PREFIX = "/doc/html"
+HTMLIZER_CACHE_TIME = 60*60*24*14       # 14 days
 
+# Email settings
+IPR_EMAIL_FROM = 'ietf-ipr@ietf.org'
+AUDIO_IMPORT_EMAIL = ['agenda@ietf.org','ietf@meetecho.com']
 IANA_EVAL_EMAIL = "drafts-eval@icann.org"
+SESSION_REQUEST_FROM_EMAIL = 'IETF Meeting Session Request Tool <session-request@ietf.org>' 
 
 # Put real password in settings_local.py
 IANA_SYNC_PASSWORD = "secret"
@@ -527,6 +629,7 @@ RFC_EDITOR_SYNC_PASSWORD="secret"
 RFC_EDITOR_SYNC_NOTIFICATION_URL = "https://www.rfc-editor.org/parser/parser.php"
 RFC_EDITOR_QUEUE_URL = "https://www.rfc-editor.org/queue2.xml"
 RFC_EDITOR_INDEX_URL = "https://www.rfc-editor.org/rfc/rfc-index.xml"
+RFC_EDITOR_ERRATA_URL = "https://www.rfc-editor.org/errata_search.php?rfc={rfc_number}&amp;rec_status=0"
 
 # NomCom Tool settings
 ROLODEX_URL = ""
@@ -662,7 +765,7 @@ SELENIUM_TESTS_ONLY = False
 # Set debug apps in settings_local.DEV_APPS
 
 DEV_APPS = ()
-DEV_MIDDLEWARE_CLASSES = ()
+DEV_MIDDLEWARE = ()
 
 # django-debug-toolbar and the debug listing of sql queries at the bottom of
 # each page when in dev mode can overlap in functionality, and can slow down
@@ -705,6 +808,10 @@ TRAC_WIKI_URL_PATTERN = "https://trac.ietf.org/trac/%s/wiki"
 TRAC_ISSUE_URL_PATTERN = "https://trac.ietf.org/trac/%s/report/1"
 TRAC_SVN_DIR_PATTERN = "/a/svn/group/%s"
 TRAC_SVN_URL_PATTERN = "https://svn.ietf.org/svn/group/%s/"
+
+TRAC_CREATE_GROUP_TYPES = ['wg', 'rg', 'area', 'team', 'dir', 'ag', ]
+TRAC_CREATE_GROUP_ACRONYMS = ['iesg', 'iaoc', ]
+
 SVN_PACKAGES = [
     "/usr/lib/python2.7/dist-packages/svn",
     "/usr/lib/python2.7/dist-packages/libsvn",
@@ -770,7 +877,6 @@ SILENCED_SYSTEM_CHECKS = [
     "fields.W342",  # Setting unique=True on a ForeignKey has the same effect as using a OneToOneField.
 ]
 
-
 # Put the production SECRET_KEY in settings_local.py, and also any other
 # sensitive or site-specific changes.  DO NOT commit settings_local.py to svn.
 from settings_local import *            # pyflakes:ignore pylint: disable=wildcard-import
@@ -784,7 +890,7 @@ for app in INSTALLED_APPS:
 # Add DEV_APPS to INSTALLED_APPS
 INSTALLED_APPS += DEV_APPS
 INSTALLED_APPS += CODESTAND_APPS
-MIDDLEWARE_CLASSES += DEV_MIDDLEWARE_CLASSES
+MIDDLEWARE += DEV_MIDDLEWARE
 TEMPLATES[0]['OPTIONS']['context_processors'] += DEV_TEMPLATE_CONTEXT_PROCESSORS
 
 
@@ -801,7 +907,15 @@ if SERVER_MODE != 'production':
     CACHES = {
          'default': {
              'BACKEND': 'django.core.cache.backends.dummy.DummyCache',
-         }
+         },
+        'htmlized': {
+            'BACKEND': 'django.core.cache.backends.dummy.DummyCache',
+            #'BACKEND': 'django.core.cache.backends.filebased.FileBasedCache',
+            'LOCATION': '/var/cache/datatracker/htmlized',
+            'OPTIONS': {
+                'MAX_ENTRIES': 1000,
+            },
+        }
     }
     SESSION_ENGINE = "django.contrib.sessions.backends.db"
 

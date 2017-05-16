@@ -15,30 +15,30 @@ def register(request):
     return HttpResponseRedirect(settings.CODESTAND_PREFIX + '/accounts/create/')
 
 
-# def profile(request, user=None):
-#     if user is None:
-#         current_user = get_user(request)
-#         if current_user is None:
-#             raise Http404
-#         else:
-#             user = current_user.id
-#     coder = Person.objects.using('datatracker').get(id=user)
-#     email = Email.objects.using('datatracker').filter(person_id=user)
-#     projects = ProjectContainer.objects.exclude(code_request__isnull=True).exclude(is_deleted=True).filter(owner=user)
-#     codings = CodingProject.objects.filter(coder=user)
-#     all_projects = ProjectContainer.objects.all()
-#     selected_codings = []
-#     for proj in all_projects:
-#         all_codings = proj.codings.all()
-#         for code in codings:
-#             if code in all_codings:
-#                 selected_codings.append((proj, code))
-#     return render_page(request, constants.TEMPLATE_PROFILE, {
-#         'coder': coder,
-#         'email': email,
-#         'projects': projects,
-#         'codings': selected_codings,
-#     })
+def profile(request, user=None):
+    if user is None:
+        current_user = get_user(request)
+        if current_user is None:
+            raise Http404
+        else:
+            user = current_user.id
+    coder = Person.objects.using('datatracker').get(id=user)
+    email = Email.objects.using('datatracker').filter(person_id=user)
+    projects = ProjectContainer.objects.exclude(code_request__isnull=True).exclude(is_deleted=True).filter(owner=user)
+    codings = CodingProject.objects.filter(coder=user)
+    all_projects = ProjectContainer.objects.all()
+    selected_codings = []
+    for proj in all_projects:
+        all_codings = proj.codings.all()
+        for code in codings:
+            if code in all_codings:
+                selected_codings.append((proj, code))
+    return render_page(request, constants.TEMPLATE_PROFILE, {
+        'coder': coder,
+        'email': email,
+        'projects': projects,
+        'codings': selected_codings,
+    })
 
 
 def top_coders(request):
@@ -66,10 +66,12 @@ def top_coders(request):
     codes = sorted(codes, key=lambda c: c.count, reverse=True)
     for cd in codes:
         coder = 'None'
+        coder_id = 0
         for id, name in all_coders:
             if cd.coder == id:
                 coder = name
-        topcoders.append((cd.count, coder, id))
+                coder_id = id
+        topcoders.append((cd.count, coder, coder_id))
     return render_page(request, constants.TEMPLATE_TOPCODERS, {
         'topcoders': topcoders,
     })

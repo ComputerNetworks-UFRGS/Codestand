@@ -1,7 +1,9 @@
-from django.conf.urls import patterns, url
 
 
-urlpatterns = patterns('ietf.dbtemplate.views',
-    url(r'^(?P<acronym>[-a-z0-9]+)/$', 'template_list', name='template_list'),
-    url(r'^(?P<acronym>[-a-z0-9]+)/(?P<template_id>[\d]+)/$', 'template_edit', name='template_edit'),
-)
+from ietf.dbtemplate import views
+from ietf.utils.urls import url
+
+urlpatterns = [
+    url(r'^(?P<acronym>[-a-z0-9]+)/$', views.template_list),
+    url(r'^(?P<acronym>[-a-z0-9]+)/(?P<template_id>[\d]+)/$', views.template_edit),
+]

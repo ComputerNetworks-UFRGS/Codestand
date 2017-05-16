@@ -8,12 +8,14 @@ from django.http import HttpResponseForbidden, HttpResponseBadRequest, HttpRespo
 from django.shortcuts import render, redirect
 from django.contrib.auth.decorators import login_required
 
+import debug                            # pyflakes:ignore
+
 from ietf.doc.models import DocEvent
 from ietf.doc.utils import get_chartering_type
 from ietf.doc.fields import SearchableDocumentsField
 from ietf.group.models import GroupMilestone, MilestoneGroupEvent
-from ietf.group.utils import (save_milestone_in_history, can_manage_group, milestone_reviewer_for_group_type,
-                              get_group_or_404)
+from ietf.group.utils import (save_milestone_in_history, can_manage_group_type, can_manage_group,
+                              milestone_reviewer_for_group_type, get_group_or_404)
 from ietf.name.models import GroupMilestoneStateName
 from ietf.group.mails import email_milestones_changed
 from ietf.utils.fields import DatepickerDateField
@@ -93,12 +95,13 @@ def edit_milestones(request, acronym, group_type=None, milestone_set="current"):
         raise Http404
 
     needs_review = False
-    if not can_manage_group(request.user, group):
-        if group.has_role(request.user, group.features.admin_roles):
+    if can_manage_group(request.user, group):
+        if not can_manage_group_type(request.user, group):
+            # The user is chair or similar, not AD:
             if milestone_set == "current":
                 needs_review = True
-        else:
-            return HttpResponseForbidden("You are not chair of this group.")
+    else:
+        return HttpResponseForbidden("You are not authorized to edit the milestones of this group.")
 
     if milestone_set == "current":
         title = "Edit milestones for %s %s" % (group.acronym, group.type.name)
@@ -129,7 +132,7 @@ def edit_milestones(request, acronym, group_type=None, milestone_set="current"):
                 m.state = GroupMilestoneStateName.objects.get(slug="active")
         elif milestone_set == "charter":
             m.state = GroupMilestoneStateName.objects.get(slug="charter")
-
+        
         m.desc = c["desc"]
         m.due = due_month_year_to_date(c)
         m.resolved = c["resolved"]
@@ -284,7 +287,7 @@ def edit_milestones(request, acronym, group_type=None, milestone_set="current"):
                     continue
 
                 if milestone_set == "charter":
-                    DocEvent.objects.create(doc=group.charter, type="changed_charter_milestone",
+                    DocEvent.objects.create(doc=group.charter, rev=group.charter.rev, type="changed_charter_milestone",
                                             by=request.user.person, desc=change)
                 else:
                     MilestoneGroupEvent.objects.create(group=group, type="changed_milestone",
@@ -298,7 +301,7 @@ def edit_milestones(request, acronym, group_type=None, milestone_set="current"):
                 email_milestones_changed(request, group, changes, states)
 
             if milestone_set == "charter":
-                return redirect('doc_view', name=group.charter.canonical_name())
+                return redirect('ietf.doc.views_doc.document_main', name=group.charter.canonical_name())
             else:
                 return HttpResponseRedirect(group.about_url())
     else:
@@ -328,11 +331,9 @@ def reset_charter_milestones(request, group_type, acronym):
     group = get_group_or_404(acronym, group_type)
     if not group.features.has_milestones:
         raise Http404
-    
-    can_manage = can_manage_group(request.user, group)
-    is_chair = group.has_role(request.user, "chair")
-    if (not can_manage) and (not is_chair):
-        return HttpResponseForbidden("You are not chair of this group.")
+
+    if not can_manage_group(request.user, group):
+        return HttpResponseForbidden("You are not authorized to change the milestones for this group.")
 
     current_milestones = group.groupmilestone_set.filter(state="active")
     charter_milestones = group.groupmilestone_set.filter(state="charter")
@@ -352,6 +353,7 @@ def reset_charter_milestones(request, group_type, acronym):
 
             DocEvent.objects.create(type="changed_charter_milestone",
                                     doc=group.charter,
+                                    rev=group.charter.rev,
                                     desc='Deleted milestone "%s"' % m.desc,
                                     by=request.user.person,
                                     )
@@ -368,12 +370,13 @@ def reset_charter_milestones(request, group_type, acronym):
 
             DocEvent.objects.create(type="changed_charter_milestone",
                                     doc=group.charter,
+                                    rev=group.charter.rev,
                                     desc='Added milestone "%s", due %s, from current group milestones' % (new.desc, new.due.strftime("%B %Y")),
                                     by=request.user.person,
                                     )
 
 
-        return redirect('group_edit_charter_milestones', group_type=group.type_id, acronym=group.acronym)
+        return redirect('ietf.group.milestones.edit_milestones;charter', group_type=group.type_id, acronym=group.acronym)
 
     return render(request, 'group/reset_charter_milestones.html',
                   dict(group=group,

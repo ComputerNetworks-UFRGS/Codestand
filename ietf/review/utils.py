@@ -2,7 +2,7 @@ import datetime, re, itertools
 from collections import defaultdict, namedtuple
 
 from django.db.models import Q, Max, F
-from django.core.urlresolvers import reverse as urlreverse
+from django.urls import reverse as urlreverse
 from django.contrib.sites.models import Site
 
 import debug                            # pyflakes:ignore
@@ -27,7 +27,7 @@ def close_review_request_states():
     return ReviewRequestStateName.objects.filter(used=True).exclude(slug__in=["requested", "accepted", "rejected", "part-completed", "completed"])
 
 def can_request_review_of_doc(user, doc):
-    if not user.is_authenticated():
+    if not user.is_authenticated:
         return False
 
     if doc.type_id == 'draft' and doc.get_state_slug() != 'active':
@@ -37,14 +37,14 @@ def can_request_review_of_doc(user, doc):
             or Role.objects.filter(person__user=user, name="secr", group__in=active_review_teams()).exists())
 
 def can_manage_review_requests_for_team(user, team, allow_personnel_outside_team=True):
-    if not user.is_authenticated():
+    if not user.is_authenticated:
         return False
 
     return (Role.objects.filter(name="secr", person__user=user, group=team).exists()
             or (allow_personnel_outside_team and has_role(user, "Secretariat")))
 
 def can_access_review_stats_for_team(user, team):
-    if not user.is_authenticated():
+    if not user.is_authenticated:
         return False
 
     return (Role.objects.filter(name__in=("secr", "reviewer"), person__user=user, group=team).exists()
@@ -440,6 +440,7 @@ def assign_review_request_to_reviewer(request, review_req, reviewer, add_skip=Fa
     ReviewRequestDocEvent.objects.create(
         type="assigned_review_request",
         doc=review_req.doc,
+        rev=review_req.doc.rev,
         by=request.user.person,
         desc="Request for {} review by {} is assigned to {}".format(
             review_req.type.name,
@@ -513,6 +514,7 @@ def close_review_request(request, review_req, close_state):
         ReviewRequestDocEvent.objects.create(
             type="closed_review_request",
             doc=review_req.doc,
+            rev=review_req.doc.rev,
             by=request.user.person,
             desc="Closed request for {} review by {} with state '{}'".format(
                 review_req.type.name, review_req.team.acronym.upper(), close_state.name),
@@ -552,7 +554,7 @@ def suggested_review_requests_for_team(team):
         )
         last_call_expiry_events = { e.doc_id: e for e in LastCallDocEvent.objects.order_by("time", "id") }
         for doc in last_call_docs:
-            e = last_call_expiry_events[doc.pk] if doc.pk in last_call_expiry_events else LastCallDocEvent(expires=now.date(), time=now)
+            e = last_call_expiry_events[doc.pk] if doc.pk in last_call_expiry_events else LastCallDocEvent(expires=now, time=now)
 
             deadline = e.expires.date()
 

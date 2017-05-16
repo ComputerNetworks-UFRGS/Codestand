@@ -7,7 +7,7 @@ from StringIO import StringIO
 import debug         # pyflakes:ignore
 
 from django.conf import settings
-from django.core.urlresolvers import reverse
+from django.urls import reverse
 
 from ietf.group.models import Group, GroupEvent
 from ietf.meeting.models import Meeting, Room, TimeSlot, SchedTimeSessAssignment
@@ -20,24 +20,18 @@ from ietf.utils.test_utils import TestCase
 
 class SecrMeetingTestCase(TestCase):
     def setUp(self):
-        self.proceedings_dir = os.path.abspath("tmp-proceedings-dir")
-        if not os.path.exists(self.proceedings_dir):
-            os.mkdir(self.proceedings_dir)
+        self.proceedings_dir = self.tempdir('proceedings')
         self.saved_secr_proceedings_dir = settings.SECR_PROCEEDINGS_DIR
         settings.SECR_PROCEEDINGS_DIR = self.proceedings_dir
         self.saved_agenda_path = settings.AGENDA_PATH
         settings.AGENDA_PATH = self.proceedings_dir
         
-        self.bluesheet_dir = os.path.abspath(settings.TEST_BLUESHEET_DIR)
+        self.bluesheet_dir = self.tempdir('bluesheet')
         self.bluesheet_path = os.path.join(self.bluesheet_dir,'blue_sheet.rtf')
-        if not os.path.exists(self.bluesheet_dir):
-            os.mkdir(self.bluesheet_dir)
         self.saved_secr_blue_sheet_path = settings.SECR_BLUE_SHEET_PATH
         settings.SECR_BLUE_SHEET_PATH = self.bluesheet_path
 
-        self.materials_dir = os.path.abspath(settings.TEST_MATERIALS_DIR)
-        if not os.path.exists(self.materials_dir):
-            os.mkdir(self.materials_dir)
+        self.materials_dir = self.tempdir('materials')
         
     def tearDown(self):
         settings.SECR_PROCEEDINGS_DIR = self.saved_secr_proceedings_dir
@@ -49,15 +43,19 @@ class SecrMeetingTestCase(TestCase):
 
     def test_main(self):
         "Main Test"
-        url = reverse('meetings')
+        meeting = make_meeting_test_data()
+        url = reverse('ietf.secr.meetings.views.main')
         self.client.login(username="secretary", password="secretary+password")
         response = self.client.get(url)
         self.assertEqual(response.status_code, 200)
+        response = self.client.post(url, {'meeting':meeting.number})
+        url = reverse('ietf.secr.meetings.views.view', kwargs={'meeting_id':meeting.number})
+        self.assertRedirects(response,url)
 
     def test_view(self):
         "View Test"
         meeting = make_meeting_test_data()
-        url = reverse('meetings_view', kwargs={'meeting_id':meeting.number})
+        url = reverse('ietf.secr.meetings.views.view', kwargs={'meeting_id':meeting.number})
         self.client.login(username="secretary", password="secretary+password")
         response = self.client.get(url)
         self.assertEqual(response.status_code, 200)
@@ -69,7 +67,7 @@ class SecrMeetingTestCase(TestCase):
         meeting = make_meeting_test_data()
         number = int(meeting.number) + 1
         count = Meeting.objects.count()
-        url = reverse('meetings_add')
+        url = reverse('ietf.secr.meetings.views.add')
         post_data = dict(number=number,city='Toronto',date='2014-07-20',country='CA',
                          time_zone='America/New_York',venue_name='Hilton',
                          venue_addr='100 First Ave',
@@ -92,7 +90,7 @@ class SecrMeetingTestCase(TestCase):
                                type_id='ietf',
                                date=datetime.datetime(2014,7,20),
                            )
-        url = reverse('meetings_edit_meeting',kwargs={'meeting_id':1})
+        url = reverse('ietf.secr.meetings.views.edit_meeting',kwargs={'meeting_id':1})
         post_data = dict(number='1',date='2014-07-20',city='Toronto',
                          idsubmit_cutoff_day_offset_00=13,
                          idsubmit_cutoff_day_offset_01=20,
@@ -113,7 +111,7 @@ class SecrMeetingTestCase(TestCase):
         meeting = make_meeting_test_data()
         os.makedirs(os.path.join(self.proceedings_dir,str(meeting.number),'bluesheets'))
         
-        url = reverse('meetings_blue_sheet',kwargs={'meeting_id':meeting.number})
+        url = reverse('ietf.secr.meetings.views.blue_sheet',kwargs={'meeting_id':meeting.number})
         self.client.login(username="secretary", password="secretary+password")
         response = self.client.get(url)
         self.assertEqual(response.status_code, 200)
@@ -130,7 +128,7 @@ class SecrMeetingTestCase(TestCase):
 
     def test_blue_sheets_generate(self):
         meeting = make_meeting_test_data()
-        url = reverse('meetings_blue_sheet_generate',kwargs={'meeting_id':meeting.number})
+        url = reverse('ietf.secr.meetings.views.blue_sheet_generate',kwargs={'meeting_id':meeting.number})
         self.client.login(username="secretary", password="secretary+password")
         response = self.client.post(url)
         self.assertEqual(response.status_code, 302)
@@ -139,7 +137,7 @@ class SecrMeetingTestCase(TestCase):
     def test_notifications(self):
         "Test Notifications"
         meeting = make_meeting_test_data()
-        url = reverse('meetings_notifications',kwargs={'meeting_id':42})
+        url = reverse('ietf.secr.meetings.views.notifications',kwargs={'meeting_id':42})
         self.client.login(username="secretary", password="secretary+password")
         response = self.client.get(url)
         self.assertEqual(response.status_code, 200)
@@ -172,14 +170,14 @@ class SecrMeetingTestCase(TestCase):
         
     def test_meetings_select(self):
         make_meeting_test_data()
-        url = reverse('meetings_select',kwargs={'meeting_id':42,'schedule_name':'test-agenda'})
+        url = reverse('ietf.secr.meetings.views.select',kwargs={'meeting_id':42,'schedule_name':'test-agenda'})
         self.client.login(username="secretary", password="secretary+password")
         response = self.client.get(url)
         self.assertEqual(response.status_code, 200)
     
     def test_meetings_rooms(self):
         meeting = make_meeting_test_data()
-        url = reverse('meetings_rooms',kwargs={'meeting_id':42,'schedule_name':'test-agenda'})
+        url = reverse('ietf.secr.meetings.views.rooms',kwargs={'meeting_id':42,'schedule_name':'test-agenda'})
         self.client.login(username="secretary", password="secretary+password")
         response = self.client.get(url)
         self.assertEqual(response.status_code, 200)
@@ -205,7 +203,7 @@ class SecrMeetingTestCase(TestCase):
         
     def test_meetings_times(self):
         make_meeting_test_data()
-        url = reverse('meetings_times',kwargs={'meeting_id':42,'schedule_name':'test-agenda'})
+        url = reverse('ietf.secr.meetings.views.times',kwargs={'meeting_id':42,'schedule_name':'test-agenda'})
         self.client.login(username="secretary", password="secretary+password")
         response = self.client.get(url)
         self.assertEqual(response.status_code, 200)
@@ -215,7 +213,7 @@ class SecrMeetingTestCase(TestCase):
         qs = TimeSlot.objects.filter(meeting=meeting,type='session')
         before = qs.count()
         expected_deletion_count = qs.filter(time=qs.first().time).count() 
-        url = reverse('meetings_times_delete',kwargs={
+        url = reverse('ietf.secr.meetings.views.times_delete',kwargs={
             'meeting_id':42,
             'schedule_name':'test-agenda',
             'time':qs.first().time.strftime("%Y:%m:%d:%H:%M")
@@ -238,7 +236,7 @@ class SecrMeetingTestCase(TestCase):
         response = self.client.post(url, {
             'day':'1',
             'time':'08:00',
-            'duration':'1 0:0:0',
+            'duration':'09:00',
             'name':'Testing'
         })
         self.assertEqual(response.status_code, 302)
@@ -246,14 +244,31 @@ class SecrMeetingTestCase(TestCase):
         
     def test_meetings_nonsession(self):
         make_meeting_test_data()
-        url = reverse('meetings_non_session',kwargs={'meeting_id':42,'schedule_name':'test-agenda'})
+        url = reverse('ietf.secr.meetings.views.non_session',kwargs={'meeting_id':42,'schedule_name':'test-agenda'})
         self.client.login(username="secretary", password="secretary+password")
         response = self.client.get(url)
         self.assertEqual(response.status_code, 200)
     
+    def test_meetings_nonsession_add_invalid(self):
+        make_meeting_test_data()
+        group = Group.objects.get(acronym='secretariat')
+        url = reverse('ietf.secr.meetings.views.non_session',kwargs={'meeting_id':42,'schedule_name':'test-agenda'})
+        self.client.login(username="secretary", password="secretary+password")
+        response = self.client.post(url, {
+            'day':'1',
+            'time':'08:00',
+            'duration':'10',
+            'name':'Testing',
+            'short':'test',
+            'type':'reg',
+            'group':group.pk,
+        })
+        self.assertEqual(response.status_code, 200)
+        self.assertTrue('invalid format' in response.content)
+
     def test_meetings_select_group(self):
         make_meeting_test_data()
-        url = reverse('meetings_select_group',kwargs={'meeting_id':42,'schedule_name':'test-agenda'})
+        url = reverse('ietf.secr.meetings.views.select_group',kwargs={'meeting_id':42,'schedule_name':'test-agenda'})
         self.client.login(username="secretary", password="secretary+password")
         response = self.client.get(url)
         self.assertEqual(response.status_code, 200)

@@ -1,11 +1,12 @@
 import json
+import six
 
 from collections import Counter
 from urllib import urlencode
 
 from django.utils.html import escape
 from django import forms
-from django.core.urlresolvers import reverse as urlreverse
+from django.urls import reverse as urlreverse
 
 import debug                            # pyflakes:ignore
 
@@ -16,7 +17,7 @@ def select2_id_name_json(objs):
         return escape(u"%s <%s>" % (e.person.name, e.address))
     def format_person(p):
         if p.name_count > 1:
-            return escape('%s (%s)' % (p.name,p.email().address))
+            return escape('%s (%s)' % (p.name,p.email().address if p.email() else 'no email address'))
         else:
             return escape(p.name)
 
@@ -85,7 +86,7 @@ class SearchablePersonsField(forms.CharField):
 
         # doing this in the constructor is difficult because the URL
         # patterns may not have been fully constructed there yet
-        self.widget.attrs["data-ajax-url"] = urlreverse("ajax_select2_search_person_email", kwargs={ "model_name": self.model.__name__.lower() })
+        self.widget.attrs["data-ajax-url"] = urlreverse("ietf.person.views.ajax_select2_search", kwargs={ "model_name": self.model.__name__.lower() })
         query_args = {}
         if self.only_users:
             query_args["user"] = "1"
@@ -108,7 +109,7 @@ class SearchablePersonsField(forms.CharField):
             #if self.only_users:
             #    objs = objs.exclude(person__user=None)
 
-        found_pks = [str(o.pk) for o in objs]
+        found_pks = [ six.text_type(o.pk) for o in objs]
         failed_pks = [x for x in pks if x not in found_pks]
         if failed_pks:
             raise forms.ValidationError(u"Could not recognize the following {model_name}s: {pks}. You can only input {model_name}s already registered in the Datatracker.".format(pks=", ".join(failed_pks), model_name=self.model.__name__.lower()))

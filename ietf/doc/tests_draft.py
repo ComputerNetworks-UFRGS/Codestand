@@ -5,7 +5,7 @@ import datetime
 import StringIO
 from pyquery import PyQuery
 
-from django.core.urlresolvers import reverse as urlreverse
+from django.urls import reverse as urlreverse
 from django.conf import settings
 
 import debug                            # pyflakes:ignore
@@ -32,7 +32,7 @@ class ChangeStateTests(TestCase):
         draft.set_state(State.objects.get(used=True, type="draft-iesg", slug="iesg-eva"))
         draft.tags.add("point")
 
-        url = urlreverse('doc_change_state', kwargs=dict(name=draft.name))
+        url = urlreverse('ietf.doc.views_draft.change_state', kwargs=dict(name=draft.name))
         login_testing_unauthorized(self, "ad", url)
 	
         # normal get
@@ -71,7 +71,7 @@ class ChangeStateTests(TestCase):
         draft = make_test_data()
         draft.set_state(State.objects.get(used=True, type="draft-iesg", slug="ad-eval"))
 
-        url = urlreverse('doc_change_state', kwargs=dict(name=draft.name))
+        url = urlreverse('ietf.doc.views_draft.change_state', kwargs=dict(name=draft.name))
         login_testing_unauthorized(self, "secretary", url)
 
         first_state = draft.get_state("draft-iesg")
@@ -130,7 +130,7 @@ class ChangeStateTests(TestCase):
         draft = make_test_data()
         draft.set_state(State.objects.get(used=True, type="draft-iesg", slug="rfcqueue"))
 
-        url = urlreverse('doc_change_state', kwargs=dict(name=draft.name))
+        url = urlreverse('ietf.doc.views_draft.change_state', kwargs=dict(name=draft.name))
         login_testing_unauthorized(self, "secretary", url)
 
         # change state
@@ -154,7 +154,7 @@ class ChangeStateTests(TestCase):
         self.assertTrue("rfc-editor@" in outbox[-1]['To'])
         self.assertTrue("iana@" in outbox[-1]['To'])
 
-        self.assertTrue("ID Tracker State Update Notice:" in outbox[-2]['Subject'])
+        self.assertTrue("Datatracker State Update Notice:" in outbox[-2]['Subject'])
         self.assertTrue("aread@" in outbox[-2]['To'])
         
 
@@ -165,7 +165,7 @@ class ChangeStateTests(TestCase):
         next_state = State.objects.get(used=True, type="draft-iana-review", slug="ok-noact")
         draft.set_state(first_state)
 
-        url = urlreverse('doc_change_iana_state', kwargs=dict(name=draft.name, state_type="iana-review"))
+        url = urlreverse('ietf.doc.views_draft.change_iana_state', kwargs=dict(name=draft.name, state_type="iana-review"))
         login_testing_unauthorized(self, "iana", url)
 
         # normal get
@@ -194,7 +194,7 @@ class ChangeStateTests(TestCase):
         draft.set_state(State.objects.get(used=True, type="draft-iesg", slug="ad-eval"))
 
         self.client.login(username="secretary", password="secretary+password")
-        url = urlreverse('doc_change_state', kwargs=dict(name=draft.name))
+        url = urlreverse('ietf.doc.views_draft.change_state', kwargs=dict(name=draft.name))
 
         empty_outbox()
 
@@ -224,7 +224,7 @@ class ChangeStateTests(TestCase):
         # mail notice
         self.assertEqual(len(outbox), 2) 
 
-        self.assertTrue("ID Tracker State Update" in outbox[0]['Subject'])
+        self.assertTrue("Datatracker State Update" in outbox[0]['Subject'])
         self.assertTrue("aread@" in outbox[0]['To'])
 
         self.assertTrue("Last Call:" in outbox[1]['Subject'])
@@ -238,7 +238,7 @@ class ChangeStateTests(TestCase):
 class EditInfoTests(TestCase):
     def test_edit_info(self):
         draft = make_test_data()
-        url = urlreverse('doc_edit_info', kwargs=dict(name=draft.name))
+        url = urlreverse('ietf.doc.views_draft.edit_info', kwargs=dict(name=draft.name))
         login_testing_unauthorized(self, "secretary", url)
 
         # normal get
@@ -283,7 +283,7 @@ class EditInfoTests(TestCase):
     def test_edit_telechat_date(self):
         draft = make_test_data()
         
-        url = urlreverse('doc_edit_info', kwargs=dict(name=draft.name))
+        url = urlreverse('ietf.doc.views_draft.edit_info', kwargs=dict(name=draft.name))
         login_testing_unauthorized(self, "secretary", url)
 
         data = dict(intended_std_level=str(draft.intended_std_level_id),
@@ -381,7 +381,7 @@ class EditInfoTests(TestCase):
             order=1
             )
         
-        url = urlreverse('doc_edit_info', kwargs=dict(name=draft.name))
+        url = urlreverse('ietf.doc.views_draft.edit_info', kwargs=dict(name=draft.name))
         login_testing_unauthorized(self, "secretary", url)
 
         # normal get
@@ -423,7 +423,7 @@ class EditInfoTests(TestCase):
         draft.unset_state('draft-iesg')
         draft.set_state(State.objects.get(type='draft-stream-ietf',slug='writeupw'))
         draft.stream = StreamName.objects.get(slug='ietf')
-        draft.save_with_history([DocEvent.objects.create(doc=draft, type="changed_stream", by=Person.objects.get(user__username="secretary"), desc="Test")])
+        draft.save_with_history([DocEvent.objects.create(doc=draft, rev=draft.rev, type="changed_stream", by=Person.objects.get(user__username="secretary"), desc="Test")])
         r = self.client.post(url,
                              dict(intended_std_level=str(draft.intended_std_level_id),
                                   ad=ad.pk,
@@ -440,7 +440,7 @@ class EditInfoTests(TestCase):
     def test_edit_consensus(self):
         draft = make_test_data()
         
-        url = urlreverse('doc_edit_consensus', kwargs=dict(name=draft.name))
+        url = urlreverse('ietf.doc.views_draft.edit_consensus', kwargs=dict(name=draft.name))
         login_testing_unauthorized(self, "secretary", url)
 
         # get
@@ -455,7 +455,7 @@ class EditInfoTests(TestCase):
         self.assertEqual(draft.latest_event(ConsensusDocEvent, type="changed_consensus").consensus, True)
 
         # reset
-        e = DocEvent(doc=draft,by=Person.objects.get(name="(System)"),type='changed_document')
+        e = DocEvent(doc=draft, rev=draft.rev, by=Person.objects.get(name="(System)"), type='changed_document')
         e.desc = u"Intended Status changed to <b>%s</b> from %s"% (draft.intended_std_level_id, 'bcp')
         e.save()
 
@@ -464,7 +464,7 @@ class EditInfoTests(TestCase):
         r = self.client.post(url, dict(consensus="Unknown"))
         self.assertEqual(r.status_code, 403) # BCPs must have a consensus
 
-        e = DocEvent(doc=draft,by=Person.objects.get(name="(System)"),type='changed_document')
+        e = DocEvent(doc=draft, rev=draft.rev, by=Person.objects.get(name="(System)"), type='changed_document')
         e.desc = u"Intended Status changed to <b>%s</b> from %s"% (draft.intended_std_level_id, 'inf')
         e.save()
 
@@ -481,7 +481,7 @@ class ResurrectTests(TestCase):
         draft = make_test_data()
         draft.set_state(State.objects.get(used=True, type="draft", slug="expired"))
 
-        url = urlreverse('doc_request_resurrect', kwargs=dict(name=draft.name))
+        url = urlreverse('ietf.doc.views_draft.request_resurrect', kwargs=dict(name=draft.name))
         
         login_testing_unauthorized(self, "ad", url)
 
@@ -513,11 +513,11 @@ class ResurrectTests(TestCase):
         draft = make_test_data()
         draft.set_state(State.objects.get(used=True, type="draft", slug="expired"))
 
-        DocEvent.objects.create(doc=draft,
+        DocEvent.objects.create(doc=draft, rev=draft.rev,
                              type="requested_resurrect",
                              by=Person.objects.get(name="Areað Irector"))
 
-        url = urlreverse('doc_resurrect', kwargs=dict(name=draft.name))
+        url = urlreverse('ietf.doc.views_draft.resurrect', kwargs=dict(name=draft.name))
         
         login_testing_unauthorized(self, "secretary", url)
 
@@ -549,12 +549,8 @@ class ExpireIDsTests(TestCase):
     def setUp(self):
         self.saved_id_dir = settings.INTERNET_DRAFT_PATH
         self.saved_archive_dir = settings.INTERNET_DRAFT_ARCHIVE_DIR
-        self.id_dir = os.path.abspath("tmp-id-dir")
-        self.archive_dir = os.path.abspath("tmp-id-archive")
-        if not os.path.exists(self.id_dir):
-            os.mkdir(self.id_dir)
-        if not os.path.exists(self.archive_dir):
-            os.mkdir(self.archive_dir)
+        self.id_dir = self.tempdir('id')
+        self.archive_dir = self.tempdir('id-archive')
         os.mkdir(os.path.join(self.archive_dir, "unknown_ids"))
         os.mkdir(os.path.join(self.archive_dir, "deleted_tombstones"))
         os.mkdir(os.path.join(self.archive_dir, "expired_without_tombstone"))
@@ -598,7 +594,7 @@ class ExpireIDsTests(TestCase):
         # hack into expirable state
         draft.unset_state("draft-iesg")
         draft.expires = datetime.datetime.now() + datetime.timedelta(days=10)
-        draft.save_with_history([DocEvent.objects.create(doc=draft, type="changed_document", by=Person.objects.get(user__username="secretary"), desc="Test")])
+        draft.save_with_history([DocEvent.objects.create(doc=draft, rev=draft.rev, type="changed_document", by=Person.objects.get(user__username="secretary"), desc="Test")])
 
         self.assertEqual(len(list(get_soon_to_expire_drafts(14))), 1)
         
@@ -622,7 +618,7 @@ class ExpireIDsTests(TestCase):
         # hack into expirable state
         draft.unset_state("draft-iesg")
         draft.expires = datetime.datetime.now()
-        draft.save_with_history([DocEvent.objects.create(doc=draft, type="changed_document", by=Person.objects.get(user__username="secretary"), desc="Test")])
+        draft.save_with_history([DocEvent.objects.create(doc=draft, rev=draft.rev, type="changed_document", by=Person.objects.get(user__username="secretary"), desc="Test")])
 
         self.assertEqual(len(list(get_expired_drafts())), 1)
 
@@ -702,14 +698,11 @@ class ExpireIDsTests(TestCase):
         # expire draft
         draft.set_state(State.objects.get(used=True, type="draft", slug="expired"))
         draft.expires = datetime.datetime.now() - datetime.timedelta(days=1)
-        draft.save_with_history([DocEvent.objects.create(doc=draft, type="changed_document", by=Person.objects.get(user__username="secretary"), desc="Test")])
+        draft.save_with_history([DocEvent.objects.create(doc=draft, rev=draft.rev, type="changed_document", by=Person.objects.get(user__username="secretary"), desc="Test")])
 
-        e = DocEvent()
-        e.doc = draft
-        e.by = Person.objects.get(name="(System)")
-        e.type = "expired_document"
-        e.text = "Document has expired"
-        e.time = draft.expires
+        e = DocEvent(doc=draft, rev=draft.rev, type= "expired_document", time=draft.expires,
+                     by=Person.objects.get(name="(System)"))
+        e.text="Document has expired"
         e.save()
 
         txt = "%s-%s.txt" % (draft.name, draft.rev)
@@ -734,10 +727,7 @@ class ExpireLastCallTests(TestCase):
         
         self.assertEqual(len(list(get_expired_last_calls())), 0)
 
-        e = LastCallDocEvent()
-        e.doc = draft
-        e.by = secretary
-        e.type = "sent_last_call"
+        e = LastCallDocEvent(doc=draft, rev=draft.rev, type="sent_last_call", by=secretary)
         e.text = "Last call sent"
         e.expires = datetime.datetime.now() + datetime.timedelta(days=14)
         e.save()
@@ -745,10 +735,7 @@ class ExpireLastCallTests(TestCase):
         self.assertEqual(len(list(get_expired_last_calls())), 0)
 
         # test expired
-        e = LastCallDocEvent()
-        e.doc = draft
-        e.by = secretary
-        e.type = "sent_last_call"
+        e = LastCallDocEvent(doc=draft, rev=draft.rev, type="sent_last_call", by=secretary)
         e.text = "Last call sent"
         e.expires = datetime.datetime.now()
         e.save()
@@ -773,7 +760,7 @@ class ExpireLastCallTests(TestCase):
 
 class IndividualInfoFormsTests(TestCase):
     def test_doc_change_stream(self):
-        url = urlreverse('doc_change_stream', kwargs=dict(name=self.docname))
+        url = urlreverse('ietf.doc.views_draft.change_stream', kwargs=dict(name=self.docname))
         login_testing_unauthorized(self, "secretary", url)
 
         # get
@@ -804,7 +791,7 @@ class IndividualInfoFormsTests(TestCase):
         self.assertTrue('rfc-ise@' in outbox[0]['To'])
 
     def test_doc_change_notify(self):
-        url = urlreverse('doc_change_notify', kwargs=dict(name=self.docname))
+        url = urlreverse('ietf.doc.views_doc.edit_notify', kwargs=dict(name=self.docname))
         login_testing_unauthorized(self, "secretary", url)
 
         # get
@@ -829,7 +816,7 @@ class IndividualInfoFormsTests(TestCase):
         self.assertEqual(None,q('form input[name=notify]')[0].value)
 
     def test_doc_change_intended_status(self):
-        url = urlreverse('doc_change_intended_status', kwargs=dict(name=self.docname))
+        url = urlreverse('ietf.doc.views_draft.change_intention', kwargs=dict(name=self.docname))
         login_testing_unauthorized(self, "secretary", url)
 
         # get
@@ -858,7 +845,7 @@ class IndividualInfoFormsTests(TestCase):
         self.assertTrue('ZpyQFGmA' in self.doc.latest_event(DocEvent,type='added_comment').desc)
        
     def test_doc_change_telechat_date(self):
-        url = urlreverse('doc_change_telechat_date', kwargs=dict(name=self.docname))
+        url = urlreverse('ietf.doc.views_doc.telechat_date', kwargs=dict(name=self.docname))
         login_testing_unauthorized(self, "secretary", url)
 
         # get
@@ -886,7 +873,7 @@ class IndividualInfoFormsTests(TestCase):
         self.assertEqual(self.doc.latest_event(TelechatDocEvent, "scheduled_for_telechat").telechat_date,None)
         
     def test_doc_change_iesg_note(self):
-        url = urlreverse('doc_change_iesg_note', kwargs=dict(name=self.docname))
+        url = urlreverse('ietf.doc.views_draft.edit_iesg_note', kwargs=dict(name=self.docname))
         login_testing_unauthorized(self, "secretary", url)
 
         # get
@@ -903,7 +890,7 @@ class IndividualInfoFormsTests(TestCase):
         self.assertTrue('ZpyQFGmA' in self.doc.latest_event(DocEvent,type='added_comment').desc)
 
     def test_doc_change_ad(self):
-        url = urlreverse('doc_change_ad', kwargs=dict(name=self.docname))
+        url = urlreverse('ietf.doc.views_draft.edit_ad', kwargs=dict(name=self.docname))
         login_testing_unauthorized(self, "secretary", url)
 
         # get
@@ -922,9 +909,9 @@ class IndividualInfoFormsTests(TestCase):
 
     def test_doc_change_shepherd(self):
         self.doc.shepherd = None
-        self.doc.save_with_history([DocEvent.objects.create(doc=self.doc, type="changed_shepherd", by=Person.objects.get(user__username="secretary"), desc="Test")])
+        self.doc.save_with_history([DocEvent.objects.create(doc=self.doc, rev=self.doc.rev, type="changed_shepherd", by=Person.objects.get(user__username="secretary"), desc="Test")])
 
-        url = urlreverse('doc_edit_shepherd',kwargs=dict(name=self.docname))
+        url = urlreverse('ietf.doc.views_draft.edit_shepherd',kwargs=dict(name=self.docname))
         
         login_testing_unauthorized(self, "plain", url)
 
@@ -974,19 +961,19 @@ class IndividualInfoFormsTests(TestCase):
 
     def test_doc_change_shepherd_email(self):
         self.doc.shepherd = None
-        self.doc.save_with_history([DocEvent.objects.create(doc=self.doc, type="changed_shepherd", by=Person.objects.get(user__username="secretary"), desc="Test")])
+        self.doc.save_with_history([DocEvent.objects.create(doc=self.doc, rev=self.doc.rev, type="changed_shepherd", by=Person.objects.get(user__username="secretary"), desc="Test")])
 
-        url = urlreverse('doc_change_shepherd_email',kwargs=dict(name=self.docname))
+        url = urlreverse('ietf.doc.views_draft.change_shepherd_email',kwargs=dict(name=self.docname))
         r = self.client.get(url)
         self.assertEqual(r.status_code, 404)
 
         self.doc.shepherd = Email.objects.get(person__user__username="ad1")
-        self.doc.save_with_history([DocEvent.objects.create(doc=self.doc, type="changed_shepherd", by=Person.objects.get(user__username="secretary"), desc="Test")])
+        self.doc.save_with_history([DocEvent.objects.create(doc=self.doc, rev=self.doc.rev, type="changed_shepherd", by=Person.objects.get(user__username="secretary"), desc="Test")])
 
         login_testing_unauthorized(self, "plain", url)
 
         self.doc.shepherd = Email.objects.get(person__user__username="plain")
-        self.doc.save_with_history([DocEvent.objects.create(doc=self.doc, type="changed_shepherd", by=Person.objects.get(user__username="secretary"), desc="Test")])
+        self.doc.save_with_history([DocEvent.objects.create(doc=self.doc, rev=self.doc.rev, type="changed_shepherd", by=Person.objects.get(user__username="secretary"), desc="Test")])
 
         new_email = Email.objects.create(address="anotheremail@example.com", person=self.doc.shepherd.person)
 
@@ -1008,7 +995,7 @@ class IndividualInfoFormsTests(TestCase):
        
 
     def test_doc_view_shepherd_writeup(self):
-        url = urlreverse('doc_shepherd_writeup',kwargs=dict(name=self.docname))
+        url = urlreverse('ietf.doc.views_doc.document_shepherd_writeup',kwargs=dict(name=self.docname))
   
         # get as a shepherd
         self.client.login(username="plain", password="plain+password")
@@ -1021,14 +1008,14 @@ class IndividualInfoFormsTests(TestCase):
         # Try again when no longer a shepherd.
 
         self.doc.shepherd = None
-        self.doc.save_with_history([DocEvent.objects.create(doc=self.doc, type="changed_shepherd", by=Person.objects.get(user__username="secretary"), desc="Test")])
+        self.doc.save_with_history([DocEvent.objects.create(doc=self.doc, rev=self.doc.rev, type="changed_shepherd", by=Person.objects.get(user__username="secretary"), desc="Test")])
         r = self.client.get(url)
         self.assertEqual(r.status_code,200)
         q = PyQuery(r.content)
         self.assertEqual(len(q('#content a:contains("Edit")')), 0)
 
     def test_doc_change_shepherd_writeup(self):
-        url = urlreverse('doc_edit_shepherd_writeup',kwargs=dict(name=self.docname))
+        url = urlreverse('ietf.doc.views_draft.edit_shepherd_writeup',kwargs=dict(name=self.docname))
   
         # get
         login_testing_unauthorized(self, "secretary", url)
@@ -1079,7 +1066,7 @@ class SubmitToIesgTests(TestCase):
             q = PyQuery(r.content)
             self.assertEqual(len(q('form input[name="confirm"]')),1) 
 
-        url = urlreverse('doc_to_iesg', kwargs=dict(name=self.docname))
+        url = urlreverse('ietf.doc.views_draft.to_iesg', kwargs=dict(name=self.docname))
 
         for username in [None,'plain','iana','iab chair']:
             verify_fail(username)
@@ -1088,7 +1075,7 @@ class SubmitToIesgTests(TestCase):
             verify_can_see(username)
         
     def test_cancel_submission(self):
-        url = urlreverse('doc_to_iesg', kwargs=dict(name=self.docname))
+        url = urlreverse('ietf.doc.views_draft.to_iesg', kwargs=dict(name=self.docname))
         self.client.login(username="marschairman", password="marschairman+password")
 
 	r = self.client.post(url, dict(cancel="1"))
@@ -1098,7 +1085,7 @@ class SubmitToIesgTests(TestCase):
         self.assertTrue(doc.get_state('draft-iesg')==None)
 
     def test_confirm_submission(self):
-        url = urlreverse('doc_to_iesg', kwargs=dict(name=self.docname))
+        url = urlreverse('ietf.doc.views_draft.to_iesg', kwargs=dict(name=self.docname))
         self.client.login(username="marschairman", password="marschairman+password")
 
         docevent_count_pre = self.doc.docevent_set.count()
@@ -1130,10 +1117,10 @@ class RequestPublicationTests(TestCase):
         draft.stream = StreamName.objects.get(slug="iab")
         draft.group = Group.objects.get(acronym="iab")
         draft.intended_std_level = IntendedStdLevelName.objects.get(slug="inf")
-        draft.save_with_history([DocEvent.objects.create(doc=draft, type="changed_document", by=Person.objects.get(user__username="secretary"), desc="Test")])
+        draft.save_with_history([DocEvent.objects.create(doc=draft, rev=draft.rev, type="changed_document", by=Person.objects.get(user__username="secretary"), desc="Test")])
         draft.set_state(State.objects.get(used=True, type="draft-stream-iab", slug="approved"))
 
-        url = urlreverse('doc_request_publication', kwargs=dict(name=draft.name))
+        url = urlreverse('ietf.doc.views_draft.request_publication', kwargs=dict(name=draft.name))
         login_testing_unauthorized(self, "iab-chair", url)
 
         # normal get
@@ -1171,9 +1158,9 @@ class AdoptDraftTests(TestCase):
         draft.stream = None
         draft.group = Group.objects.get(type="individ")
         draft.unset_state("draft-stream-ietf")
-        draft.save_with_history([DocEvent.objects.create(doc=draft, type="changed_document", by=Person.objects.get(user__username="secretary"), desc="Test")])
+        draft.save_with_history([DocEvent.objects.create(doc=draft, rev=draft.rev, type="changed_document", by=Person.objects.get(user__username="secretary"), desc="Test")])
 
-        url = urlreverse('doc_adopt_draft', kwargs=dict(name=draft.name))
+        url = urlreverse('ietf.doc.views_draft.adopt_draft', kwargs=dict(name=draft.name))
         login_testing_unauthorized(self, "marschairman", url)
         
         # get
@@ -1213,7 +1200,7 @@ class ChangeStreamStateTests(TestCase):
         draft.tags = DocTagName.objects.filter(slug="w-expert")
         draft.group.unused_tags.add("w-refdoc")
 
-        url = urlreverse('doc_change_stream_state', kwargs=dict(name=draft.name, state_type="draft-stream-ietf"))
+        url = urlreverse('ietf.doc.views_draft.change_stream_state', kwargs=dict(name=draft.name, state_type="draft-stream-ietf"))
         login_testing_unauthorized(self, "marschairman", url)
         
         # get
@@ -1252,7 +1239,7 @@ class ChangeStreamStateTests(TestCase):
         draft = make_test_data()
         draft.unset_state("draft-stream-%s"%draft.stream_id)
 
-        url = urlreverse('doc_change_stream_state', kwargs=dict(name=draft.name, state_type="draft-stream-ietf"))
+        url = urlreverse('ietf.doc.views_draft.change_stream_state', kwargs=dict(name=draft.name, state_type="draft-stream-ietf"))
         login_testing_unauthorized(self, "marschairman", url)
         
         # set a state when no state exists
@@ -1285,7 +1272,7 @@ class ChangeStreamStateTests(TestCase):
     def test_set_state(self):
         draft = make_test_data()
 
-        url = urlreverse('doc_change_stream_state', kwargs=dict(name=draft.name, state_type="draft-stream-ietf"))
+        url = urlreverse('ietf.doc.views_draft.change_stream_state', kwargs=dict(name=draft.name, state_type="draft-stream-ietf"))
         login_testing_unauthorized(self, "marschairman", url)
         
         # get
@@ -1328,7 +1315,7 @@ class ChangeStreamStateTests(TestCase):
     def test_pubreq_validation(self):
         draft = make_test_data()
 
-        url = urlreverse('doc_change_stream_state', kwargs=dict(name=draft.name, state_type="draft-stream-ietf"))
+        url = urlreverse('ietf.doc.views_draft.change_stream_state', kwargs=dict(name=draft.name, state_type="draft-stream-ietf"))
         login_testing_unauthorized(self, "marschairman", url)
         
         old_state = draft.get_state("draft-stream-%s" % draft.stream_id )
@@ -1408,7 +1395,7 @@ class ChangeReplacesTests(TestCase):
 
     def test_change_replaces(self):
 
-        url = urlreverse('doc_change_replaces', kwargs=dict(name=self.replacea.name))
+        url = urlreverse('ietf.doc.views_draft.replaces', kwargs=dict(name=self.replacea.name))
         login_testing_unauthorized(self, "secretary", url)
 
         # normal get
@@ -1434,7 +1421,7 @@ class ChangeReplacesTests(TestCase):
 
         empty_outbox()
         # Post that says replaceboth replaces both base a and base b
-        url = urlreverse('doc_change_replaces', kwargs=dict(name=self.replaceboth.name))
+        url = urlreverse('ietf.doc.views_draft.replaces', kwargs=dict(name=self.replaceboth.name))
         self.assertEqual(self.baseb.get_state().slug,'expired')
         r = self.client.post(url, dict(replaces=self.basea.name + "," + self.baseb.name))
         self.assertEqual(r.status_code, 302)
@@ -1458,7 +1445,7 @@ class ChangeReplacesTests(TestCase):
 
         # Post that undoes replacea
         empty_outbox()
-        url = urlreverse('doc_change_replaces', kwargs=dict(name=self.replacea.name))
+        url = urlreverse('ietf.doc.views_draft.replaces', kwargs=dict(name=self.replacea.name))
         r = self.client.post(url, dict(replaces=""))
         self.assertEqual(r.status_code, 302)
         self.assertEqual(Document.objects.get(name='draft-test-base-a').get_state().slug,'active')
@@ -1471,7 +1458,7 @@ class ChangeReplacesTests(TestCase):
         RelatedDocument.objects.create(source=self.replacea, target=replaced,
                                        relationship=DocRelationshipName.objects.get(slug="possibly-replaces"))
 
-        url = urlreverse('doc_review_possibly_replaces', kwargs=dict(name=self.replacea.name))
+        url = urlreverse('ietf.doc.views_draft.review_possibly_replaces', kwargs=dict(name=self.replacea.name))
         login_testing_unauthorized(self, "secretary", url)
 
         r = self.client.get(url)

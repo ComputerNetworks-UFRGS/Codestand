@@ -10,7 +10,9 @@ from collections import defaultdict
 from django.conf import settings
 from django.forms import ValidationError
 from django.utils.html import escape
-from django.core.urlresolvers import reverse as urlreverse
+from django.urls import reverse as urlreverse
+
+import debug                            # pyflakes:ignore
 
 from ietf.doc.models import Document, DocHistory, State, DocumentAuthor, DocHistoryAuthor
 from ietf.doc.models import DocAlias, RelatedDocument, RelatedDocHistory, BallotType, DocReminder
@@ -93,7 +95,7 @@ def get_tags_for_stream_id(stream_id):
         return []
 
 def can_adopt_draft(user, doc):
-    if not user.is_authenticated():
+    if not user.is_authenticated:
         return False
 
     if has_role(user, "Secretariat"):
@@ -172,16 +174,16 @@ def needed_ballot_positions(doc, active_positions):
 def create_ballot_if_not_open(doc, by, ballot_slug, time=None):
     if not doc.ballot_open(ballot_slug):
         if time:
-            e = BallotDocEvent(type="created_ballot", by=by, doc=doc, time=time)
+            e = BallotDocEvent(type="created_ballot", by=by, doc=doc, rev=doc.rev, time=time)
         else:
-            e = BallotDocEvent(type="created_ballot", by=by, doc=doc)
+            e = BallotDocEvent(type="created_ballot", by=by, doc=doc, rev=doc.rev)
         e.ballot_type = BallotType.objects.get(doc_type=doc.type, slug=ballot_slug)
         e.desc = u'Created "%s" ballot' % e.ballot_type.name
         e.save()
 
 def close_ballot(doc, by, ballot_slug):
     if doc.ballot_open(ballot_slug):
-        e = BallotDocEvent(type="closed_ballot", doc=doc, by=by)
+        e = BallotDocEvent(type="closed_ballot", doc=doc, rev=doc.rev, by=by)
         e.ballot_type = BallotType.objects.get(doc_type=doc.type,slug=ballot_slug)
         e.desc = 'Closed "%s" ballot' % e.ballot_type.name
         e.save()
@@ -331,7 +333,7 @@ def add_state_change_event(doc, by, prev_state, new_state, prev_tags=[], new_tag
     def tags_suffix(tags):
         return (u"::" + u"::".join(t.name for t in tags)) if tags else u""
 
-    e = StateDocEvent(doc=doc, by=by)
+    e = StateDocEvent(doc=doc, rev=doc.rev, by=by)
     e.type = "changed_state"
     e.state_type = (prev_state or new_state).type
     e.state = new_state
@@ -414,7 +416,7 @@ def make_notify_changed_event(request, doc, by, new_notify, time=None):
     else:
         event_type = 'added_comment'
 
-    e = DocEvent(type=event_type, doc=doc, by=by)
+    e = DocEvent(type=event_type, doc=doc, rev=doc.rev, by=by)
     e.desc = "Notification list changed to %s" % (escape(new_notify) or "none")
     if doc.notify:
         e.desc += " from %s" % escape(doc.notify)
@@ -455,6 +457,7 @@ def update_telechat(request, doc, by, new_telechat_date, new_returning_item=None
     e.type = "scheduled_for_telechat"
     e.by = by
     e.doc = doc
+    e.rev = doc.rev
     e.returning_item = returning
     e.telechat_date = new_telechat_date
 
@@ -536,7 +539,7 @@ def set_replaces_for_document(request, doc, new_replaces, by, email_subject, com
 
     events = []
 
-    e = DocEvent(doc=doc, by=by, type='changed_document')
+    e = DocEvent(doc=doc, rev=doc.rev, by=by, type='changed_document')
     new_replaces_names = u", ".join(d.name for d in new_replaces) or u"None"
     old_replaces_names = u", ".join(d.name for d in old_replaces) or u"None"
     e.desc = u"This document now replaces <b>%s</b> instead of %s" % (new_replaces_names, old_replaces_names)
@@ -545,7 +548,7 @@ def set_replaces_for_document(request, doc, new_replaces, by, email_subject, com
     events.append(e)
 
     if comment:
-        events.append(DocEvent.objects.create(doc=doc, by=by, type="added_comment", desc=comment))
+        events.append(DocEvent.objects.create(doc=doc, rev=doc.rev, by=by, type="added_comment", desc=comment))
 
     for d in old_replaces:
         if d not in new_replaces:
@@ -651,25 +654,40 @@ def extract_complete_replaces_ancestor_mapping_for_docs(names):
     return replaces
 
 
-def crawl_history(doc):
+def make_rev_history(doc):
     # return document history data for inclusion in doc.json (used by timeline)
+
+    def get_predecessors(doc):
+        predecessors = []
+        if hasattr(doc, 'relateddocument_set'):
+            for alias in doc.related_that_doc('replaces'):
+                if alias.document not in predecessors:
+                    predecessors.append(alias.document)
+                    predecessors.extend(get_predecessors(alias.document))
+        return predecessors
+
     def get_ancestors(doc):
         ancestors = []
         if hasattr(doc, 'relateddocument_set'):
-            for rel in doc.relateddocument_set.filter(relationship__slug='replaces'):
-                if rel.target.document not in ancestors:
-                    ancestors.append(rel.target.document)
-                    ancestors.extend(get_ancestors(rel.target.document))
-            return ancestors
+            for alias in doc.related_that('replaces'):
+                if alias.document not in ancestors:
+                    ancestors.append(alias.document)
+                    ancestors.extend(get_ancestors(alias.document))
+        return ancestors
+
+    def get_replaces_tree(doc):
+        tree = get_predecessors(doc)
+        tree.extend(get_ancestors(doc))
+        return tree
 
     history = {}
-    docs = get_ancestors(doc)
+    docs = get_replaces_tree(doc)
     if docs is not None:
         docs.append(doc)
         for d in docs:
             for e in d.docevent_set.filter(type='new_revision').distinct():
                 if hasattr(e, 'newrevisiondocevent'):
-                    url = urlreverse("doc_view", kwargs=dict(name=d)) + e.newrevisiondocevent.rev + "/"
+                    url = urlreverse("ietf.doc.views_doc.document_main", kwargs=dict(name=d)) + e.newrevisiondocevent.rev + "/"
                     history[url] = {
                         'name': d.name,
                         'rev': e.newrevisiondocevent.rev,
@@ -684,7 +702,7 @@ def crawl_history(doc):
     else:
         e = doc.latest_event(type='iesg_approved')
     if e:
-        url = urlreverse("doc_view", kwargs=dict(name=e.doc))
+        url = urlreverse("ietf.doc.views_doc.document_main", kwargs=dict(name=e.doc))
         history[url] = {
             'name': e.doc.canonical_name(),
             'rev': e.doc.canonical_name(),
@@ -704,3 +722,130 @@ def get_search_cache_key(params):
     key = "doc:document:search:" + hashlib.sha512(json.dumps(kwargs, sort_keys=True)).hexdigest()
     return key
     
+def label_wrap(label, items, joiner=',', max=50):
+    lines = []
+    if not items:
+        return lines
+    line = '%s: %s' % (label, items[0])
+    for item in items[1:]:
+        if len(line)+len(joiner+' ')+len(item) > max:
+            lines.append(line+joiner)
+            line = ' '*(len(label)+len(': ')) + item
+        else:
+            line += joiner+' '+item
+    if line:
+        lines.append(line)
+    return lines
+
+def join_justified(left, right, width=72):
+    count = max(len(left), len(right))
+    left = left + ['']*(count-len(left))
+    right = right + ['']*(count-len(right))
+    lines = []
+    i = 0
+    while True:
+        l = left[i]
+        r = right[i]
+        if len(l)+1+len(r) > width:
+            left = left + ['']
+            right = right[:i] + [''] + right[i:]
+            r = right[i]
+            count += 1
+        lines.append( l + ' ' + r.rjust(width-len(l)-1) )
+        i += 1
+        if i >= count:
+            break
+    return lines
+
+def build_doc_meta_block(doc, path):
+    def add_markup(path, doc, lines):
+        is_hst = doc.is_dochistory()
+        rev = doc.rev
+        if is_hst:
+            doc = doc.doc
+        name = doc.name
+        rfcnum = doc.rfc_number()
+        errata_url = settings.RFC_EDITOR_ERRATA_URL.format(rfc_number=rfcnum) if not is_hst else ""
+        ipr_url = "%s?submit=draft&amp;id=%s" % (urlreverse('ietf.ipr.views.search'), name)
+        for i, line in enumerate(lines):
+            # add draft links
+            line = re.sub(r'\b(draft-[-a-z0-9]+)\b', '<a href="%s/\g<1>">\g<1></a>'%(path, ), line)
+            # add rfcXXXX to RFC links
+            line = re.sub(r' (rfc[0-9]+)\b', ' <a href="%s/\g<1>">\g<1></a>'%(path, ), line)
+            # add XXXX to RFC links
+            line = re.sub(r' ([0-9]{3,5})\b', ' <a href="%s/rfc\g<1>">\g<1></a>'%(path, ), line)
+            # add draft revision links
+            line = re.sub(r' ([0-9]{2})\b', ' <a href="%s/%s-\g<1>">\g<1></a>'%(path, name, ), line)
+            if rfcnum:
+                # add errata link
+                line = re.sub(r'Errata exist', '<a class="text-warning" href="%s">Errata exist</a>'%(errata_url, ), line)
+            if is_hst or not rfcnum:
+                # make current draft rev bold
+                line = re.sub(r'>(%s)<'%rev, '><b>\g<1></b><', line)
+            line = re.sub(r'IPR declarations', '<a class="text-warning" href="%s">IPR declarations</a>'%(ipr_url, ), line)
+            line = line.replace(r'[txt]', '[<a href="%s">txt</a>]' % doc.href())
+            lines[i] = line
+        return lines
+    #
+    now = datetime.datetime.now()
+    draft_state = doc.get_state('draft')
+    block = ''
+    meta = {}
+    if doc.type_id == 'draft':
+        revisions = []
+        ipr = doc.related_ipr()
+        if ipr:
+            meta['ipr'] = [ "IPR declarations" ]
+        if doc.is_rfc() and not doc.is_dochistory():
+            if not doc.name.startswith('rfc'):
+                meta['from'] = [ "%s-%s"%(doc.name, doc.rev) ]
+            meta['errata'] = [ "Errata exist" ] if doc.tags.filter(slug='errata').exists() else []
+            meta['obsoletedby'] = [ alias.document.rfc_number() for alias in doc.related_that('obs') ]
+            meta['obsoletedby'].sort()
+            meta['updatedby'] = [ alias.document.rfc_number() for alias in doc.related_that('updates') ]
+            meta['updatedby'].sort()
+            meta['stdstatus'] = [ doc.std_level.name ]
+        else:
+            dd = doc.doc if doc.is_dochistory() else doc
+            revisions += [ '(%s)%s'%(d.name, ' '*(2-((len(d.name)-1)%3))) for d in dd.replaces() ]
+            revisions += doc.revisions()
+            if doc.is_dochistory() and doc.doc.is_rfc():
+                revisions += [ doc.doc.canonical_name() ]
+            else:
+                revisions += [ d.name for d in doc.replaced_by() ]
+            meta['versions'] = revisions
+            if not doc.is_dochistory and draft_state.slug == 'active' and now > doc.expires:
+                # Active past expiration date
+                meta['active'] = [ 'Document is active' ]
+                meta['state' ] = [ doc.friendly_state() ]
+            intended_std = doc.intended_std_level if doc.intended_std_level else None
+            if intended_std:
+                if intended_std.slug in ['ps', 'ds', 'std']:
+                    meta['stdstatus'] = [ "Standards Track" ]
+                else:
+                    meta['stdstatus'] = [ intended_std.name ]
+    elif doc.type_id == 'charter':
+        meta['versions'] = doc.revisions()
+    #
+    # Add markup to items that needs it.
+    if 'versions' in meta:
+        meta['versions'] = label_wrap('Versions', meta['versions'], joiner="")
+    for label in ['Obsoleted by', 'Updated by', 'From' ]:
+        item = label.replace(' ','').lower()
+        if item in meta and meta[item]:
+            meta[item] = label_wrap(label, meta[item])
+    #
+    left = []
+    right = []
+    #right = [ '[txt]']
+    for item in [ 'from', 'versions', 'obsoletedby', 'updatedby', ]:
+        if item in meta and meta[item]:
+            left += meta[item]
+    for item in ['stdstatus', 'active', 'state', 'ipr', 'errata', ]:
+        if item in meta and meta[item]:
+            right += meta[item]
+    lines = join_justified(left, right)
+    block = '\n'.join(add_markup(path, doc, lines))
+    #
+    return block
+

@@ -43,9 +43,8 @@
     <link rel="apple-touch-icon" href="{% static 'ietf/images/apple-touch-icon.png' %}">
   </head>
 
-  <body {% block bodyAttrs %}{%endblock%} data-group-menu-data-url="{% url "group_menu_data" %}">
-    {% with debug_server_mode="production" %}
-      <nav class="navbar {% if server_mode and server_mode == "production" %}navbar-inverse{% else %}navbar-default{% endif %} navbar-fixed-top">
+  <body {% block bodyAttrs %}{%endblock%} data-group-menu-data-url="{% url 'ietf.group.views_ajax.group_menu_data' %}">
+      <nav class="navbar {% if server_mode and server_mode != "production" %}navbar-default{% else %}navbar-inverse{% endif %} {% if navbar_mode %}{{ navbar_mode }}{% else %}navbar-fixed-top{% endif %}">
         <div class="container-fluid">
 	  <div class="navbar-header">
 	    <button type="button" class="navbar-toggle" data-toggle="collapse" data-target="#navbar-collapse">
@@ -57,10 +56,10 @@
 	    <a class="navbar-brand" href="/">
 	       <img alt="IETF Logo" src="{% static 'ietf/images/ietflogo-small-transparent.png' %}">
 	       {% if not user.is_authenticated %}
-		  {% if server_mode and server_mode == "production" %}
-		  Datatracker
+		  {% if server_mode and server_mode != "production" %}
+		  <b><i><small>Development mode</small></i></b>
 		  {% else %}
-		  <b><i>Development mode</i></b>
+		  Datatracker
 		  {% endif %}
 	       {% endif %}
 	    </a>
@@ -85,7 +84,6 @@
 	  </div>
         </div>
       </nav>
-    {% endwith %}
       <div class="container-fluid">
         {% comment %} {% bootstrap_messages %} {% endcomment %}
         {% for message in messages %}
@@ -117,6 +115,7 @@
           </div>
         {% endif %}
 
+	{% block footer %}
 	<hr>
 	  <div class="col-md-12">
 	    <div class="text-center padded">
@@ -133,6 +132,7 @@
 	    </div>
 	  </div>
 
+
         <footer class="row">
 	  <div class="col-md-12">
 	    <div class="text-center">
@@ -140,16 +140,25 @@
 	        {% if version_num %}
 		  <a href="/release/about">About</a> |
 	          IETF Datatracker |
-	          <a href="/release/{{version_num}}/">Version {{ version_num }}</a>
-	          | {{revision_date}} |
+	          <a href="/release/{{version_num}}/">Version {{ version_num }}</a> |
+	          {{revision_date}} |
 	        {% endif %}
-	        <a href="https://tools.ietf.org/tools/ietfdb/newticket">Report a bug <span class="fa fa-bug"></span></a>
+		Report a bug:
+	        <a href="https://tools.ietf.org/tools/ietfdb/newticket">Tracker:<span class="fa fa-bug"></span></a>
+	        <a href="mailto:{{ bugreport_email }}">Email:<span class="fa fa-envelope"></span></a>
+		<br>
+		  Python {{ python_version }} |
+		  Django {{ django_version }}
 	      </p>
 	    </div>
 	  </div>
         </footer>
-        {% include "debug.html" %}
+	{% endblock %}
+
       </div>
+
+      {% include "debug.html" %}
+
       <script src="{% static 'jquery/jquery.min.js' %}"></script>
       {% comment %}
       <!-- Remove the *-nojs attributes if we are running js.  This depends on jQuery's removeClass(): -->

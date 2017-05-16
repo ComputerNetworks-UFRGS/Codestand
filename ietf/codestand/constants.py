@@ -2,7 +2,7 @@
 # Version Constants
 # ----------------------------------------------------------------
 
-VERSION = "2.0.0"
+VERSION = "2.1.0"
 RELEASE_DATE = "2016-12-22"
 
 # ----------------------------------------------------------------
@@ -45,13 +45,11 @@ TEMPLATE_ERROR_500 = "codestand/500.html"
 TEMPLATE_ERROR_404 = "codestand/404.html"
 # REQUESTS
 TEMPLATE_REQUESTS_LIST = "codestand/requests/list.html"
-TEMPLATE_REQUESTS_EDIT = "codestand/requests/edit.html"
 TEMPLATE_REQUESTS_NEW = "codestand/requests/new.html"
 TEMPLATE_REQUESTS_SHOW = "codestand/requests/show.html"
 TEMPLATE_REQUESTS_SEARCH = "codestand/requests/search.html"
 # MATCHES
 TEMPLATE_MATCHES_LIST = "codestand/matches/list.html"
-TEMPLATE_MATCHES_EDIT = "codestand/matches/edit.html"
 TEMPLATE_MATCHES_NEW = "codestand/matches/new.html"
 TEMPLATE_MATCHES_SHOW = "codestand/matches/show.html"
 TEMPLATE_MATCHES_SEARCH = "codestand/matches/search.html"

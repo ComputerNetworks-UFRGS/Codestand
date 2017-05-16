@@ -16,8 +16,8 @@ from ietf.doc.utils import get_tags_for_stream_id
 from ietf.doc.utils_charter import charter_name_for_group
 from ietf.group.models import ( Group, Role, GroupEvent, GroupHistory, GroupStateName,
     GroupStateTransitions, GroupTypeName, GroupURL, ChangeStateGroupEvent )
-from ietf.group.utils import save_group_in_history, can_manage_group
-from ietf.group.utils import get_group_or_404, setup_default_community_list_for_group
+from ietf.group.utils import (save_group_in_history, can_manage_group, can_manage_group_type,
+    get_group_or_404, setup_default_community_list_for_group, )
 from ietf.ietfauth.utils import has_role
 from ietf.person.fields import SearchableEmailsField
 from ietf.person.models import Person, Email
@@ -26,13 +26,17 @@ from ietf.utils.ordereddict import insert_after_in_ordered_dict
 from ietf.utils.text import strip_suffix
 
 
-MAX_GROUP_DELEGATES = 3
-
+# This function, in addition to encapsulating a group's roles list for
+# readability, also ensures that the roles with edit buttons in forms
+# are the same which are accepted byt the GroupForm.  Please adjust the
+# list here if you change the *_roles fields the GroupForm knows about.
 def roles_for_group_type(group_type):
-    roles = ["chair", "secr", "techadv", "delegate"]
+    roles = ["chair", "secr", "techadv", "delegate", ]
     if group_type == "dir":
         roles.append("reviewer")
     return roles
+
+MAX_GROUP_DELEGATES = 3
 
 class GroupForm(forms.Form):
     name = forms.CharField(max_length=80, label="Name", required=True)
@@ -57,6 +61,13 @@ class GroupForm(forms.Form):
     def __init__(self, *args, **kwargs):
         self.group = kwargs.pop('group', None)
         self.group_type = kwargs.pop('group_type', False)
+        if "field" in kwargs:
+            field = kwargs["field"]
+            del kwargs["field"]
+            if field in roles_for_group_type(self.group_type):
+                field = field + "_roles"
+        else:
+            field = None
 
         super(self.__class__, self).__init__(*args, **kwargs)
 
@@ -85,6 +96,10 @@ class GroupForm(forms.Form):
                                  - set(roles_for_group_type(self.group_type)))
         for r in role_fields_to_remove:
             del self.fields[r + "_roles"]
+        if field:
+            for f in self.fields:
+                if f != field:
+                    del self.fields[f]
 
     def clean_acronym(self):
         # Changing the acronym of an already existing group will cause 404s all
@@ -158,6 +173,7 @@ class GroupForm(forms.Form):
             raise forms.ValidationError("You requested the creation of a BoF, but specified no parent area.  A parent is required when creating a bof.")
         return cleaned_data
 
+
 def format_urls(urls, fs="\n"):
     res = []
     for u in urls:
@@ -218,10 +234,10 @@ def format_urls(urls, fs="\n"):
 #         group.charter = get_or_create_initial_charter(group, group_type)
 #         group.save()
 # 
-#     return redirect('charter_submit', name=group.charter.name, option="initcharter")
+#     return redirect('ietf.doc.views_charter.submit', name=group.charter.name, option="initcharter")
 
 @login_required
-def edit(request, group_type=None, acronym=None, action="edit"):
+def edit(request, group_type=None, acronym=None, action="edit", field=None):
     """Edit or create a group, notifying parties as
     necessary and logging changes as group events."""
     if action == "edit":
@@ -241,7 +257,7 @@ def edit(request, group_type=None, acronym=None, action="edit"):
             return HttpResponseForbidden("You don't have permission to access this view")
 
     if request.method == 'POST':
-        form = GroupForm(request.POST, group=group, group_type=group_type)
+        form = GroupForm(request.POST, group=group, group_type=group_type, field=field)
         if form.is_valid():
             clean = form.cleaned_data
             if new_group:
@@ -284,6 +300,8 @@ def edit(request, group_type=None, acronym=None, action="edit"):
                 return entry % dict(attr=attr, new=new, old=old)
 
             def diff(attr, name):
+                if field and attr != field:
+                    return
                 v = getattr(group, attr)
                 if clean[attr] != v:
                     changes.append((attr, clean[attr], desc(name, clean[attr], v)))
@@ -324,10 +342,10 @@ def edit(request, group_type=None, acronym=None, action="edit"):
                     added = set(new) - set(old)
                     deleted = set(old) - set(new)
                     if added:
-                        change_text=title + ' added: ' + ", ".join(x.formatted_email() for x in added)
+                        change_text=title + ' added: ' + ", ".join(x.name_and_email() for x in added)
                         personnel_change_text+=change_text+"\n"
                     if deleted:
-                        change_text=title + ' deleted: ' + ", ".join(x.formatted_email() for x in deleted)
+                        change_text=title + ' deleted: ' + ", ".join(x.name_and_email() for x in deleted)
                         personnel_change_text+=change_text+"\n"
                     changed_personnel.update(set(old)^set(new))
 
@@ -335,20 +353,21 @@ def edit(request, group_type=None, acronym=None, action="edit"):
                 email_personnel_change(request, group, personnel_change_text, changed_personnel)
 
             # update urls
-            new_urls = clean['urls']
-            old_urls = format_urls(group.groupurl_set.order_by('url'), ", ")
-            if ", ".join(sorted(new_urls)) != old_urls:
-                changes.append(('urls', new_urls, desc('Urls', ", ".join(sorted(new_urls)), old_urls)))
-                group.groupurl_set.all().delete()
-                # Add new ones
-                for u in new_urls:
-                    m = re.search('(?P<url>[\w\d:#@%/;$()~_?\+-=\\\.&]+)( \((?P<name>.+)\))?', u)
-                    if m:
-                        if m.group('name'):
-                            url = GroupURL(url=m.group('url'), name=m.group('name'), group=group)
-                        else:
-                            url = GroupURL(url=m.group('url'), name='', group=group)
-                        url.save()
+            if 'urls' in clean:
+                new_urls = clean['urls']
+                old_urls = format_urls(group.groupurl_set.order_by('url'), ", ")
+                if ", ".join(sorted(new_urls)) != old_urls:
+                    changes.append(('urls', new_urls, desc('Urls', ", ".join(sorted(new_urls)), old_urls)))
+                    group.groupurl_set.all().delete()
+                    # Add new ones
+                    for u in new_urls:
+                        m = re.search('(?P<url>[\w\d:#@%/;$()~_?\+-=\\\.&]+)( \((?P<name>.+)\))?', u)
+                        if m:
+                            if m.group('name'):
+                                url = GroupURL(url=m.group('url'), name=m.group('name'), group=group)
+                            else:
+                                url = GroupURL(url=m.group('url'), name='', group=group)
+                            url.save()
 
             group.time = datetime.datetime.now()
 
@@ -362,7 +381,7 @@ def edit(request, group_type=None, acronym=None, action="edit"):
             group.save()
 
             if action=="charter":
-                return redirect('charter_submit', name=charter_name_for_group(group), option="initcharter")
+                return redirect('ietf.doc.views_charter.submit', name=charter_name_for_group(group), option="initcharter")
 
             return HttpResponseRedirect(group.about_url())
     else: # form.is_valid()
@@ -380,28 +399,26 @@ def edit(request, group_type=None, acronym=None, action="edit"):
                         )
 
             for slug in roles_for_group_type(group_type):
-                init[slug + "_roles"] = Email.objects.filter(role__group=group, role__name=slug)
+                init[slug + "_roles"] = Email.objects.filter(role__group=group, role__name=slug).order_by('role__person__name')
         else:
             init = dict(ad=request.user.person.id if group_type == "wg" and has_role(request.user, "Area Director") else None,
                         )
-        form = GroupForm(initial=init, group=group, group_type=group_type)
+        form = GroupForm(initial=init, group=group, group_type=group_type, field=field)
 
     return render(request, 'group/edit.html',
                   dict(group=group,
                        form=form,
                        action=action))
 
-
-
 class ConcludeForm(forms.Form):
-    instructions = forms.CharField(widget=forms.Textarea(attrs={'rows': 30}), required=True)
+    instructions = forms.CharField(widget=forms.Textarea(attrs={'rows': 30}), required=True, strip=False)
 
 @login_required
 def conclude(request, acronym, group_type=None):
     """Request the closing of group, prompting for instructions."""
     group = get_group_or_404(acronym, group_type)
 
-    if not can_manage_group(request.user, group):
+    if not can_manage_group_type(request.user, group):
         return HttpResponseForbidden("You don't have permission to access this view")
 
     if request.method == 'POST':
@@ -416,7 +433,11 @@ def conclude(request, acronym, group_type=None):
             e.desc = "Requested closing group"
             e.save()
 
-            return redirect(group.features.about_page, group_type=group_type, acronym=group.acronym)
+            kwargs = {'acronym':group.acronym}
+            if group_type:
+                kwargs['group_type'] = group_type
+   
+            return redirect(group.features.about_page, **kwargs)
     else:
         form = ConcludeForm()
 

@@ -32,25 +32,32 @@
 
 # Copyright The IETF Trust 2007, All Rights Reserved
 
+import importlib
+
 from datetime import datetime as DateTime, timedelta as TimeDelta, date as Date
 from collections import defaultdict
 
-from django.conf import settings
-from django.http import Http404  #, HttpResponse, HttpResponseRedirect
-from django.shortcuts import render, redirect, get_object_or_404
-#from django.contrib.auth import REDIRECT_FIELD_NAME, authenticate, login
-from django.contrib.auth.decorators import login_required
-#from django.utils.http import urlquote
 import django.core.signing
-from django.contrib.sites.models import Site
-from django.contrib.auth.models import User
 from django import forms
+from django.contrib import messages
+from django.conf import settings
+from django.contrib.auth import update_session_auth_hash
+from django.contrib.auth.decorators import login_required
+from django.contrib.auth.forms import AuthenticationForm
+from django.contrib.auth.hashers import identify_hasher
+from django.contrib.auth.models import User
+from django.contrib.auth.views import login as django_login
+from django.contrib.sites.models import Site
+from django.urls import reverse as urlreverse
+from django.http import Http404, HttpResponseRedirect  #, HttpResponse, 
+from django.shortcuts import render, redirect, get_object_or_404
 
 import debug                            # pyflakes:ignore
 
 from ietf.group.models import Role, Group
-from ietf.ietfauth.forms import RegistrationForm, PasswordForm, ResetPasswordForm, TestEmailForm, WhitelistForm
-from ietf.ietfauth.forms import get_person_form, RoleEmailForm, NewEmailForm
+from ietf.ietfauth.forms import ( RegistrationForm, PasswordForm, ResetPasswordForm, TestEmailForm,
+                                WhitelistForm, ChangePasswordForm, get_person_form, RoleEmailForm,
+                                NewEmailForm, ChangeUsernameForm, PersonPasswordForm)
 from ietf.ietfauth.htpasswd import update_htpasswd_file
 from ietf.ietfauth.utils import role_required
 from ietf.mailinglists.models import Subscribed, Whitelisted
@@ -74,7 +81,7 @@ def index(request):
 
 # @login_required
 # def ietf_login(request):
-#     if not request.user.is_authenticated():
+#     if not request.user.is_authenticated:
 #         return HttpResponse("Not authenticated?", status=500)
 # 
 #     redirect_to = request.REQUEST.get(REDIRECT_FIELD_NAME, '')
@@ -134,7 +141,7 @@ def confirm_account(request, auth):
 
     success = False
     if request.method == 'POST':
-        form = PasswordForm(request.POST)
+        form = PersonPasswordForm(request.POST)
         if form.is_valid():
             password = form.cleaned_data["password"]
 
@@ -153,9 +160,15 @@ def confirm_account(request, auth):
                 person = email_obj.person
 
             if not person:
+                name = form.cleaned_data["name"]
+                ascii = form.cleaned_data["ascii"]
                 person = Person.objects.create(user=user,
-                                               name=email,
-                                               ascii=email)
+                                               name=name,
+                                               ascii=ascii)
+
+                for name in set([ person.name, person.ascii, person.plain_name(), person.plain_ascii(), ]):
+                    Alias.objects.create(person=person, name=name)
+
             if not email_obj:
                 email_obj = Email.objects.create(address=email, person=person)
             else:
@@ -168,7 +181,7 @@ def confirm_account(request, auth):
 
             success = True
     else:
-        form = PasswordForm()
+        form = PersonPasswordForm()
 
     return render(request, 'registration/confirm_account.html', {
         'form': form,
@@ -233,14 +246,18 @@ def profile(request):
                     r.email = e
                     r.save()
 
+            primary_email = request.POST.get("primary_email", None)
             active_emails = request.POST.getlist("active_emails", [])
             for email in emails:
                 email.active = email.pk in active_emails
+                email.primary = email.address == primary_email
+                if email.primary and not email.active:
+                    email.active = True
                 email.save()
 
             # Make sure the alias table contains any new and/or old names.
             existing_aliases = set(Alias.objects.filter(person=person).values_list("name", flat=True))
-            curr_names = set(x for x in [updated_person.name, updated_person.ascii, updated_person.ascii_short, updated_person.plain_name(), ] if x)
+            curr_names = set(x for x in [updated_person.name, updated_person.ascii, updated_person.ascii_short, updated_person.plain_name(), updated_person.plain_ascii(), ] if x)
             new_aliases = curr_names - existing_aliases
             for name in new_aliases:
                 Alias.objects.create(person=updated_person, name=name)
@@ -340,10 +357,14 @@ def confirm_password_reset(request, auth):
     else:
         form = PasswordForm()
 
+    hlibname, hashername = settings.PASSWORD_HASHERS[0].rsplit('.',1)
+    hlib = importlib.import_module(hlibname)
+    hasher = getattr(hlib, hashername)
     return render(request, 'registration/change_password.html', {
         'form': form,
-        'username': username,
+        'user': user,
         'success': success,
+        'hasher': hasher,
     })
 
 def test_email(request):
@@ -465,3 +486,115 @@ def review_overview(request):
         'review_wishes': review_wishes,
         'review_wish_form': review_wish_form,
     })
+
+@login_required
+def change_password(request):
+    success = False
+    person = None
+
+    try:
+        person = request.user.person
+    except Person.DoesNotExist:
+        return render(request, 'registration/missing_person.html')
+
+    emails = [ e.address for e in Email.objects.filter(person=person, active=True).order_by('-primary','-time') ]
+    user = request.user
+
+    if request.method == 'POST':
+        form = ChangePasswordForm(user, request.POST)
+        if form.is_valid():
+            new_password = form.cleaned_data["new_password"]
+            
+            user.set_password(new_password)
+            user.save()
+            # password is also stored in htpasswd file
+            update_htpasswd_file(user.username, new_password)
+            # keep the session
+            update_session_auth_hash(request, user)
+
+            send_mail(request, emails, None, "Datatracker password change notification", "registration/password_change_email.txt", {})
+
+            messages.success(request, "Your password was successfully changed")
+            return HttpResponseRedirect(urlreverse('ietf.ietfauth.views.profile'))
+
+    else:
+        form = ChangePasswordForm(request.user)
+
+    hlibname, hashername = settings.PASSWORD_HASHERS[0].rsplit('.',1)
+    hlib = importlib.import_module(hlibname)
+    hasher = getattr(hlib, hashername)
+    return render(request, 'registration/change_password.html', {
+        'form': form,
+        'user': user,
+        'success': success,
+        'hasher': hasher,
+    })
+
+    
+@login_required
+def change_username(request):
+    person = None
+
+    try:
+        person = request.user.person
+    except Person.DoesNotExist:
+        return render(request, 'registration/missing_person.html')
+
+    emails = [ e.address for e in Email.objects.filter(person=person, active=True) ]
+    emailz = [ e.address for e in person.email_set.filter(active=True) ]
+    assert emails == emailz
+    user = request.user
+
+    if request.method == 'POST':
+        form = ChangeUsernameForm(user, request.POST)
+        if form.is_valid():
+            new_username = form.cleaned_data["username"]
+            password = form.cleaned_data["password"]
+            assert new_username in emails
+
+            user.username = new_username.lower()
+            user.save()
+            # password is also stored in htpasswd file
+            update_htpasswd_file(user.username, password)
+            # keep the session
+            update_session_auth_hash(request, user)
+
+            send_mail(request, emails, None, "Datatracker username change notification", "registration/username_change_email.txt", {})
+
+            messages.success(request, "Your username was successfully changed")
+            return HttpResponseRedirect(urlreverse('ietf.ietfauth.views.profile'))
+
+    else:
+        form = ChangeUsernameForm(request.user)
+
+    return render(request, 'registration/change_username.html', {
+        'form': form,
+        'user': user,
+    })
+
+
+
+def login(request, extra_context=None):
+    """
+    This login function is a wrapper around django's login() for the purpose
+    of providing a notification if the user's password has been cleared.  The
+    warning will be triggered if the password field has been set to something
+    which is not recognized as a valid password hash.
+    """
+
+    if request.method == "POST":
+        form = AuthenticationForm(request, data=request.POST)
+        username = form.data.get('username')
+        user = User.objects.filter(username=username).first()
+        if user:
+            try:
+                identify_hasher(user.password)
+            except ValueError:
+                extra_context = {"alert":
+                                    "Note: Your password has been cleared because "
+                                    "of possible password leakage.  "
+                                    "Please use the password reset link below "
+                                    "to set a new password for your account.",
+                                }
+
+    return django_login(request, extra_context=extra_context)

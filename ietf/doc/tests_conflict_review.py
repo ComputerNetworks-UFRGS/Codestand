@@ -7,7 +7,7 @@ from StringIO import StringIO
 from textwrap import wrap
 
 from django.conf import settings
-from django.core.urlresolvers import reverse as urlreverse
+from django.urls import reverse as urlreverse
 
 from ietf.doc.models import Document, DocEvent, NewRevisionDocEvent, BallotPositionDocEvent, TelechatDocEvent, State
 from ietf.doc.utils import create_ballot_if_not_open
@@ -25,7 +25,7 @@ class ConflictReviewTests(TestCase):
     def test_start_review_as_secretary(self):
 
         doc = Document.objects.get(name='draft-imaginary-independent-submission')
-        url = urlreverse('conflict_review_start',kwargs=dict(name=doc.name))
+        url = urlreverse('ietf.doc.views_conflict_review.start_review',kwargs=dict(name=doc.name))
 
         login_testing_unauthorized(self, "secretary", url)
         
@@ -34,7 +34,7 @@ class ConflictReviewTests(TestCase):
         self.assertEqual(r.status_code, 404)
 
         doc.stream = StreamName.objects.get(slug='ise')
-        doc.save_with_history([DocEvent.objects.create(doc=doc, type="changed_stream", by=Person.objects.get(user__username="secretary"), desc="Test")])
+        doc.save_with_history([DocEvent.objects.create(doc=doc, rev=doc.rev, type="changed_stream", by=Person.objects.get(user__username="secretary"), desc="Test")])
 
         # normal get should succeed and get a reasonable form
         r = self.client.get(url)
@@ -80,7 +80,7 @@ class ConflictReviewTests(TestCase):
     def test_start_review_as_stream_owner(self):
 
         doc = Document.objects.get(name='draft-imaginary-independent-submission')
-        url = urlreverse('conflict_review_start',kwargs=dict(name=doc.name))
+        url = urlreverse('ietf.doc.views_conflict_review.start_review',kwargs=dict(name=doc.name))
 
         login_testing_unauthorized(self, "ise-chair", url)
 
@@ -91,13 +91,13 @@ class ConflictReviewTests(TestCase):
 
         # can't start conflict reviews on documents in some other stream
         doc.stream = StreamName.objects.get(slug='irtf')
-        doc.save_with_history([DocEvent.objects.create(doc=doc, type="changed_stream", by=Person.objects.get(user__username="secretary"), desc="Test")])
+        doc.save_with_history([DocEvent.objects.create(doc=doc, rev=doc.rev, type="changed_stream", by=Person.objects.get(user__username="secretary"), desc="Test")])
         r = self.client.get(url)
         self.assertEquals(r.status_code, 404)
 
         # successful get 
         doc.stream = StreamName.objects.get(slug='ise')
-        doc.save_with_history([DocEvent.objects.create(doc=doc, type="changed_stream", by=Person.objects.get(user__username="secretary"), desc="Test")])
+        doc.save_with_history([DocEvent.objects.create(doc=doc, rev=doc.rev, type="changed_stream", by=Person.objects.get(user__username="secretary"), desc="Test")])
         r = self.client.get(url)
         self.assertEquals(r.status_code, 200)
         q = PyQuery(r.content)
@@ -129,7 +129,7 @@ class ConflictReviewTests(TestCase):
     def test_change_state(self):
 
         doc = Document.objects.get(name='conflict-review-imaginary-irtf-submission')
-        url = urlreverse('conflict_review_change_state',kwargs=dict(name=doc.name))
+        url = urlreverse('ietf.doc.views_conflict_review.change_state',kwargs=dict(name=doc.name))
 
         login_testing_unauthorized(self, "ad", url)
 
@@ -167,7 +167,7 @@ class ConflictReviewTests(TestCase):
 
     def test_edit_notices(self):
         doc = Document.objects.get(name='conflict-review-imaginary-irtf-submission')
-        url = urlreverse('conflict_review_notices',kwargs=dict(name=doc.name))
+        url = urlreverse('ietf.doc.views_doc.edit_notify;conflict-review',kwargs=dict(name=doc.name))
 
         login_testing_unauthorized(self, "ad", url)
 
@@ -197,7 +197,7 @@ class ConflictReviewTests(TestCase):
 
     def test_edit_ad(self):
         doc = Document.objects.get(name='conflict-review-imaginary-irtf-submission')
-        url = urlreverse('conflict_review_ad',kwargs=dict(name=doc.name))
+        url = urlreverse('ietf.doc.views_conflict_review.edit_ad',kwargs=dict(name=doc.name))
 
         login_testing_unauthorized(self, "ad", url)
 
@@ -218,7 +218,7 @@ class ConflictReviewTests(TestCase):
 
     def test_edit_telechat_date(self):
         doc = Document.objects.get(name='conflict-review-imaginary-irtf-submission')
-        url = urlreverse('conflict_review_telechat_date',kwargs=dict(name=doc.name))
+        url = urlreverse('ietf.doc.views_doc.telechat_date;conflict-review',kwargs=dict(name=doc.name))
 
         login_testing_unauthorized(self, "ad", url)
 
@@ -263,7 +263,7 @@ class ConflictReviewTests(TestCase):
     def approve_test_helper(self,approve_type):
 
         doc = Document.objects.get(name='conflict-review-imaginary-irtf-submission')
-        url = urlreverse('conflict_review_approve',kwargs=dict(name=doc.name))
+        url = urlreverse('ietf.doc.views_conflict_review.approve',kwargs=dict(name=doc.name))
 
         login_testing_unauthorized(self, "secretary", url)
         
@@ -314,7 +314,7 @@ class ConflictReviewTests(TestCase):
 class ConflictReviewSubmitTests(TestCase):
     def test_initial_submission(self):
         doc = Document.objects.get(name='conflict-review-imaginary-irtf-submission')
-        url = urlreverse('conflict_review_submit',kwargs=dict(name=doc.name))
+        url = urlreverse('ietf.doc.views_conflict_review.submit',kwargs=dict(name=doc.name))
         login_testing_unauthorized(self, "ad", url)
 
         # normal get
@@ -341,7 +341,7 @@ class ConflictReviewSubmitTests(TestCase):
 
     def test_subsequent_submission(self):
         doc = Document.objects.get(name='conflict-review-imaginary-irtf-submission')
-        url = urlreverse('conflict_review_submit',kwargs=dict(name=doc.name))
+        url = urlreverse('ietf.doc.views_conflict_review.submit',kwargs=dict(name=doc.name))
         login_testing_unauthorized(self, "ad", url)
 
         # A little additional setup 
@@ -388,8 +388,7 @@ class ConflictReviewSubmitTests(TestCase):
         
     def setUp(self):
         make_test_data()
-        self.test_dir = os.path.abspath("tmp-conflict-review-testdir")
-        os.mkdir(self.test_dir)
+        self.test_dir = self.tempdir('conflict-review')
         self.saved_conflict_review_path = settings.CONFLICT_REVIEW_PATH
         settings.CONFLICT_REVIEW_PATH = self.test_dir
 

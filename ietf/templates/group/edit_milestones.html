@@ -21,7 +21,7 @@
   <p>Links:
     <a href="{{ group.about_url }}">{{ group.acronym }} {{ group.type.name }}</a>
     {% if group.charter %}
-      - <a href="{% url "doc_view" name=group.charter.canonical_name %}">{{ group.charter.canonical_name }}</a>
+      - <a href="{% url "ietf.doc.views_doc.document_main" name=group.charter.canonical_name %}">{{ group.charter.canonical_name }}</a>
     {% endif %}
   </p>
 
@@ -37,7 +37,7 @@
 
   {% if can_reset %}
     <p>
-      You can <a href="{% url "group_reset_charter_milestones" group_type=group.type_id acronym=group.acronym %}">reset
+      You can <a href="{% url 'ietf.group.milestones.reset_charter_milestones' group_type=group.type_id acronym=group.acronym %}">reset
       this list</a> to the milestones currently in use for the {{ group.acronym }} {{ group.type.name }}.
     </p>
   {% endif %}
@@ -84,7 +84,7 @@
     </table>
 
     {% buttons %}
-      <a class="btn btn-default pull-right" href="{% if milestone_set == "charter" %}{% url "doc_view" name=group.charter.canonical_name %}{% else %}{{ group.about_url }}{% endif %}">Cancel</a>
+      <a class="btn btn-default pull-right" href="{% if milestone_set == "charter" %}{% url "ietf.doc.views_doc.document_main" name=group.charter.canonical_name %}{% else %}{{ group.about_url }}{% endif %}">Cancel</a>
 
       <button style="display:none" class="btn btn-primary" type="submit" data-labelsave="Save" data-labelreview="Review changes">Save</button>
       <input type="hidden" name="action" value="save">

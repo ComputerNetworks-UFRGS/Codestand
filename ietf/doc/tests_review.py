@@ -5,21 +5,23 @@ import tarfile, tempfile, mailbox
 import email.mime.multipart, email.mime.text, email.utils
 from StringIO import StringIO
 
-from django.core.urlresolvers import reverse as urlreverse
+from django.urls import reverse as urlreverse
 from django.conf import settings
 
 from pyquery import PyQuery
 
 import debug                            # pyflakes:ignore
 
+import ietf.review.mailarch
+from ietf.doc.models import DocumentAuthor, Document, DocAlias, RelatedDocument, DocEvent, ReviewRequestDocEvent
+from ietf.group.models import Group
+from ietf.message.models import Message
+from ietf.name.models import ReviewResultName, ReviewRequestStateName, ReviewTypeName, DocRelationshipName
+from ietf.person.models import Email, Person
 from ietf.review.models import (ReviewRequest, ReviewerSettings,
                                 ReviewWish, UnavailablePeriod, NextReviewerInTeam)
 from ietf.review.utils import reviewer_rotation_list, possibly_advance_next_reviewer_for_team
-import ietf.review.mailarch
-from ietf.person.models import Email, Person
-from ietf.name.models import ReviewResultName, ReviewRequestStateName, ReviewTypeName, DocRelationshipName
-from ietf.group.models import Group
-from ietf.doc.models import DocumentAuthor, Document, DocAlias, RelatedDocument, DocEvent, ReviewRequestDocEvent
+
 from ietf.utils.test_utils import TestCase
 from ietf.utils.test_data import make_test_data, make_review_data, create_person
 from ietf.utils.test_utils import login_testing_unauthorized, unicontent, reload_db_objects
@@ -28,10 +30,7 @@ from ietf.person.factories import PersonFactory
 
 class ReviewTests(TestCase):
     def setUp(self):
-        self.review_dir = os.path.abspath("tmp-review-dir")
-        if not os.path.exists(self.review_dir):
-            os.mkdir(self.review_dir)
-
+        self.review_dir = self.tempdir('review')
         self.old_document_path_pattern = settings.DOCUMENT_PATH_PATTERN
         settings.DOCUMENT_PATH_PATTERN = self.review_dir + "/{doc.type_id}/"
 
@@ -111,7 +110,7 @@ class ReviewTests(TestCase):
         review_req.doc = older_doc
         review_req.save()
 
-        url = urlreverse('doc_view', kwargs={ "name": doc.name })
+        url = urlreverse('ietf.doc.views_doc.document_main', kwargs={ "name": doc.name })
         r = self.client.get(url)
         self.assertEqual(r.status_code, 200)
         content = unicontent(r)
@@ -266,7 +265,7 @@ class ReviewTests(TestCase):
             document=doc,
         )
         doc.rev = "10"
-        doc.save_with_history([DocEvent.objects.create(doc=doc, type="changed_document", by=Person.objects.get(user__username="secretary"), desc="Test")])
+        doc.save_with_history([DocEvent.objects.create(doc=doc, rev=doc.rev, type="changed_document", by=Person.objects.get(user__username="secretary"), desc="Test")])
 
         # previous review
         ReviewRequest.objects.create(
@@ -567,12 +566,23 @@ class ReviewTests(TestCase):
 
         self.assertEqual(len(outbox), 1)
         self.assertTrue(review_req.team.list_email in outbox[0]["To"])
+        self.assertTrue(review_req.reviewer.role_set.filter(group=review_req.team,name='reviewer').first().email.address in outbox[0]["From"])
         self.assertTrue("This is a review" in outbox[0].get_payload(decode=True).decode("utf-8"))
 
         self.assertTrue(settings.MAILING_LIST_ARCHIVE_URL in review_req.review.external_url)
 
+        # Check that the review has the reviewer as author
+        self.assertEqual(review_req.reviewer, review_req.review.authors.first())
+
+        # Check that we have a copy of the outgoing message
+        msgid = outbox[0]["Message-ID"]
+        message = Message.objects.get(msgid=msgid)
+        self.assertEqual(email.utils.parseaddr(outbox[0]["To"]), email.utils.parseaddr(message.to))
+        self.assertEqual(email.utils.parseaddr(outbox[0]["From"]), email.utils.parseaddr(message.frm))
+        self.assertEqual(outbox[0].get_payload(decode=True).decode(str(outbox[0].get_charset())), message.body)
+
         # check the review document page
-        url = urlreverse('doc_view', kwargs={ "name": review_req.review.name })
+        url = urlreverse('ietf.doc.views_doc.document_main', kwargs={ "name": review_req.review.name })
         r = self.client.get(url)
         self.assertEqual(r.status_code, 200)
         content = unicontent(r)

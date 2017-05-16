@@ -196,6 +196,7 @@ class Draft():
         line = ""
         newpage = False
         sentence = False
+        shortprev = False
         blankcount = 0
         linecount = 0
         # two functions with side effects
@@ -237,7 +238,7 @@ class Draft():
             if re.search("\f", line, re.I):
                 pages, page, newpage = begpage(pages, page, newpage)
                 continue
-            if re.search("^ *Internet.Draft.+   .+[12][0-9][0-9][0-9] *$", line, re.I):
+            if re.search("^ *Internet.Draft.+  .+[12][0-9][0-9][0-9] *$", line, re.I):
                 pages, page, newpage = begpage(pages, page, newpage, line)
                 continue
     #        if re.search("^ *Internet.Draft  +", line, re.I):
@@ -262,7 +263,9 @@ class Draft():
                 sentence = True
             if re.search("[^ \t]", line):
                 if newpage:
-                    if sentence:
+                    # 33 is a somewhat arbitrary count for a 'short' line
+                    shortthis = len(line.strip()) < 33 # 33 is a somewhat arbitrary count for a 'short' line
+                    if sentence or (shortprev and not shortthis):
                         stripped += [""]
                 else:
                     if blankcount:
@@ -270,6 +273,7 @@ class Draft():
                 blankcount = 0
                 sentence = False
                 newpage = False
+                shortprev = len(line.strip()) < 33 # 33 is a somewhat arbitrary count for a 'short' line
             if re.search("[.:]$", line):
                 sentence = True
             if re.search("^[ \t]*$", line):
@@ -498,7 +502,7 @@ class Draft():
             r" {6}(\w+\s?\(.+\))$",
         ]
 
-        dateformat = r"(((%(month)s|%(mabbr)s) \d+, |\d+ (%(month)s|%(mabbr)s),? |\d+/\d+/)\d\d\d\d|\d\d\d\d-\d\d-\d\d)$"
+        dateformat = r"(((%(months)s|%(mabbr)s) \d+, |\d+ (%(months)s|%(mabbr)s),? |\d+/\d+/)\d\d\d\d|\d\d\d\d-\d\d-\d\d)$" % aux
 
         address_section = r"^ *([0-9]+\.)? *(Author|Editor)('s|s'|s|\(s\)) (Address|Addresses|Information)"
 
@@ -668,10 +672,15 @@ class Draft():
                 break
 
         found_pos = []
+        company_or_author = None
         for i in range(len(authors)):
             _debug("1: authors[%s]: %s" % (i, authors[i]))
             _debug("   company[%s]: %s" % (i, companies[i]))
             author = authors[i]
+            if i+1 < len(authors):
+                company_or_author = authors[i+1]
+            else:
+                company_or_author = None
             if author in [ None, '', ]:
                 continue
             suffix_match = re.search(" %(suffix)s$" % aux, author)
@@ -839,7 +848,8 @@ class Draft():
                     if authmatch:
                         _debug("     ? Other author or company ?  : %s" % authmatch)
                         _debug("     Line: "+line.strip())
-                        if nonblank_count == 1 or (nonblank_count == 2 and not blanklines):
+                        _debug("     C or A: %s"%company_or_author)
+                        if nonblank_count == 1 or (nonblank_count == 2 and not blanklines) or (company_or_author==line.strip() and not blanklines):
                             # First line after an author -- this is a company
                             companies_seen += [ c.lower() for c in authmatch ]
                             companies_seen += [ line.strip().lower() ] # XXX fix this for columnized author list

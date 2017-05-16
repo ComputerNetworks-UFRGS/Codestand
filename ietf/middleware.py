@@ -1,8 +1,7 @@
 # Copyright The IETF Trust 2007, All Rights Reserved
 
 from django.db import connection
-from django.shortcuts import render_to_response
-from django.template import RequestContext
+from django.shortcuts import render
 from django.http import HttpResponsePermanentRedirect
 from ietf.utils.log import log
 from ietf.utils.mail import log_smtp_exception
@@ -10,29 +9,38 @@ import re
 import smtplib
 import unicodedata
 
-class SQLLogMiddleware(object):
-    def process_response(self, request, response):
+
+def sql_log_middleware(get_response):
+    def sql_log(request):
+        response = get_response(request)
 	for q in connection.queries:
 	    if re.match('(update|insert)', q['sql'], re.IGNORECASE):
 		log(q['sql'])
         return response
+    return sql_log
 
 class SMTPExceptionMiddleware(object):
+    def __init__(self, get_response):
+        self.get_response = get_response
+    def __call__(self, request):
+        return self.get_response(request)
     def process_exception(self, request, exception):
 	if isinstance(exception, smtplib.SMTPException):
             (extype, value, tb) = log_smtp_exception(exception)
-	    return render_to_response('email_failed.html', {'exception': extype, 'args': value, 'traceback': "".join(tb)},
-		context_instance=RequestContext(request))
+	    return render(request, 'email_failed.html',
+                          {'exception': extype, 'args': value, 'traceback': "".join(tb)} )
 	return None
 
-class RedirectTrailingPeriod(object):
-    def process_response(self, request, response):
+def redirect_trailing_period_middleware(get_response):
+    def redirect_trailing_period(request):
+        response = get_response(request)
 	if response.status_code == 404 and request.path.endswith("."):
 	    return HttpResponsePermanentRedirect(request.path.rstrip("."))
 	return response
+    return redirect_trailing_period
 
-class UnicodeNfkcNormalization(object):
-    def process_request(self, request):
+def unicode_nfkc_normalization_middleware(get_response):
+    def unicode_nfkc_normalization(request):
         """Do Unicode NFKC normalization to turn ligatures into individual characters.
         This was prompted by somebody actually requesting an url for /wg/ipfix/charter
         where the 'fi' was composed of an \ufb01 ligature...
@@ -42,4 +50,7 @@ class UnicodeNfkcNormalization(object):
         """
         request.META["PATH_INFO"] = unicodedata.normalize('NFKC', request.META["PATH_INFO"])
         request.path_info = unicodedata.normalize('NFKC', request.path_info)
-        return None
+        response = get_response(request)
+        return response
+    return unicode_nfkc_normalization
+        

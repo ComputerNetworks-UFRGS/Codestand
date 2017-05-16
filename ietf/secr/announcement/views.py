@@ -1,8 +1,7 @@
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.http import HttpResponseForbidden
-from django.shortcuts import render_to_response, redirect
-from django.template import RequestContext
+from django.shortcuts import render, redirect
 
 from ietf.group.models import Role
 from ietf.ietfauth.utils import has_role
@@ -66,12 +65,9 @@ def main(request):
             data['nomcom'] = data['nomcom'].pk
         request.session['data'] = data
 
-        return redirect('announcement_confirm')
+        return redirect('ietf.secr.announcement.views.confirm')
 
-    return render_to_response('announcement/main.html', {
-        'form': form},
-        RequestContext(request, {}),
-    )
+    return render(request, 'announcement/main.html', { 'form': form} )
 
 @login_required
 @check_for_cancel('../')
@@ -81,7 +77,7 @@ def confirm(request):
         data = request.session['data']
     else:
         messages.error(request, 'No session data.  Your session may have expired or cookies are disallowed.')
-        return redirect('announcement')
+        return redirect('ietf.secr.announcement.views.main')
 
     if request.method == 'POST':
         form = AnnounceForm(data, user=request.user)
@@ -100,15 +96,14 @@ def confirm(request):
         clear_non_auth(request.session)
 
         messages.success(request, 'The announcement was sent.')
-        return redirect('announcement')
+        return redirect('ietf.secr.announcement.views.main')
 
     if data['to'] == 'Other...':
         to = ','.join(data['to_custom'])
     else:
         to = data['to']
 
-    return render_to_response('announcement/confirm.html', {
+    return render(request, 'announcement/confirm.html', {
         'message': data,
         'to': to},
-        RequestContext(request, {}),
     )

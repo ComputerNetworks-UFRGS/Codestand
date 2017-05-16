@@ -44,7 +44,9 @@ def all_id_txt():
 
     inactive_states = ["pub", "watching", "dead"]
 
-    in_iesg_process = all_ids.exclude(states=State.objects.filter(type="draft", slug__in=["rfc","repl"])).filter(states__in=list(State.objects.filter(type="draft-iesg").exclude(slug__in=inactive_states))).only("name", "rev")
+    excludes = list(State.objects.filter(type="draft", slug__in=["rfc","repl"]))
+    includes = list(State.objects.filter(type="draft-iesg").exclude(slug__in=inactive_states))
+    in_iesg_process = all_ids.exclude(states__in=excludes).filter(states__in=includes).only("name", "rev")
 
     # handle those actively in the IESG process
     for d in in_iesg_process:
@@ -125,9 +127,9 @@ def all_id2_txt():
         else:
             l.append(a.author.person.plain_name())
 
-    shepherds = dict((e.pk, e.formatted_email().replace('"', ''))
+    shepherds = dict((e.pk, e.formatted_ascii_email().replace('"', ''))
                      for e in Email.objects.filter(shepherd_document_set__type="draft").select_related("person").distinct())
-    ads = dict((p.pk, p.formatted_email().replace('"', ''))
+    ads = dict((p.pk, p.formatted_ascii_email().replace('"', ''))
                for p in Person.objects.filter(ad_document_set__type="draft").distinct())
 
     res = []

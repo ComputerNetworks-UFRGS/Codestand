@@ -3,7 +3,7 @@
 import datetime
 
 from django.conf import settings
-from django.core.urlresolvers import reverse
+from django.urls import reverse
 from django.db import models
 
 from ietf.doc.models import DocAlias
@@ -29,7 +29,7 @@ class IprDisclosureBase(models.Model):
         return self.title
 
     def get_absolute_url(self):
-        return settings.IDTRACKER_BASE_URL + reverse('ipr_show',kwargs={'id':self.id})
+        return settings.IDTRACKER_BASE_URL + reverse('ietf.ipr.views.show',kwargs={'id':self.id})
 
     def get_child(self):
         """Returns the child instance"""

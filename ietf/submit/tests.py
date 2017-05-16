@@ -8,7 +8,7 @@ from StringIO import StringIO
 from pyquery import PyQuery
 
 from django.conf import settings
-from django.core.urlresolvers import reverse as urlreverse
+from django.urls import reverse as urlreverse
 
 import debug                            # pyflakes:ignore
 
@@ -56,34 +56,28 @@ def submission_file(name, rev, group, format, templatename, author=None):
 class SubmitTests(TestCase):
     def setUp(self):
         self.saved_idsubmit_staging_path = settings.IDSUBMIT_STAGING_PATH
-        self.staging_dir = os.path.abspath("tmp-submit-staging-dir")
-        os.mkdir(self.staging_dir)
+        self.staging_dir = self.tempdir('submit-staging')
         settings.IDSUBMIT_STAGING_PATH = self.staging_dir
 
         self.saved_internet_draft_path = settings.INTERNET_DRAFT_PATH
         self.saved_idsubmit_repository_path = settings.IDSUBMIT_REPOSITORY_PATH
-        self.repository_dir = os.path.abspath("tmp-submit-repository-dir")
-        os.mkdir(self.repository_dir)
+        self.repository_dir = self.tempdir('submit-repository')
         settings.INTERNET_DRAFT_PATH = settings.IDSUBMIT_REPOSITORY_PATH = self.repository_dir
 
         self.saved_archive_dir = settings.INTERNET_DRAFT_ARCHIVE_DIR
-        self.archive_dir = os.path.abspath("tmp-submit-archive-dir")
-        os.mkdir(self.archive_dir)
+        self.archive_dir = self.tempdir('submit-archive')
         settings.INTERNET_DRAFT_ARCHIVE_DIR = self.archive_dir
         
         self.saved_yang_rfc_model_dir = settings.YANG_RFC_MODEL_DIR
-        self.yang_rfc_model_dir = os.path.abspath("tmp-yang-rfc-model-dir")
-        os.mkdir(self.yang_rfc_model_dir)
+        self.yang_rfc_model_dir = self.tempdir('yang-rfc-model')
         settings.YANG_RFC_MODEL_DIR = self.yang_rfc_model_dir
 
         self.saved_yang_draft_model_dir = settings.YANG_DRAFT_MODEL_DIR
-        self.yang_draft_model_dir = os.path.abspath("tmp-yang-draft-model-dir")
-        os.mkdir(self.yang_draft_model_dir)
+        self.yang_draft_model_dir = self.tempdir('yang-draft-model')
         settings.YANG_DRAFT_MODEL_DIR = self.yang_draft_model_dir
 
         self.saved_yang_inval_model_dir = settings.YANG_INVAL_MODEL_DIR
-        self.yang_inval_model_dir = os.path.abspath("tmp-yang-inval-model-dir")
-        os.mkdir(self.yang_inval_model_dir)
+        self.yang_inval_model_dir = self.tempdir('yang-inval-model')
         settings.YANG_INVAL_MODEL_DIR = self.yang_inval_model_dir
 
     def tearDown(self):
@@ -284,7 +278,7 @@ class SubmitTests(TestCase):
             draft.group.save()
         if not stream_type=='ietf':
             draft.stream_id=stream_type
-            draft.save_with_history([DocEvent.objects.create(doc=draft, type="added_comment", by=Person.objects.get(user__username="secretary"), desc="Test")])
+            draft.save_with_history([DocEvent.objects.create(doc=draft, rev=draft.rev, type="added_comment", by=Person.objects.get(user__username="secretary"), desc="Test")])
         if not change_authors:
             draft.documentauthor_set.all().delete()
             ensure_person_email_info_exists('Author Name','author@example.com')
@@ -300,7 +294,7 @@ class SubmitTests(TestCase):
         draft.set_state(State.objects.get(used=True, type="draft-iana-review", slug="not-ok"))
 
         # pretend it was approved to check that we notify the RFC Editor
-        e = DocEvent(type="iesg_approved", doc=draft)
+        e = DocEvent(type="iesg_approved", doc=draft, rev=draft.rev)
         e.time = draft.time
         e.by = Person.objects.get(name="(System)")
         e.desc = "The IESG approved the document"
@@ -312,6 +306,7 @@ class SubmitTests(TestCase):
         ballot_position.pos_id = "discuss"
         ballot_position.type = "changed_ballot_position"
         ballot_position.doc = draft
+        ballot_position.rev = draft.rev
         ballot_position.ad = ballot_position.by = Person.objects.get(user__username="ad2")
         ballot_position.save()
 
@@ -358,8 +353,8 @@ class SubmitTests(TestCase):
                 if stream_type=='ise':
                    self.assertTrue("rfc-ise@" in confirm_email["To"].lower())
         else:
-            self.assertTrue("chairs have been copied" not in unicode(confirm_email))
-            self.assertTrue("mars-chairs@" not in confirm_email["To"].lower())
+            self.assertNotIn("chairs have been copied", unicode(confirm_email))
+            self.assertNotIn("mars-chairs@", confirm_email["To"].lower())
 
         confirm_url = self.extract_confirm_url(confirm_email)
 
@@ -520,7 +515,7 @@ class SubmitTests(TestCase):
     def test_submit_update_individual(self):
         draft = make_test_data()
         draft.group = None
-        draft.save_with_history([DocEvent.objects.create(doc=draft, type="added_comment", by=Person.objects.get(user__username="secretary"), desc="Test")])
+        draft.save_with_history([DocEvent.objects.create(doc=draft, rev=draft.rev, type="added_comment", by=Person.objects.get(user__username="secretary"), desc="Test")])
         replaces_count = draft.relateddocument_set.filter(relationship_id='replaces').count()
         name = draft.name
         rev = '%02d'%(int(draft.rev)+1)

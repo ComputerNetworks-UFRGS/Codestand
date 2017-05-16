@@ -7,7 +7,7 @@ import random
 
 import debug           # pyflakes:ignore
 
-from django.core.urlresolvers import reverse as urlreverse
+from django.urls import reverse as urlreverse
 from django.conf import settings
 from django.contrib.auth.models import User
 
@@ -38,9 +38,7 @@ from ietf.doc.factories import DocumentFactory
 
 class MeetingTests(TestCase):
     def setUp(self):
-        self.materials_dir = os.path.abspath(settings.TEST_MATERIALS_DIR)
-        if not os.path.exists(self.materials_dir):
-            os.mkdir(self.materials_dir)
+        self.materials_dir = self.tempdir('materials')
         self.saved_agenda_path = settings.AGENDA_PATH
         settings.AGENDA_PATH = self.materials_dir
 
@@ -299,6 +297,14 @@ class MeetingTests(TestCase):
         self.assertEqual(r.status_code, 200)
         self.assertTrue(meeting.number in unicontent(r))
         self.assertTrue("mars" in unicontent(r))
+        self.assertFalse("No session requested" in unicontent(r))
+
+        self.client.login(username="ad", password="ad+password")
+        r = self.client.get(urlreverse("ietf.meeting.views.materials_editable_groups", kwargs={'num':meeting.number}))
+        self.assertEqual(r.status_code, 200)
+        self.assertTrue(meeting.number in unicontent(r))
+        self.assertTrue("frfarea" in unicontent(r))
+        self.assertTrue("No session requested" in unicontent(r))
 
         self.client.login(username="plain",password="plain+password")
         r = self.client.get(urlreverse("ietf.meeting.views.materials_editable_groups", kwargs={'num':meeting.number}))
@@ -614,9 +620,7 @@ class EditScheduleListTests(TestCase):
 
 class InterimTests(TestCase):
     def setUp(self):
-        self.materials_dir = os.path.abspath(settings.TEST_MATERIALS_DIR)
-        if not os.path.exists(self.materials_dir):
-            os.mkdir(self.materials_dir)
+        self.materials_dir = self.tempdir('materials')
         self.saved_agenda_path = settings.AGENDA_PATH
         settings.AGENDA_PATH = self.materials_dir
 
@@ -991,6 +995,43 @@ class InterimTests(TestCase):
         self.assertEqual(timeslot.duration,duration)
         self.assertEqual(session.agenda_note,agenda_note)
 
+    def test_interim_request_multi_day_non_consecutive(self):
+        make_meeting_test_data()
+        date = datetime.date.today() + datetime.timedelta(days=30)
+        date2 = date + datetime.timedelta(days=2)
+        time = datetime.datetime.now().time().replace(microsecond=0,second=0)
+        group = Group.objects.get(acronym='mars')
+        city = 'San Francisco'
+        country = 'US'
+        time_zone = 'US/Pacific'
+        remote_instructions = 'Use webex'
+        agenda = 'Intro. Slides. Discuss.'
+        agenda_note = 'On second level'
+        self.client.login(username="secretary", password="secretary+password")
+        data = {'group':group.pk,
+                'meeting_type':'multi-day',
+                'city':city,
+                'country':country,
+                'time_zone':time_zone,
+                'session_set-0-date':date.strftime("%Y-%m-%d"),
+                'session_set-0-time':time.strftime('%H:%M'),
+                'session_set-0-requested_duration':'03:00:00',
+                'session_set-0-remote_instructions':remote_instructions,
+                'session_set-0-agenda':agenda,
+                'session_set-0-agenda_note':agenda_note,
+                'session_set-1-date':date2.strftime("%Y-%m-%d"),
+                'session_set-1-time':time.strftime('%H:%M'),
+                'session_set-1-requested_duration':'03:00:00',
+                'session_set-1-remote_instructions':remote_instructions,
+                'session_set-1-agenda':agenda,
+                'session_set-1-agenda_note':agenda_note,
+                'session_set-TOTAL_FORMS':2,
+                'session_set-INITIAL_FORMS':0}
+
+        r = self.client.post(urlreverse("ietf.meeting.views.interim_request"),data)
+        self.assertEqual(r.status_code, 200)
+        self.assertTrue('days must be consecutive' in r.content)
+
     def test_interim_request_series(self):
         make_meeting_test_data()
         meeting_count_before = Meeting.objects.filter(type='interim').count()
@@ -1142,28 +1183,27 @@ class InterimTests(TestCase):
         r = self.client.get(url)
         self.assertEqual(r.status_code, 200)
 
-    def test_interim_request_details_skip_announcement(self):
+    def test_interim_request_details_announcement(self):
+        '''Test access to Announce / Skip Announce features'''
         make_meeting_test_data()
         date = datetime.date.today() + datetime.timedelta(days=30)
-        self.client.login(username="secretary", password="secretary+password")
-
-        # ensure skip announcement option exists for Research Group
-        group = Group.objects.get(acronym='irg')
-        meeting = make_interim_meeting(group=group, date=date, status='scheda')
-        url = urlreverse('ietf.meeting.views.interim_request_details',kwargs={'number':meeting.number})
-        r = self.client.get(url)
-        self.assertEqual(r.status_code, 200)
-        q = PyQuery(r.content)
-        self.assertEqual(len(q("a.btn:contains('Skip Announcement')")),1)
-
-        # ensure skip announcement option does not exist for IETF Working Group
         group = Group.objects.get(acronym='mars')
         meeting = make_interim_meeting(group=group, date=date, status='scheda')
         url = urlreverse('ietf.meeting.views.interim_request_details',kwargs={'number':meeting.number})
+
+        # Chair, no access
+        self.client.login(username="marschairman", password="marschairman+password")
         r = self.client.get(url)
         self.assertEqual(r.status_code, 200)
         q = PyQuery(r.content)
-        self.assertEqual(len(q("a.btn:contains('Skip Announcement')")),0)
+        self.assertEqual(len(q("a.btn:contains('Announce')")),0)
+
+        # Secretariat has access
+        self.client.login(username="secretary", password="secretary+password")
+        r = self.client.get(url)
+        self.assertEqual(r.status_code, 200)
+        q = PyQuery(r.content)
+        self.assertEqual(len(q("a.btn:contains('Announce')")),2)
 
     def test_interim_request_disapprove(self):
         make_meeting_test_data()
@@ -1274,12 +1314,13 @@ class InterimTests(TestCase):
         form_initial = r.context['form'].initial
         formset_initial =  r.context['formset'].forms[0].initial
         new_time = formset_initial['time'] + datetime.timedelta(hours=1)
+        new_duration = formset_initial['requested_duration'] + datetime.timedelta(hours=1)
         data = {'group':group.pk,
                 'meeting_type':'single',
                 'session_set-0-id':meeting.session_set.first().id,
                 'session_set-0-date':formset_initial['date'].strftime('%Y-%m-%d'),
                 'session_set-0-time':new_time.strftime('%H:%M'),
-                'session_set-0-requested_duration':formset_initial['requested_duration'],
+                'session_set-0-requested_duration':self.strfdelta(new_duration, '{hours}:{minutes}'),
                 'session_set-0-remote_instructions':formset_initial['remote_instructions'],
                 #'session_set-0-agenda':formset_initial['agenda'],
                 'session_set-0-agenda_note':formset_initial['agenda_note'],
@@ -1293,7 +1334,14 @@ class InterimTests(TestCase):
         session = meeting.session_set.first()
         timeslot = session.official_timeslotassignment().timeslot
         self.assertEqual(timeslot.time,new_time)
-        
+        self.assertEqual(timeslot.duration,new_duration)
+    
+    def strfdelta(self, tdelta, fmt):
+        d = {"days": tdelta.days}
+        d["hours"], rem = divmod(tdelta.seconds, 3600)
+        d["minutes"], d["seconds"] = divmod(rem, 60)
+        return fmt.format(**d)
+
     def test_interim_request_details_permissions(self):
         make_meeting_test_data()
         meeting = Meeting.objects.filter(type='interim',session__status='apprw',session__group__acronym='mars').first()
@@ -1426,7 +1474,7 @@ class FinalizeProceedingsTests(TestCase):
 class MaterialsTests(TestCase):
 
     def setUp(self):
-        self.materials_dir = os.path.abspath(settings.TEST_MATERIALS_DIR)
+        self.materials_dir = self.tempdir('materials')
         if not os.path.exists(self.materials_dir):
             os.mkdir(self.materials_dir)
         self.saved_agenda_path = settings.AGENDA_PATH

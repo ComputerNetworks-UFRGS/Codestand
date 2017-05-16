@@ -9,7 +9,7 @@ from django.http import HttpRequest, Http404
 from django.db.models import Max, Q, Prefetch, F
 from django.conf import settings
 from django.core.cache import cache
-from django.core.urlresolvers import reverse
+from django.urls import reverse
 from django.utils.cache import get_cache_key
 from django.shortcuts import get_object_or_404
 from django.template.loader import render_to_string
@@ -25,6 +25,7 @@ from ietf.mailtrigger.utils import gather_address_lists
 from ietf.person.models  import Person
 from ietf.meeting.models import Meeting, Schedule, TimeSlot, SchedTimeSessAssignment
 from ietf.utils.history import find_history_active_at, find_history_replacements_active_at
+from ietf.utils import log
 from ietf.utils.mail import send_mail
 from ietf.utils.pipe import pipe
 
@@ -299,28 +300,6 @@ def session_constraint_expire(request,session):
 # -------------------------------------------------
 
 
-def assign_interim_session(form):
-    """Helper function to create a timeslot and assign the interim session"""
-    time = datetime.datetime.combine(
-        form.cleaned_data['date'],
-        form.cleaned_data['time'])
-    session = form.instance
-    if session.official_timeslotassignment():
-        slot = session.official_timeslotassignment().timeslot
-        slot.time = time
-        slot.save()
-    else:
-        slot = TimeSlot.objects.create(
-            meeting=session.meeting,
-            type_id="session",
-            duration=session.requested_duration,
-            time=time)
-        SchedTimeSessAssignment.objects.create(
-            timeslot=slot,
-            session=session,
-            schedule=session.meeting.agenda)
-
-
 def can_approve_interim_request(meeting, user):
     '''Returns True if the user has permissions to approve an interim meeting request'''
     if meeting.type.slug != 'interim':
@@ -450,6 +429,7 @@ def get_earliest_session_date(formset):
 
 def get_interim_initial(meeting):
     '''Returns a dictionary suitable to initialize a InterimRequestForm'''
+    log.unreachable()                   # 6.46.2
     initial = {}
     initial['group'] = meeting.session_set.first().group
     if meeting.city:
@@ -469,6 +449,7 @@ def get_interim_initial(meeting):
 
 def get_interim_session_initial(meeting):
     '''Returns a list of dictionaries suitable to initialize a InterimSessionForm'''
+    log.unreachable()                   # 6.46.2
     initials = []
     for session in meeting.session_set.all():
         initial = {}
@@ -547,7 +528,7 @@ def send_interim_approval_request(meetings):
     group = meetings[0].session_set.first().group
     requester = meetings[0].session_set.first().requested_by
     (to_email, cc_list) = gather_address_lists('session_requested',group=group,person=requester)
-    from_email = ('"IETF Meeting Session Request Tool"','session_request_developers@ietf.org')
+    from_email = (settings.SESSION_REQUEST_FROM_EMAIL)
     subject = '{group} - New Interim Meeting Request'.format(group=group.acronym)
     template = 'meeting/interim_approval_request.txt'
     approval_urls = []
@@ -573,7 +554,7 @@ def send_interim_announcement_request(meeting):
     group = meeting.session_set.first().group
     requester = meeting.session_set.first().requested_by
     (to_email, cc_list) = gather_address_lists('interim_approved')
-    from_email = ('"IETF Meeting Session Request Tool"','session_request_developers@ietf.org')
+    from_email = (settings.SESSION_REQUEST_FROM_EMAIL)
     subject = '{group} - interim meeting ready for announcement'.format(group=group.acronym)
     template = 'meeting/interim_announcement_request.txt'
     announce_url = settings.IDTRACKER_BASE_URL + reverse('ietf.meeting.views.interim_request_details', kwargs={'number': meeting.number})
@@ -639,6 +620,7 @@ def send_interim_minutes_reminder(meeting):
 def check_interim_minutes():
     """Finds interim meetings that occured 10 days ago, if they don't
     have minutes send a reminder."""
+    log.unreachable()                   # 6.46.2
     date = datetime.datetime.today() - datetime.timedelta(days=10)
     meetings = Meeting.objects.filter(type='interim', session__status='sched', date=date)
     for meeting in meetings:
@@ -653,6 +635,29 @@ def sessions_post_save(forms):
         if not form.has_changed():
             continue
         if ('date' in form.changed_data) or ('time' in form.changed_data):
-            assign_interim_session(form)
+            update_interim_session_assignment(form)
         if 'agenda' in form.changed_data:
             form.save_agenda()
+
+
+def update_interim_session_assignment(form):
+    """Helper function to create / update timeslot assigned to interim session"""
+    time = datetime.datetime.combine(
+        form.cleaned_data['date'],
+        form.cleaned_data['time'])
+    session = form.instance
+    if session.official_timeslotassignment():
+        slot = session.official_timeslotassignment().timeslot
+        slot.time = time
+        slot.duration = session.requested_duration
+        slot.save()
+    else:
+        slot = TimeSlot.objects.create(
+            meeting=session.meeting,
+            type_id="session",
+            duration=session.requested_duration,
+            time=time)
+        SchedTimeSessAssignment.objects.create(
+            timeslot=slot,
+            session=session,
+            schedule=session.meeting.agenda)

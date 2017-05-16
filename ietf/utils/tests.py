@@ -21,7 +21,6 @@ from django.templatetags.static import StaticNode
 
 import debug                            # pyflakes:ignore
 
-import ietf.urls
 from ietf.utils.management.commands import pyflakes
 from ietf.utils.mail import send_mail_text, send_mail_mime, outbox 
 from ietf.utils.test_data import make_test_data
@@ -53,7 +52,7 @@ class TestSMTPServer(TestCase):
     def test_address_rejected(self):
 
         def send_simple_mail(to):
-            send_mail_text(None, to=to, frm=None, subject="Test for rejection", txt="dummy body")
+            send_mail_text(None, to=to, frm=None, subject="Test for rejection", txt=u"dummy body")
 
         len_before = len(outbox)
         send_simple_mail('good@example.com,poison@example.com')
@@ -162,6 +161,8 @@ class TemplateChecksTestCase(TestCase):
         urlconf can be found, a full resolution would also fail.
         """
         #
+        import ietf.urls
+
         def check_that_url_tag_callbacks_exists(node, origin, callbacks):
             """
             Check that an URLNode's callback is in callbacks.

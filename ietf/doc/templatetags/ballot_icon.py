@@ -35,7 +35,7 @@ import datetime
 import debug      # pyflakes:ignore
 
 from django import template
-from django.core.urlresolvers import reverse as urlreverse
+from django.urls import reverse as urlreverse
 from django.db.models import Q
 from django.utils.safestring import mark_safe
 
@@ -58,7 +58,7 @@ def showballoticon(doc):
        if doc.get_state_slug() not in ("iesgeval","defer"):
            return False
     elif doc.type_id == "statchg":
-       if doc.get_state_slug() not in ("iesgeval","defer"):
+       if doc.get_state_slug() not in ("iesgeval","defer", "in-lc"):
            return False
 
     return True
@@ -130,7 +130,7 @@ def ballot_icon(context, doc):
     # See http://getbootstrap.com/javascript/#modals-usage
     res.append('<div id="modal-%d" class="modal fade" tabindex="-1" role="dialog" aria-hidden="true"><div class="modal-dialog modal-lg"><div class="modal-content"></div></div></div>' % ballot.pk)
 
-    return "".join(res)
+    return mark_safe("".join(res))
 
 @register.filter
 def ballotposition(doc, user):

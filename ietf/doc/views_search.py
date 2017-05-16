@@ -36,7 +36,7 @@ import datetime
 from django import forms
 from django.conf import settings
 from django.core.cache import cache
-from django.core.urlresolvers import reverse as urlreverse
+from django.urls import reverse as urlreverse
 from django.db.models import Q
 from django.http import Http404, HttpResponseBadRequest, HttpResponse, HttpResponseRedirect, QueryDict
 from django.shortcuts import render
@@ -257,7 +257,7 @@ def search_for_name(request, name):
 
     redirect_to = find_unique(name)
     if redirect_to:
-        return cached_redirect(cache_key, urlreverse("doc_view", kwargs={ "name": redirect_to }))
+        return cached_redirect(cache_key, urlreverse("ietf.doc.views_doc.document_main", kwargs={ "name": redirect_to }))
     else:
         # check for embedded rev - this may be ambigious, so don't
         # chop it off if we don't find a match
@@ -268,9 +268,9 @@ def search_for_name(request, name):
                 rev = rev_split.group(2)
                 # check if we can redirect directly to the rev
                 if DocHistory.objects.filter(doc__docalias__name=redirect_to, rev=rev).exists():
-                    return cached_redirect(cache_key, urlreverse("doc_view", kwargs={ "name": redirect_to, "rev": rev }))
+                    return cached_redirect(cache_key, urlreverse("ietf.doc.views_doc.document_main", kwargs={ "name": redirect_to, "rev": rev }))
                 else:
-                    return cached_redirect(cache_key, urlreverse("doc_view", kwargs={ "name": redirect_to }))
+                    return cached_redirect(cache_key, urlreverse("ietf.doc.views_doc.document_main", kwargs={ "name": redirect_to }))
 
     # build appropriate flags based on string prefix
     doctypenames = DocTypeName.objects.filter(used=True)
@@ -287,7 +287,7 @@ def search_for_name(request, name):
         else:
             search_args += "&rfcs=on&activedrafts=on&olddrafts=on"
 
-    return cached_redirect(cache_key, urlreverse("doc_search") + search_args)
+    return cached_redirect(cache_key, urlreverse('ietf.doc.views_search.search') + search_args)
 
 def ad_dashboard_group(doc):
 

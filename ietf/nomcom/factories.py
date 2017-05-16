@@ -126,7 +126,7 @@ class PositionFactory(factory.DjangoModelFactory):
     class Meta:
         model = Position
 
-    name = factory.Faker('sentence',nb_words=10)
+    name = factory.Faker('sentence',nb_words=5)
     is_open = True
 
 class NomineeFactory(factory.DjangoModelFactory):
@@ -136,6 +136,14 @@ class NomineeFactory(factory.DjangoModelFactory):
     nomcom = factory.SubFactory(NomComFactory)
     person = factory.SubFactory(PersonFactory)   
     email = factory.LazyAttribute(lambda obj: obj.person.email())
+
+class NomineePositionFactory(factory.DjangoModelFactory):
+    class Meta:
+        model = NomineePosition
+
+    position = factory.SubFactory(PositionFactory)
+    nominee = factory.SubFactory(NomineeFactory)
+    state_id = 'accepted'
 
 class FeedbackFactory(factory.DjangoModelFactory):
     class Meta:

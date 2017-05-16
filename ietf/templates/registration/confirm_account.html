@@ -1,10 +1,17 @@
 {% extends "base.html" %}
 {# Copyright The IETF Trust 2015, All Rights Reserved #}
 {% load origin %}
+{% load staticfiles %}
 
 {% load bootstrap3 %}
 
 {% block title %}Complete account creation{% endblock %}
+
+{% block js %}
+      {{ block.super }}
+      <script type="text/javascript" src="{% static 'zxcvbn/zxcvbn.js' %}"></script>
+      <script type="text/javascript" src="{% static 'ietf/js/password_strength.js' %}"></script>
+{% endblock %}
 
 {% block content %}
   {% origin %}
@@ -13,7 +20,7 @@
     <h1>Account creation successful</h1>
 
     <p>Your account with login {{ email }} has been created, using the password you have selected.</p>
-    <a type="a" class="btn btn-primary" href="{% url "django.contrib.auth.views.login" %}" rel="nofollow">Sign in</a>
+    <a type="a" class="btn btn-primary" href="{% url "ietf.ietfauth.views.login" %}" rel="nofollow">Sign in</a>
 
   {% else %}
     <h1>Complete account creation</h1>
@@ -24,7 +31,7 @@
       {% bootstrap_form form %}
 
       {% buttons %}
-        <button type="submit" class="btn btn-primary">Set password</button>
+        <button type="submit" class="btn btn-primary">Set name and password</button>
       {% endbuttons %}
     </form>
   {% endif %}

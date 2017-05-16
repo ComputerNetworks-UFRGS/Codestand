@@ -3,10 +3,10 @@ import datetime
 
 from django.contrib import messages
 from django.forms.formsets import formset_factory
-from django.shortcuts import render_to_response, get_object_or_404, redirect
-from django.template import RequestContext
+from django.shortcuts import render, get_object_or_404, redirect
+from django.utils.functional import curry
 
-from ietf.doc.models import DocEvent, Document, BallotDocEvent, BallotPositionDocEvent, WriteupDocEvent
+from ietf.doc.models import DocEvent, Document, BallotDocEvent, BallotPositionDocEvent, BallotType, WriteupDocEvent
 from ietf.doc.utils import get_document_content, add_state_change_event
 from ietf.person.models import Person
 from ietf.doc.lastcall import request_last_call
@@ -59,11 +59,11 @@ def get_doc_writeup(doc):
     writeup = 'This document has no writeup'
     if doc.type_id == 'draft':
         latest = doc.latest_event(WriteupDocEvent, type='changed_ballot_writeup_text')
-        if latest and doc.has_rfc_editor_note():
-            rfced_note = doc.latest_event(WriteupDocEvent, type="changed_rfc_editor_note_text")
-            writeup = latest.text + "\n\n" + rfced_note.text
-        else:
+        if latest:
             writeup = latest.text
+            if doc.has_rfc_editor_note():
+                rfced_note = doc.latest_event(WriteupDocEvent, type="changed_rfc_editor_note_text")
+                writeup = writeup + "\n\n" + rfced_note.text
     if doc.type_id == 'charter':
         latest = doc.latest_event(WriteupDocEvent, type='changed_ballot_writeup_text')
         if latest:
@@ -124,6 +124,15 @@ def get_first_doc(agenda):
 
     return None
 
+def is_doc_on_telechat(doc,date):
+    '''Returns true if the document is on the Telechat agenda for date=date.
+    Where date is a string in the format YYYY-MM-DD
+    '''
+    if doc.telechat_date() and doc.telechat_date().strftime("%Y-%m-%d") == date:
+        return True
+    else:
+        return False
+
 # -------------------------------------------------
 # View Functions
 # -------------------------------------------------
@@ -132,10 +141,9 @@ def bash(request, date):
 
     agenda = agenda_data(date=date)
 
-    return render_to_response('telechat/bash.html', {
+    return render(request, 'telechat/bash.html', {
         'agenda': agenda,
         'date': date},
-        RequestContext(request, {}),
     )
 
 @role_required('Secretariat')
@@ -148,13 +156,12 @@ def doc(request, date):
     agenda = agenda_data(date=date)
     doc = get_first_doc(agenda)
     if doc:
-        return redirect('telechat_doc_detail', date=date, name=doc.name)
+        return redirect('ietf.secr.telechat.views.doc_detail', date=date, name=doc.name)
     else:
-        return render_to_response('telechat/doc.html', {
+        return render(request, 'telechat/doc.html', {
         'agenda': agenda,
         'date': date,
         'document': None},
-        RequestContext(request, {}),
     )
 
 @role_required('Secretariat')
@@ -164,6 +171,11 @@ def doc_detail(request, date, name):
     changes to ballot positions and document state.
     '''
     doc = get_object_or_404(Document, docalias__name=name)
+    if not is_doc_on_telechat(doc, date):
+        messages.warning(request, 'Dcoument: {name} is not on the Telechat agenda for {date}'.format(
+            name=doc.name,
+            date=date))
+        return redirect('ietf.secr.telechat.views.doc', date=date)
 
     # As of Datatracker v4.32, Conflict Review (conflrev) Document Types can
     # be added to the Telechat agenda.  If Document.type_id == draft use draft-iesg
@@ -197,7 +209,14 @@ def doc_detail(request, date, name):
     initial_state = {'state':doc.get_state(state_type).pk,
                      'substate':tag}
 
+    # need to use curry here to pass custom variable to form init
+    if doc.active_ballot():
+        ballot_type = doc.active_ballot().ballot_type
+    else:
+        ballot_type = BallotType.objects.get(doc_type='draft')
     BallotFormset = formset_factory(BallotForm, extra=0)
+    BallotFormset.form.__init__ = curry(BallotForm.__init__, ballot_type=ballot_type)
+    
     agenda = agenda_data(date=date)
     header = get_section_header(doc, agenda)
 
@@ -222,7 +241,7 @@ def doc_detail(request, date, name):
                     # create new BallotPositionDocEvent
                     clean = form.cleaned_data
                     ad = Person.objects.get(id=clean['id'])
-                    pos = BallotPositionDocEvent(doc=doc,by=login)
+                    pos = BallotPositionDocEvent(doc=doc, rev=doc.rev, by=login)
                     pos.type = "changed_ballot_position"
                     pos.ad = ad
                     pos.ballot = doc.latest_event(BallotDocEvent, type="created_ballot")
@@ -236,7 +255,7 @@ def doc_detail(request, date, name):
 
             if has_changed:
                 messages.success(request,'Ballot position changed.')
-            return redirect('telechat_doc_detail', date=date, name=name)
+            return redirect('ietf.secr.telechat.views.doc_detail', date=date, name=name)
 
         # logic from doc/views_draft.py change_state
         elif button_text == 'update_state':
@@ -272,7 +291,7 @@ def doc_detail(request, date, name):
                         request_last_call(request, doc)
 
                 messages.success(request,'Document state updated')
-                return redirect('telechat_doc_detail', date=date, name=name)
+                return redirect('ietf.secr.telechat.views.doc_detail', date=date, name=name)
     else:
         formset = BallotFormset(initial=initial_ballot)
         state_form = ChangeStateForm(initial=initial_state)
@@ -283,7 +302,8 @@ def doc_detail(request, date, name):
         else:
             conflictdoc = None
 
-    return render_to_response('telechat/doc.html', {
+    return render(request, 'telechat/doc.html', {
+        'ballot_type': ballot_type,
         'date': date,
         'document': doc,
         'conflictdoc': conflictdoc,
@@ -295,7 +315,6 @@ def doc_detail(request, date, name):
         'writeup': writeup,
         'nav_start': nav_start,
         'nav_end': nav_end},
-        RequestContext(request, {}),
     )
 
 @role_required('Secretariat')
@@ -319,7 +338,7 @@ def doc_navigate(request, date, name, nav):
     elif nav == 'previous' and index != 0:
         target = docs[index - 1].name
 
-    return redirect('telechat_doc_detail', date=date, name=target)
+    return redirect('ietf.secr.telechat.views.doc_detail', date=date, name=target)
 
 @role_required('Secretariat')
 def main(request):
@@ -328,16 +347,15 @@ def main(request):
     '''
     if request.method == 'POST':
         date = request.POST['date']
-        return redirect('telechat_doc', date=date)
+        return redirect('ietf.secr.telechat.views.doc', date=date)
 
     choices = [ (d.date.strftime('%Y-%m-%d'),
                  d.date.strftime('%Y-%m-%d')) for d in TelechatDate.objects.all() ]
     next_telechat = get_next_telechat_date().strftime('%Y-%m-%d')
     form = DateSelectForm(choices=choices,initial={'date':next_telechat})
 
-    return render_to_response('telechat/main.html', {
+    return render(request, 'telechat/main.html', {
         'form': form},
-        RequestContext(request, {}),
     )
 
 @role_required('Secretariat')
@@ -349,11 +367,10 @@ def management(request, date):
     agenda = agenda_data(date=date)
     issues = TelechatAgendaItem.objects.filter(type=3).order_by('id')
 
-    return render_to_response('telechat/management.html', {
+    return render(request, 'telechat/management.html', {
         'agenda': agenda,
         'date': date,
         'issues': issues},
-        RequestContext(request, {}),
     )
 
 @role_required('Secretariat')
@@ -375,13 +392,12 @@ def minutes(request, date):
 
     # FIXME: this doesn't show other documents
 
-    return render_to_response('telechat/minutes.html', {
+    return render(request, 'telechat/minutes.html', {
         'agenda': agenda,
         'date': date,
         'last_date': previous,
         'pa_docs': pa_docs,
         'da_docs': da_docs},
-        RequestContext(request, {}),
     )
 
 @role_required('Secretariat')
@@ -395,7 +411,7 @@ def new(request):
         Telechat.objects.create(telechat_date=date)
 
         messages.success(request,'New Telechat Agenda created')
-        return redirect('telechat_doc', date=date)
+        return redirect('ietf.secr.telechat.views.doc', date=date)
 
 @role_required('Secretariat')
 def roll_call(request, date):
@@ -403,10 +419,9 @@ def roll_call(request, date):
     ads = Person.objects.filter(role__name='ad', role__group__state="active",role__group__type="area")
     sorted_ads = sorted(ads, key = lambda a: a.name_parts()[3])
 
-    return render_to_response('telechat/roll_call.html', {
+    return render(request, 'telechat/roll_call.html', {
         'agenda': agenda,
         'date': date,
         'people':sorted_ads},
-        RequestContext(request, {}),
     )
     

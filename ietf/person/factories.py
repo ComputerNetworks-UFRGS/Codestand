@@ -2,10 +2,15 @@ import os
 import factory
 import faker 
 import shutil
+import random
+import faker.config
 from unidecode import unidecode
 
 from django.conf import settings
 from django.contrib.auth.models import User
+from django.utils.text import slugify
+
+import debug                            # pyflakes:ignore
 
 from ietf.person.models import Person, Alias, Email
 
@@ -15,10 +20,13 @@ class UserFactory(factory.DjangoModelFactory):
     class Meta:
         model = User
         django_get_or_create = ('username',)
+        exclude = ['locale', ]
 
-    first_name = factory.Faker('first_name')
-    last_name = factory.Faker('last_name')
-    email = factory.LazyAttributeSequence(lambda u, n: '%s.%s_%d@%s'%(u.first_name,u.last_name,n,fake.domain_name()))
+    locale = random.sample(faker.config.AVAILABLE_LOCALES, 1)[0]
+    first_name = factory.Faker('first_name', locale)
+    last_name = factory.Faker('last_name', locale)
+    email = factory.LazyAttributeSequence(lambda u, n: '%s.%s_%d@%s'%( slugify(unidecode(u.first_name)),
+                                                slugify(unidecode(u.last_name)), n, fake.domain_name()))
     username = factory.LazyAttribute(lambda u: u.email)
 
     @factory.post_generation
@@ -43,11 +51,18 @@ class PersonFactory(factory.DjangoModelFactory):
         make_alias = getattr(AliasFactory, 'create' if create else 'build')
         make_alias(person=obj,name=obj.name)
         make_alias(person=obj,name=obj.ascii)
+        if obj.name != obj.plain_name():
+            make_alias(person=obj,name=obj.plain_name())
+        if obj.ascii != obj.plain_ascii():
+            make_alias(person=obj,name=obj.plain_ascii())
 
     @factory.post_generation
     def default_emails(obj, create, extracted, **kwargs): # pylint: disable=no-self-argument
-        make_email = getattr(EmailFactory, 'create' if create else 'build')
-        make_email(person=obj,address=obj.user.email)
+        if extracted is None:
+            extracted = True
+        if create and extracted:
+            make_email = getattr(EmailFactory, 'create' if create else 'build')
+            make_email(person=obj,address=obj.user.email)
 
     @factory.post_generation
     def default_photo(obj, create, extracted, **kwargs): # pylint: disable=no-self-argument
@@ -86,6 +101,9 @@ class EmailFactory(factory.DjangoModelFactory):
         model = Email
         django_get_or_create = ('address',)
 
-    address = factory.Sequence(lambda n:'%s.%s_%d@%s' % (fake.first_name(),fake.last_name(),n,fake.domain_name()))
+    address = factory.Sequence(lambda n:'%s.%s_%d@%s' % ( slugify(unidecode(fake.first_name())),
+                                    slugify(unidecode(fake.last_name())), n, fake.domain_name()))
+    person = factory.SubFactory(PersonFactory)
+
     active = True
     primary = False

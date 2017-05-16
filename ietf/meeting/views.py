@@ -21,7 +21,7 @@ from django.shortcuts import render, redirect, get_object_or_404
 from django.http import HttpResponse, HttpResponseRedirect, HttpResponseForbidden, Http404
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
-from django.core.urlresolvers import reverse,reverse_lazy
+from django.urls import reverse,reverse_lazy
 from django.db.models import Min, Max, Q
 from django.conf import settings
 from django.forms.models import modelform_factory, inlineformset_factory
@@ -31,7 +31,7 @@ from django.template.loader import render_to_string
 from django.utils.functional import curry
 from django.views.decorators.cache import cache_page
 from django.utils.text import slugify
-from django.views.decorators.csrf import ensure_csrf_cookie
+from django.views.decorators.csrf import ensure_csrf_cookie, csrf_exempt
 from django.views.generic import RedirectView
 from django.template.defaultfilters import filesizeformat
 
@@ -58,14 +58,15 @@ from ietf.meeting.helpers import send_interim_approval_request
 from ietf.meeting.helpers import send_interim_announcement_request
 from ietf.meeting.utils import finalize
 from ietf.secr.proceedings.utils import handle_upload_file
-from ietf.secr.proceedings.proc_utils import get_progress_stats, post_process
+from ietf.secr.proceedings.proc_utils import get_progress_stats, post_process, import_audio_files
+from ietf.utils import log
 from ietf.utils.mail import send_mail_message
 from ietf.utils.pipe import pipe
 from ietf.utils.pdf import pdf_pages
 from ietf.utils.text import xslugify
 
 from .forms import (InterimMeetingModelForm, InterimAnnounceForm, InterimSessionModelForm,
-    InterimCancelForm)
+    InterimCancelForm, InterimSessionInlineFormSet)
 
 
 def get_menu_entries(request):
@@ -268,6 +269,7 @@ class RoomForm(ModelForm):
 
 @role_required('Secretariat')
 def edit_roomurl(request, num, roomid):
+    log.unreachable()                   # 6.46.2
     meeting = get_meeting(num)
 
     try:
@@ -986,8 +988,8 @@ def json_agenda(request, num=None ):
             roomdict['level_name'] = room.floorplan.name
             roomdict['level_sort'] = room.floorplan.order
         if room.x1 is not None:
-            roomdict['x'] = room.x1+(room.x2/2.0)
-            roomdict['y'] = room.y1+(room.y2/2.0)
+            roomdict['x'] = (room.x1+room.x2)/2.0
+            roomdict['y'] = (room.y1+room.y2)/2.0
         roomdict['modified'] = room.time
         if room.floorplan and room.floorplan.image:
             roomdict['map'] = room.floorplan.image.url
@@ -1123,7 +1125,7 @@ def add_session_drafts(request, session_id, num):
         if form.is_valid():
             for draft in form.cleaned_data['drafts']:
                 session.sessionpresentation_set.create(document=draft,rev=None)
-                c = DocEvent(type="added_comment", doc=draft, by=request.user.person)
+                c = DocEvent(type="added_comment", doc=draft, rev=draft.rev, by=request.user.person)
                 c.desc = "Added to session: %s" % session
                 c.save()
             return redirect('ietf.meeting.views.session_details', num=session.meeting.number, acronym=session.group.acronym)
@@ -1187,7 +1189,7 @@ def upload_session_bluesheets(request, session_id, num):
                 session.sessionpresentation_set.create(document=doc,rev='00')
             filename = '%s-%s%s'% ( doc.name, doc.rev, ext)
             doc.external_url = filename
-            e = NewRevisionDocEvent.objects.create(doc=doc,by=request.user.person,type='new_revision',desc='New revision available: %s'%doc.rev,rev=doc.rev)
+            e = NewRevisionDocEvent.objects.create(doc=doc, rev=doc.rev, by=request.user.person, type='new_revision', desc='New revision available: %s'%doc.rev)
             doc.save_with_history([e])
             handle_upload_file(file, filename, session.meeting, 'bluesheets')
             return redirect('ietf.meeting.views.session_details',num=num,acronym=session.group.acronym)
@@ -1282,7 +1284,7 @@ def upload_session_minutes(request, session_id, num):
                         other_session.sessionpresentation_set.create(document=doc,rev=doc.rev)
             filename = '%s-%s%s'% ( doc.name, doc.rev, ext)
             doc.external_url = filename
-            e = NewRevisionDocEvent.objects.create(doc=doc,time=doc.time,by=request.user.person,type='new_revision',desc='New revision available: %s'%doc.rev,rev=doc.rev)
+            e = NewRevisionDocEvent.objects.create(doc=doc, time=doc.time, by=request.user.person, type='new_revision', desc='New revision available: %s'%doc.rev, rev=doc.rev)
             doc.save_with_history([e])
             # The way this function builds the filename it will never trigger the file delete in handle_file_upload.
             handle_upload_file(file, filename, session.meeting, 'minutes')
@@ -1529,7 +1531,7 @@ def remove_sessionpresentation(request, session_id, num, name):
         return HttpResponseForbidden("The materials cutoff for this session has passed. Contact the secretariat for further action.")
     if request.method == 'POST':
         session.sessionpresentation_set.filter(pk=sp.pk).delete()
-        c = DocEvent(type="added_comment", doc=sp.document, by=request.user.person)
+        c = DocEvent(type="added_comment", doc=sp.document, rev=sp.document.rev, by=request.user.person)
         c.desc = "Removed from session: %s" % (session)
         c.save()
         return redirect('ietf.meeting.views.session_details', num=session.meeting.number, acronym=session.group.acronym)
@@ -1741,6 +1743,7 @@ def interim_request(request):
         Meeting,
         Session,
         form=InterimSessionModelForm,
+        formset=InterimSessionInlineFormSet,
         can_delete=False, extra=2)
 
     if request.method == 'POST':
@@ -1757,11 +1760,11 @@ def interim_request(request):
                 meeting = form.save(date=get_earliest_session_date(formset))
 
                 # need to use curry here to pass custom variable to form init
-                SessionFormset.form = staticmethod(curry(
-                    InterimSessionModelForm,
+                SessionFormset.form.__init__ = curry(
+                    InterimSessionModelForm.__init__,
                     user=request.user,
                     group=group,
-                    is_approved_or_virtual=(is_approved or is_virtual)))
+                    is_approved_or_virtual=(is_approved or is_virtual))
                 formset = SessionFormset(instance=meeting, data=request.POST)
                 formset.is_valid()
                 formset.save()
@@ -1777,11 +1780,11 @@ def interim_request(request):
             # subsequently dealt with individually
             elif meeting_type == 'series':
                 series = []
-                SessionFormset.form = staticmethod(curry(
-                    InterimSessionModelForm,
+                SessionFormset.form.__init__ = curry(
+                    InterimSessionModelForm.__init__,
                     user=request.user,
                     group=group,
-                    is_approved_or_virtual=(is_approved or is_virtual)))
+                    is_approved_or_virtual=(is_approved or is_virtual))
                 formset = SessionFormset(instance=Meeting(), data=request.POST)
                 formset.is_valid()  # re-validate
                 for session_form in formset.forms:
@@ -1896,13 +1899,15 @@ def interim_request_edit(request, number):
                                        data=request.POST)
         group = Group.objects.get(pk=form.data['group'])
         is_approved = is_meeting_approved(meeting)
-        SessionFormset.form = staticmethod(curry(
-            InterimSessionModelForm,
+
+        SessionFormset.form.__init__ = curry(
+            InterimSessionModelForm.__init__,
             user=request.user,
             group=group,
-            is_approved_or_virtual=is_approved))
-        formset = SessionFormset(instance=meeting,
-                                 data=request.POST)
+            is_approved_or_virtual=is_approved)
+
+        formset = SessionFormset(instance=meeting, data=request.POST)
+
         if form.is_valid() and formset.is_valid():
             meeting = form.save(date=get_earliest_session_date(formset))
             formset.save()
@@ -1914,8 +1919,6 @@ def interim_request_edit(request, number):
                 message = message + ' and change announcement sent'
             messages.success(request, message)
             return redirect(interim_request_details, number=number)
-        else:
-            assert False, (form.errors, formset.errors)
 
     else:
         form = InterimMeetingModelForm(request=request, instance=meeting)
@@ -2160,3 +2163,15 @@ def proceedings_progress_report(request, num=None):
 class OldUploadRedirect(RedirectView):
     def get_redirect_url(self, **kwargs):
         return reverse_lazy('ietf.meeting.views.session_details',kwargs=self.kwargs)
+
+@csrf_exempt
+def api_import_recordings(request, number):
+    '''REST API to check for recording files and import'''
+    if request.method == 'POST':
+        meeting = get_meeting(number)
+        import_audio_files(meeting)
+        return HttpResponse(status=201)
+    else:
+        return HttpResponse(status=405)
+
+

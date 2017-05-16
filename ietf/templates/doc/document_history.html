@@ -85,7 +85,7 @@
   <h2>Document history</h2>
   {% if can_add_comment %} 
    <div class="buttonlist">
-      <a class="btn btn-default" href="{% url "doc_add_comment" name=doc.name %}"><span class="fa fa-plus"></span> Add comment</a>
+      <a class="btn btn-default" href="{% url 'ietf.doc.views_doc.add_comment' name=doc.name %}"><span class="fa fa-plus"></span> Add comment</a>
     </div>
   {% endif %}
 
@@ -103,7 +103,7 @@
       {% for e in events %}
         <tr class="anchor-target" id="history-{{ e.pk }}">
           <td class="text-nowrap">{{ e.time|date:"Y-m-d" }}</td>
-          <td class="text-center">{{ e.get_rev }}</td>
+          <td class="text-center">{{ e.rev }}</td>
           <td>{{ e.by|escape }}</td>
           <td>{{ e.desc|format_history_text|safe }}</td>
         </tr>

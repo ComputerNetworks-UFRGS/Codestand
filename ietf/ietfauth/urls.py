@@ -1,25 +1,23 @@
 # Copyright The IETF Trust 2007, 2009, All Rights Reserved
 
-from django.conf.urls import patterns, url
-from django.contrib.auth.views import login, logout
+from django.contrib.auth.views import logout
 
-from ietf.ietfauth.views import add_account_whitelist
+from ietf.ietfauth import views
+from ietf.utils.urls import url
 
-urlpatterns = patterns('ietf.ietfauth.views',
-        url(r'^$', 'index'),
-#        url(r'^login/$', 'ietf_login'),
-        url(r'^login/$', login),
+urlpatterns = [
+        url(r'^$', views.index),
+        url(r'^confirmnewemail/(?P<auth>[^/]+)/$', views.confirm_new_email),
+        url(r'^create/$', views.create_account),
+        url(r'^create/confirm/(?P<auth>[^/]+)/$', views.confirm_account),
+        url(r'^login/$', views.login),
         url(r'^logout/$', logout),
-#        url(r'^loggedin/$', 'ietf_loggedin'),
-#        url(r'^loggedout/$', 'logged_out'),
-        url(r'^profile/$', 'profile'),
-#        (r'^login/(?P<user>[a-z0-9.@]+)/(?P<passwd>.+)$', 'url_login'),
-        url(r'^testemail/$', 'test_email'),
-        url(r'^create/$', 'create_account'),
-        url(r'^create/confirm/(?P<auth>[^/]+)/$', 'confirm_account'),
-        url(r'^reset/$', 'password_reset'),
-        url(r'^reset/confirm/(?P<auth>[^/]+)/$', 'confirm_password_reset'),
-        url(r'^confirmnewemail/(?P<auth>[^/]+)/$', 'confirm_new_email'),
-        (r'whitelist/add/?$', add_account_whitelist),
-        url(r'^review/$', 'review_overview'),
-)
+        url(r'^password/$', views.change_password),
+        url(r'^profile/$', views.profile),
+        url(r'^reset/$', views.password_reset),
+        url(r'^reset/confirm/(?P<auth>[^/]+)/$', views.confirm_password_reset),
+        url(r'^review/$', views.review_overview),
+        url(r'^testemail/$', views.test_email),
+        url(r'^username/$', views.change_username),
+        url(r'^whitelist/add/?$', views.add_account_whitelist),
+]

@@ -36,7 +36,7 @@ def lookup_community_list(username=None, acronym=None):
     return clist
 
 def can_manage_community_list(user, clist):
-    if not user or not user.is_authenticated():
+    if not user or not user.is_authenticated:
         return False
 
     if clist.user:
@@ -49,6 +49,8 @@ def can_manage_community_list(user, clist):
             return Role.objects.filter(name__slug='ad', person__user=user, group=clist.group).exists()
         elif clist.group.type_id in ('wg', 'rg'):
             return Role.objects.filter(name__slug='chair', person__user=user, group=clist.group).exists()
+        elif clist.group.type_id in ('program'):
+            return Role.objects.filter(name__slug='lead', person__user=user, group=clist.group).exists()
 
     return False
 
@@ -58,7 +60,7 @@ def augment_docs_with_tracking_info(docs, user):
 
     tracked = set()
 
-    if user and user.is_authenticated():
+    if user and user.is_authenticated:
         clist = CommunityList.objects.filter(user=user).first()
         if clist:
             tracked.update(docs_tracked_by_community_list(clist).filter(pk__in=docs).values_list("pk", flat=True))

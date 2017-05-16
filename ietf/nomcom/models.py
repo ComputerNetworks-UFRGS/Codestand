@@ -114,12 +114,13 @@ class Nominee(models.Model):
     class Meta:
         verbose_name_plural = 'Nominees'
         unique_together = ('email', 'nomcom')
+        ordering = ['-nomcom__group__acronym', 'email__address', ]
 
     def __unicode__(self):
         if self.email.person and self.email.person.name:
-            return u'%s <%s>' % (self.email.person.plain_name(), self.email.address)
+            return u'%s <%s> %s' % (self.email.person.plain_name(), self.email.address, self.nomcom.year())
         else:
-            return self.email.address
+            return u'%s %s' % (self.email.address, self.nomcom.year())
 
     def name(self):
         if self.email.person and self.email.person.name:
@@ -149,7 +150,7 @@ class NomineePosition(models.Model):
         super(NomineePosition, self).save(**kwargs)
 
     def __unicode__(self):
-        return u"%s - %s" % (self.nominee, self.position)
+        return u"%s - %s - %s" % (self.nominee, self.state, self.position)
 
     @property
     def questionnaires(self):

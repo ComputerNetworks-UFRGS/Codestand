@@ -6,7 +6,7 @@ import textwrap, datetime
 from django.template.loader import render_to_string
 from django.utils.html import strip_tags
 from django.conf import settings
-from django.core.urlresolvers import reverse as urlreverse
+from django.urls import reverse as urlreverse
 
 from ietf.utils.mail import send_mail, send_mail_text
 from ietf.ipr.utils import iprs_from_docs, related_docs
@@ -23,7 +23,7 @@ def email_state_changed(request, doc, text, mailtrigger_id=None):
     
     text = strip_tags(text)
     send_mail(request, to, None,
-              "ID Tracker State Update Notice: %s" % doc.file_tag(),
+              "Datatracker State Update Notice: %s" % doc.file_tag(),
               "doc/mail/state_changed_email.txt",
               dict(text=text,
                    url=settings.IDTRACKER_BASE_URL + doc.get_absolute_url()),
@@ -112,6 +112,7 @@ def generate_ballot_writeup(request, doc):
     e.type = "changed_ballot_writeup_text"
     e.by = request.user.person
     e.doc = doc
+    e.rev = doc.rev
     e.desc = u"Ballot writeup was generated"
     e.text = unicode(render_to_string("doc/mail/ballot_writeup.txt", {'iana': iana}))
 
@@ -123,6 +124,7 @@ def generate_ballot_rfceditornote(request, doc):
     e.type = "changed_ballot_rfceditornote_text"
     e.by = request.user.person
     e.doc = doc
+    e.rev = doc.rev
     e.desc = u"RFC Editor Note for ballot was generated"
     e.text = unicode(render_to_string("doc/mail/ballot_rfceditornote.txt"))
     e.save()
@@ -146,7 +148,7 @@ def generate_last_call_announcement(request, doc):
     else:
         ipr_links = None
 
-    downrefs = [rel for rel in doc.relateddocument_set.all() if rel.is_downref()]
+    downrefs = [rel for rel in doc.relateddocument_set.all() if rel.is_downref() and not rel.is_approved_downref()]
 
     addrs = gather_address_lists('last_call_issued',doc=doc).as_strings()
     mail = render_to_string("doc/mail/last_call_announcement.txt",
@@ -167,6 +169,7 @@ def generate_last_call_announcement(request, doc):
     e.type = "changed_last_call_text"
     e.by = request.user.person
     e.doc = doc
+    e.rev = doc.rev
     e.desc = u"Last call announcement was generated"
     e.text = unicode(mail)
 
@@ -186,6 +189,7 @@ def generate_approval_mail(request, doc):
     e.type = "changed_ballot_approval_text"
     e.by = request.user.person
     e.doc = doc
+    e.rev = doc.rev
     e.desc = u"Ballot approval text was generated"
     e.text = unicode(mail)
 
@@ -369,6 +373,7 @@ def email_iana(request, doc, to, msg, cc=None):
     # fix up message and send it with extra info on doc in headers
     import email
     parsed_msg = email.message_from_string(msg.encode("utf-8"))
+    parsed_msg.set_charset('UTF-8')
 
     extra = {}
     extra["Reply-To"] = "noreply@ietf.org"
@@ -377,7 +382,7 @@ def email_iana(request, doc, to, msg, cc=None):
     
     send_mail_text(request, to,
                    parsed_msg["From"], parsed_msg["Subject"],
-                   parsed_msg.get_payload(),
+                   parsed_msg.get_payload().decode(str(parsed_msg.get_charset())),
                    extra=extra,
                    cc=cc)
 
@@ -499,7 +504,7 @@ def send_review_possibly_replaces_request(request, doc, submitter_info):
               dict(doc= doc,
                    submitter_info=submitter_info,
                    possibly_replaces=doc.related_that_doc("possibly-replaces"),
-                   review_url=settings.IDTRACKER_BASE_URL + urlreverse("doc_review_possibly_replaces", kwargs={ "name": doc.name })),
+                   review_url=settings.IDTRACKER_BASE_URL + urlreverse('ietf.doc.views_draft.review_possibly_replaces', kwargs={ "name": doc.name })),
               cc=list(cc),)
 
 def email_charter_internal_review(request, charter):

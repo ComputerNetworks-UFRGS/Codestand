@@ -9,15 +9,16 @@ from django.contrib.auth.decorators import login_required
 from django.utils.html import mark_safe
 from django.core.exceptions import ValidationError
 from django.template.loader import render_to_string, TemplateDoesNotExist
-from django.core.urlresolvers import reverse as urlreverse
+from django.urls import reverse as urlreverse
 
 from ietf.doc.models import (Document, NewRevisionDocEvent, State, DocAlias,
-                             LastCallDocEvent, ReviewRequestDocEvent)
+                             LastCallDocEvent, ReviewRequestDocEvent, DocumentAuthor)
 from ietf.name.models import ReviewRequestStateName, ReviewResultName, DocTypeName
 from ietf.review.models import ReviewRequest
 from ietf.group.models import Group
-from ietf.person.fields import PersonEmailChoiceField, SearchablePersonField
 from ietf.ietfauth.utils import is_authorized_in_doc_stream, user_is_person, has_role
+from ietf.message.models import Message
+from ietf.person.fields import PersonEmailChoiceField, SearchablePersonField
 from ietf.review.utils import (active_review_teams, assign_review_request_to_reviewer,
                                can_request_review_of_doc, can_manage_review_requests_for_team,
                                email_review_request_change, make_new_review_request_from_existing,
@@ -27,7 +28,7 @@ from ietf.review import mailarch
 from ietf.utils.fields import DatepickerDateField
 from ietf.utils.text import strip_prefix, xslugify
 from ietf.utils.textupload import get_cleaned_text_file_content
-from ietf.utils.mail import send_mail
+from ietf.utils.mail import send_mail_message
 from ietf.mailtrigger.utils import gather_address_lists
 from ietf.utils.fields import MultiEmailField
 
@@ -120,6 +121,7 @@ def request_review(request, name):
                 ReviewRequestDocEvent.objects.create(
                     type="requested_review",
                     doc=doc,
+                    rev=doc.rev,
                     by=request.user.person,
                     desc="Requested {} review by {}".format(review_req.type.name, review_req.team.acronym.upper()),
                     time=review_req.time,
@@ -127,7 +129,7 @@ def request_review(request, name):
                     state=None,
                 )
 
-                subject = "%s %s Review requested" % (review_req.team.acronym, review_req.type.name)
+                subject = "%s %s Review requested: %s" % (review_req.team.acronym, review_req.type.name, doc.name)
 
                 msg = subject
 
@@ -136,7 +138,7 @@ def request_review(request, name):
 
                 email_review_request_change(request, review_req, subject, msg, by=request.user.person, notify_secretary=True, notify_reviewer=False, notify_requested_by=True)
 
-            return redirect('doc_view', name=doc.name)
+            return redirect('ietf.doc.views_doc.document_main', name=doc.name)
 
     else:
         if lc_ends:
@@ -286,7 +288,7 @@ def assign_reviewer(request, name, request_id):
     })
 
 class RejectReviewerAssignmentForm(forms.Form):
-    message_to_secretary = forms.CharField(widget=forms.Textarea, required=False, help_text="Optional explanation of rejection, will be emailed to team secretary if filled in")
+    message_to_secretary = forms.CharField(widget=forms.Textarea, required=False, help_text="Optional explanation of rejection, will be emailed to team secretary if filled in", strip=False)
 
 @login_required
 def reject_reviewer_assignment(request, name, request_id):
@@ -312,6 +314,7 @@ def reject_reviewer_assignment(request, name, request_id):
             ReviewRequestDocEvent.objects.create(
                 type="closed_review_request",
                 doc=review_req.doc,
+                rev=review_req.doc.rev,
                 by=request.user.person,
                 desc="Assignment of request for {} review by {} to {} was rejected".format(
                     review_req.type.name,
@@ -356,7 +359,7 @@ class CompleteReviewForm(forms.Form):
 
     review_url = forms.URLField(label="Link to message", required=False)
     review_file = forms.FileField(label="Text file to upload", required=False)
-    review_content = forms.CharField(widget=forms.Textarea, required=False)
+    review_content = forms.CharField(widget=forms.Textarea, required=False, strip=False)
     completion_date = DatepickerDateField(date_format="yyyy-mm-dd", picker_settings={ "autoclose": "1" }, initial=datetime.date.today, help_text="Date of announcement of the results of this review")
     completion_time = forms.TimeField(widget=forms.HiddenInput, initial=datetime.time.min)
     cc = MultiEmailField(required=False, help_text="Email addresses to send to in addition to the review team list")
@@ -529,6 +532,7 @@ def complete_review(request, name, request_id):
                 close_event = ReviewRequestDocEvent(type="closed_review_request", review_request=review_req)
 
             close_event.doc = review_req.doc
+            close_event.rev = review_req.doc.rev
             close_event.by = request.user.person
             close_event.desc = desc
             close_event.state = review_req.state
@@ -556,24 +560,43 @@ def complete_review(request, name, request_id):
 
                 email_review_request_change(request, review_req, subject, msg, request.user.person, notify_secretary=True, notify_reviewer=False, notify_requested_by=False)
 
+            role = request.user.person.role_set.filter(group=review_req.team,name='reviewer').first()
+            if role and role.email.active:
+                author_email = role.email
+                frm = role.formatted_email()
+            else:
+                author_email = request.user.person.email()
+                frm =  request.user.person.formatted_email()
+            author, created = DocumentAuthor.objects.get_or_create(document=review, author=author_email)
+
             if need_to_email_review:
                 # email the review
-                subject = "{} of {}-{}".format("Partial review" if review_req.state_id == "part-completed" else "Review", review_req.doc.name, review_req.reviewed_rev)
-                msg = send_mail(request, to, 
-                                (request.user.person.plain_name(),request.user.person.email_address()),
-                                subject,
-                                "review/completed_review.txt", {
-                                    "review_req": review_req,
-                                    "content": encoded_content.decode("utf-8"),
-                                },
-                                cc=form.cleaned_data["cc"])
+                subject = "{} {} {} of {}-{}".format(review_req.team.acronym.capitalize(),review_req.type.name.lower(),"partial review" if review_req.state_id == "part-completed" else "review", review_req.doc.name, review_req.reviewed_rev)
+                related_groups = [ review_req.team, ]
+                if review_req.doc.group:
+                    related_groups.append(review_req.doc.group)
+                msg = Message.objects.create(
+                        by=request.user.person,
+                        subject=subject,
+                        frm=frm,
+                        to=", ".join(to),
+                        cc=form.cleaned_data["cc"],
+                        body = render_to_string("review/completed_review.txt", {
+                            "review_req": review_req,
+                            "content": encoded_content.decode("utf-8"),
+                        }),
+                    )
+                msg.related_groups.add(*related_groups)
+                msg.related_docs.add(review_req.doc)
+
+                msg = send_mail_message(request, msg)
 
                 list_name = mailarch.list_name_from_email(review_req.team.list_email)
                 if list_name:
                     review.external_url = mailarch.construct_message_url(list_name, email.utils.unquote(msg["Message-ID"]))
                     review.save_with_history([close_event])
 
-            return redirect("doc_view", name=review_req.review.name)
+            return redirect("ietf.doc.views_doc.document_main", name=review_req.review.name)
     else:
         initial={
             "reviewed_rev": review_req.reviewed_rev,
@@ -623,7 +646,7 @@ def search_mail_archive(request, name, request_id):
     return JsonResponse(res)
 
 class EditReviewRequestCommentForm(forms.ModelForm):
-    comment = forms.CharField(widget=forms.Textarea)
+    comment = forms.CharField(widget=forms.Textarea, strip=False)
     class Meta:
         fields = ['comment',]
         model = ReviewRequest

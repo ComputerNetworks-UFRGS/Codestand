@@ -1,6 +1,8 @@
 # Copyright The IETF Trust 2007, All Rights Reserved
 
 import datetime
+import email.utils
+import email.header
 from hashids import Hashids
 from unidecode import unidecode
 from urlparse import urljoin
@@ -17,6 +19,8 @@ import debug                            # pyflakes:ignore
 from ietf.person.name import name_parts, initials
 from ietf.utils.mail import send_mail_preformatted
 from ietf.utils.storage import NoLocationMigrationFileSystemStorage
+from ietf.utils.mail import formataddr
+
 
 class PersonInfo(models.Model):
     time = models.DateTimeField(default=datetime.datetime.now)      # When this Person record entered the system
@@ -106,9 +110,17 @@ class PersonInfo(models.Model):
             return e.address
         else:
             return ""
+    def formatted_ascii_email(self):
+        e = self.email_set.filter(primary=True).first()
+        if not e or not e.active:
+            e = self.email_set.order_by("-active", "-time").first()
+        if e:
+            return e.formatted_ascii_email()
+        else:
+            return ""
     def formatted_email(self):
         e = self.email_set.filter(primary=True).first()
-        if not e:
+        if not e or not e.active:
             e = self.email_set.order_by("-active", "-time").first()
         if e:
             return e.formatted_email()
@@ -225,9 +237,26 @@ class Email(models.Model):
     def get_name(self):
         return self.person.plain_name() if self.person else self.address
 
-    def formatted_email(self):
+    def formatted_ascii_email(self):
         if self.person:
-            return u'"%s" <%s>' % (self.person.plain_ascii(), self.address)
+                return email.utils.formataddr((self.person.plain_ascii(), self.address))
+        else:
+            return self.address
+
+    def name_and_email(self):
+        "Returns name and email, e.g.: u'Ano Nymous <ano@nymous.org>' "
+        if self.person:
+            return u"%s <%s>" % (self.person.plain_name(), self.address)
+        else:
+            return u"<%s>" % self.address
+
+    def formatted_email(self):
+        """
+        Similar to name_and_email(), but with email header-field
+        encoded words (RFC 2047) and quotes as needed.
+        """
+        if self.person:
+            return formataddr((self.person.plain_name(), self.address))
         else:
             return self.address
 

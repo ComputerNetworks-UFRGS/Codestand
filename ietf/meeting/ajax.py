@@ -177,10 +177,6 @@ def timeslot_addslot(request, meeting):
     newslot.meeting = meeting
     newslot.save()
 
-    # no longer create concurrent timeslots, because they will default, when there is
-    # no timeslots, to unavailable, which can be created later on.
-    # newslot.create_concurrent_timeslots()
-
     # XXX FIXME: timeslot_dayurl is undefined.  Placeholder:
     # timeslot_dayurl = None
     # XXX FIXME: newroom is undefined.  Placeholder:
@@ -285,7 +281,7 @@ def agenda_update(request, meeting, schedule):
 
     user = request.user
 
-    if not user.is_authenticated():
+    if not user.is_authenticated:
         return HttpResponse({'error':'no permission'}, status=403)
 
     cansee,canedit,secretariat = agenda_permissions(meeting, schedule, request.user)

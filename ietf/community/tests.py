@@ -2,8 +2,10 @@ import json
 
 from pyquery import PyQuery
 
-from django.core.urlresolvers import reverse as urlreverse
+from django.urls import reverse as urlreverse
 from django.contrib.auth.models import User
+
+import debug                            # pyflakes:ignore
 
 from ietf.community.models import CommunityList, SearchRule, EmailSubscription
 from ietf.community.utils import docs_matching_community_list_rule, community_list_rules_matching_doc
@@ -14,8 +16,10 @@ from ietf.doc.models import State
 from ietf.doc.utils import add_state_change_event
 from ietf.person.models import Person, Email
 from ietf.utils.test_data import make_test_data
-from ietf.utils.test_utils import login_testing_unauthorized, TestCase
+from ietf.utils.test_utils import login_testing_unauthorized, TestCase, unicontent
 from ietf.utils.mail import outbox
+from ietf.group.factories import GroupFactory
+from ietf.person.factories import PersonFactory
 
 class CommunityListTests(TestCase):
     def test_rule_matching(self):
@@ -81,7 +85,7 @@ class CommunityListTests(TestCase):
         )
         r = self.client.get(url)
         self.assertEqual(r.status_code, 200)
-        self.assertTrue(draft.name in r.content)
+        self.assertTrue(draft.name in unicontent(r))
 
     def test_manage_personal_list(self):
         draft = make_test_data()
@@ -101,7 +105,7 @@ class CommunityListTests(TestCase):
         # document shows up on GET
         r = self.client.get(url)
         self.assertEqual(r.status_code, 200)
-        self.assertTrue(draft.name in r.content)
+        self.assertTrue(draft.name in unicontent(r))
 
         # remove document
         r = self.client.post(url, { "action": "remove_document", "document": draft.pk })
@@ -157,6 +161,19 @@ class CommunityListTests(TestCase):
         # test GET, rest is tested with personal list
         r = self.client.get(url)
         self.assertEqual(r.status_code, 200)
+
+        # Verify GET also works with non-WG and RG groups
+        for gtype in ['area','program']:
+            g = GroupFactory.create(type_id=gtype)
+            # make sure the group's features have been initialized to improve coverage
+            _ = g.features # pyflakes:ignore
+            p = PersonFactory()
+            g.role_set.create(name_id={'area':'ad','program':'lead'}[gtype],person=p, email=p.email())
+            url = urlreverse(ietf.community.views.manage_list, kwargs={ "acronym": g.acronym })
+            setup_default_community_list_for_group(g)
+            self.client.login(username=p.user.username,password=p.user.username+"+password")
+            r = self.client.get(url)
+            self.assertEqual(r.status_code, 200)
 
     def test_track_untrack_document(self):
         draft = make_test_data()
@@ -225,7 +242,7 @@ class CommunityListTests(TestCase):
         r = self.client.get(url)
         self.assertEqual(r.status_code, 200)
         # this is a simple-minded test, we don't actually check the fields
-        self.assertTrue(draft.name in r.content)
+        self.assertTrue(draft.name in unicontent(r))
 
     def test_csv_for_group(self):
         draft = make_test_data()
@@ -258,12 +275,12 @@ class CommunityListTests(TestCase):
         )
         r = self.client.get(url)
         self.assertEqual(r.status_code, 200)
-        self.assertTrue(draft.name in r.content)
+        self.assertTrue(draft.name in unicontent(r))
 
         # only significant
         r = self.client.get(url + "?significant=1")
         self.assertEqual(r.status_code, 200)
-        self.assertTrue('<entry>' not in r.content)
+        self.assertTrue('<entry>' not in unicontent(r))
 
     def test_feed_for_group(self):
         draft = make_test_data()

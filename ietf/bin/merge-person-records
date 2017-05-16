@@ -27,6 +27,7 @@ django.setup()
 # -------------------------------------------------------------------------------------
 
 import argparse
+import datetime
 import pprint
 import syslog
 from django.contrib import admin
@@ -54,7 +55,7 @@ def determine_merge_order(source,target):
     if source.user and not target.user:
         source,target = target,source   # swap merge order
     if source.user and target.user:
-        source,target = sorted([source,target],key=lambda a: a.user.last_login)
+        source,target = sorted([source,target],key=lambda a: a.user.last_login if a.user.last_login else datetime.datetime.min)
     return source,target
 
 def get_extra_primary(source,target):
@@ -141,7 +142,10 @@ def main():
     changes.append(handle_users(source,target))
 
     # find all related objects and migrate
-    for related_object in source._meta.get_all_related_objects():
+    related_objects = [  f for f in source._meta.get_fields()
+        if (f.one_to_many or f.one_to_one)
+        and f.auto_created and not f.concrete ]
+    for related_object in related_objects:
         accessor = related_object.get_accessor_name()
         field_name = related_object.field.name
         queryset = getattr(source, accessor).all()
@@ -165,10 +169,11 @@ def main():
     user = User.objects.filter(is_superuser=True).first()
     admin_site = admin.site
     using = 'default'
-    deletable_objects, perms_needed, protected = admin.utils.get_deleted_objects(
+    deletable_objects = admin.utils.get_deleted_objects(
         objs, opts, user, admin_site, using)
 
-    if len(deletable_objects) > 1:
+    deletable_objects_summary = deletable_objects[1]
+    if len(deletable_objects_summary) > 1:    # should only inlcude one object (Person)
         print "Not Deleting Person: {}({})".format(source.ascii,source.pk)
         print "Related objects remain:"
         pprint.pprint(deletable_objects[1])

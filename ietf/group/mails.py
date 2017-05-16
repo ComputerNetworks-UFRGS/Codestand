@@ -6,7 +6,7 @@ import re
 from django.utils.html import strip_tags
 from django.utils.text import wrap
 from django.conf import settings
-from django.core.urlresolvers import reverse as urlreverse
+from django.urls import reverse as urlreverse
 
 from ietf.utils.mail import send_mail, send_mail_text
 from ietf.mailtrigger.utils import gather_address_lists
@@ -21,7 +21,7 @@ def email_admin_re_charter(request, group, subject, text, mailtrigger):
               dict(text=text,
                    group=group,
                    group_url=settings.IDTRACKER_BASE_URL + group.about_url(),
-                   charter_url=settings.IDTRACKER_BASE_URL + urlreverse('doc_view', kwargs=dict(name=group.charter.name)) if group.charter else "[no charter]",
+                   charter_url=settings.IDTRACKER_BASE_URL + urlreverse('ietf.doc.views_doc.document_main', kwargs=dict(name=group.charter.name)) if group.charter else "[no charter]",
                    ),
               cc=cc,
              )

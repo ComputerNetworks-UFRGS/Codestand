@@ -1,9 +1,11 @@
 import re, datetime, os, shutil
 
 from django.conf import settings
-from django.core.urlresolvers import reverse as urlreverse
+from django.urls import reverse as urlreverse
 from django.template.loader import render_to_string
 from django.utils.encoding import smart_text
+
+import debug                            # pyflakes:ignore
 
 from ietf.doc.models import NewRevisionDocEvent, WriteupDocEvent 
 from ietf.group.models import ChangeStateGroupEvent
@@ -124,10 +126,11 @@ def historic_milestones_for_charter(charter, rev):
         just_before_next_rev = datetime.datetime.now()
 
     res = []
-    for m in charter.chartered_group.groupmilestone_set.all():
-        mh = find_history_active_at(m, just_before_next_rev)
-        if mh and mh.state_id == need_state:
-            res.append(mh)
+    if hasattr(charter, 'chartered_group'):
+        for m in charter.chartered_group.groupmilestone_set.all():
+            mh = find_history_active_at(m, just_before_next_rev)
+            if mh and mh.state_id == need_state:
+                res.append(mh)
 
     return res
     
@@ -136,6 +139,7 @@ def generate_ballot_writeup(request, doc):
     e.type = "changed_ballot_writeup_text"
     e.by = request.user.person
     e.doc = doc
+    e.rev = doc.rev,
     e.desc = u"Ballot writeup was generated"
     e.text = unicode(render_to_string("doc/charter/ballot_writeup.txt"))
 
@@ -149,7 +153,7 @@ def default_action_text(group, charter, by):
         action = "Rechartered"
 
     addrs = gather_address_lists('ballot_approved_charter',doc=charter,group=group).as_strings(compact=False)
-    e = WriteupDocEvent(doc=charter, by=by)
+    e = WriteupDocEvent(doc=charter, rev=charter.rev, by=by)
     e.by = by
     e.type = "changed_action_announcement"
     e.desc = "%s action text was changed" % group.type.name
@@ -187,7 +191,7 @@ def default_review_text(group, charter, by):
     now = datetime.datetime.now()
     addrs = gather_address_lists('charter_external_review',group=group).as_strings(compact=False)
 
-    e1 = WriteupDocEvent(doc=charter, by=by)
+    e1 = WriteupDocEvent(doc=charter, rev=charter.rev, by=by)
     e1.by = by
     e1.type = "changed_review_announcement"
     e1.desc = "%s review text was changed" % group.type.name
@@ -210,7 +214,7 @@ def default_review_text(group, charter, by):
                               )
     e1.time = now
 
-    e2 = WriteupDocEvent(doc=charter, by=by)
+    e2 = WriteupDocEvent(doc=charter, rev=charter.rev, by=by)
     e2.by = by
     e2.type = "changed_new_work_text"
     e2.desc = "%s review text was changed" % group.type.name

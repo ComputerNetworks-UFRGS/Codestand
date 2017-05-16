@@ -1,9 +1,10 @@
-import os
 import shutil
 
 from StringIO import StringIO
 from django.conf import settings
-from django.core.urlresolvers import reverse as urlreverse
+from django.urls import reverse as urlreverse
+
+import debug                            # pyflakes:ignore
 
 from ietf.doc.models import State
 from ietf.person.models import Person
@@ -19,18 +20,15 @@ SECR_USER='secretary'
 class SecrDraftsTestCase(TestCase):
     def setUp(self):
         self.saved_internet_draft_path = settings.INTERNET_DRAFT_PATH
-        self.repository_dir = os.path.abspath("tmp-submit-repository-dir")
-        os.mkdir(self.repository_dir)
+        self.repository_dir = self.tempdir('submit-repository')
         settings.INTERNET_DRAFT_PATH = self.repository_dir
 
         self.saved_internet_draft_archive_dir = settings.INTERNET_DRAFT_ARCHIVE_DIR
-        self.archive_dir = os.path.abspath("tmp-submit-archive-dir")
-        os.mkdir(self.archive_dir)
+        self.archive_dir = self.tempdir('submit-archive')
         settings.INTERNET_DRAFT_ARCHIVE_DIR = self.archive_dir
 
         self.saved_idsubmit_manual_staging_dir = settings.IDSUBMIT_MANUAL_STAGING_DIR
-        self.manual_dir =  os.path.abspath("tmp-submit-manual-dir")
-        os.mkdir(self.manual_dir)
+        self.manual_dir =  self.tempdir('submit-manual')
         settings.IDSUBMIT_MANUAL_STAGING_DIR = self.manual_dir
 
     def tearDown(self):
@@ -43,14 +41,14 @@ class SecrDraftsTestCase(TestCase):
         
     def test_abstract(self):
         draft = make_test_data()
-        url = urlreverse('drafts_abstract', kwargs={'id':draft.name})
+        url = urlreverse('ietf.secr.drafts.views.abstract', kwargs={'id':draft.name})
         self.client.login(username="secretary", password="secretary+password")
         response = self.client.get(url)
         self.assertEqual(response.status_code, 200)
         
     def test_add(self):
         draft = make_test_data()
-        url = urlreverse('drafts_add')
+        url = urlreverse('ietf.secr.drafts.views.add')
         self.client.login(username="secretary", password="secretary+password")
         response = self.client.get(url)
         self.assertEqual(response.status_code, 200)
@@ -70,7 +68,7 @@ class SecrDraftsTestCase(TestCase):
         
     def test_announce(self):
         draft = make_test_data()
-        url = urlreverse('drafts_announce', kwargs={'id':draft.name})
+        url = urlreverse('ietf.secr.drafts.views.announce', kwargs={'id':draft.name})
         self.client.login(username="secretary", password="secretary+password")
         response = self.client.get(url)
         self.assertEqual(response.status_code, 302)
@@ -79,7 +77,7 @@ class SecrDraftsTestCase(TestCase):
         make_test_data()
         Preapproval.objects.create(name='draft-dummy',
             by=Person.objects.get(name="(System)"))
-        url = urlreverse('drafts_approvals')
+        url = urlreverse('ietf.secr.drafts.views.approvals')
         self.client.login(username="secretary", password="secretary+password")
         response = self.client.get(url)
         self.assertEqual(response.status_code, 200)
@@ -87,7 +85,7 @@ class SecrDraftsTestCase(TestCase):
     
     def test_edit(self):
         draft = make_test_data()
-        url = urlreverse('drafts_edit', kwargs={'id':draft.name})
+        url = urlreverse('ietf.secr.drafts.views.edit', kwargs={'id':draft.name})
         self.client.login(username="secretary", password="secretary+password")
         response = self.client.get(url)
         self.assertEqual(response.status_code, 200)
@@ -111,7 +109,7 @@ class SecrDraftsTestCase(TestCase):
         draft = make_test_data()
         state = State.objects.get(type='draft-iesg',slug='rfcqueue')
         draft.set_state(state)
-        url = urlreverse('drafts_revision', kwargs={'id':draft.name})
+        url = urlreverse('ietf.secr.drafts.views.revision', kwargs={'id':draft.name})
         self.client.login(username="secretary", password="secretary+password")
         rev = str(int(draft.rev) + 1).zfill(2)
         file = StringIO("This is a test.")
@@ -124,7 +122,7 @@ class SecrDraftsTestCase(TestCase):
 
     def test_makerfc(self):
         draft = make_test_data()
-        url = urlreverse('drafts_edit', kwargs={'id':draft.name})
+        url = urlreverse('ietf.secr.drafts.views.edit', kwargs={'id':draft.name})
         self.client.login(username="secretary", password="secretary+password")
         response = self.client.get(url)
         self.assertEqual(response.status_code, 200)
@@ -132,26 +130,26 @@ class SecrDraftsTestCase(TestCase):
         
     def test_search(self):
         draft = make_test_data()
-        url = urlreverse('drafts')
+        url = urlreverse('ietf.secr.drafts.views.search')
         self.client.login(username="secretary", password="secretary+password")
         response = self.client.get(url)
         self.assertEqual(response.status_code, 200)
         
         post = dict(filename='draft',state=1,submit='submit')
-        response = self.client.post(url,post)
+        response = self.client.post(url, post)
         self.assertEqual(response.status_code, 200)
         self.assertTrue(draft.name in response.content)
     
     def test_update(self):
         draft = make_test_data()
-        url = urlreverse('drafts_update', kwargs={'id':draft.name})
+        url = urlreverse('ietf.secr.drafts.views.update', kwargs={'id':draft.name})
         self.client.login(username="secretary", password="secretary+password")
         response = self.client.get(url)
         self.assertEqual(response.status_code, 200)
         
     def test_view(self):
         draft = make_test_data()
-        url = urlreverse('drafts_view', kwargs={'id':draft.name})
+        url = urlreverse('ietf.secr.drafts.views.view', kwargs={'id':draft.name})
         self.client.login(username="secretary", password="secretary+password")
         response = self.client.get(url)
         self.assertEqual(response.status_code, 200)

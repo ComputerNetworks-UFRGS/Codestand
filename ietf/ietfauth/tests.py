@@ -6,10 +6,12 @@ from urlparse import urlsplit
 from pyquery import PyQuery
 from unittest import skipIf
 
-from django.core.urlresolvers import reverse as urlreverse
 import django.contrib.auth.views
+from django.urls import reverse as urlreverse
 from django.contrib.auth.models import User
 from django.conf import settings
+
+import debug                            # pyflakes:ignore
 
 from ietf.utils.test_utils import TestCase, login_testing_unauthorized, unicontent
 from ietf.utils.test_data import make_test_data, make_review_data
@@ -39,8 +41,7 @@ class IetfAuthTests(TestCase):
         settings.USE_PYTHON_HTDIGEST = True
 
         self.saved_htpasswd_file = settings.HTPASSWD_FILE
-        self.htpasswd_dir = os.path.abspath("tmp-htpasswd-dir")
-        os.mkdir(self.htpasswd_dir)
+        self.htpasswd_dir = self.tempdir('htpasswd')
         settings.HTPASSWD_FILE = os.path.join(self.htpasswd_dir, "htpasswd")
         open(settings.HTPASSWD_FILE, 'a').close() # create empty file
 
@@ -60,10 +61,10 @@ class IetfAuthTests(TestCase):
         make_test_data()
 
         # try logging in without a next
-        r = self.client.get(urlreverse(django.contrib.auth.views.login))
+        r = self.client.get(urlreverse(ietf.ietfauth.views.login))
         self.assertEqual(r.status_code, 200)
 
-        r = self.client.post(urlreverse(django.contrib.auth.views.login), {"username":"plain", "password":"plain+password"})
+        r = self.client.post(urlreverse(ietf.ietfauth.views.login), {"username":"plain", "password":"plain+password"})
         self.assertEqual(r.status_code, 302)
         self.assertEqual(urlsplit(r["Location"])[2], urlreverse(ietf.ietfauth.views.profile))
 
@@ -73,10 +74,10 @@ class IetfAuthTests(TestCase):
 
         r = self.client.get(urlreverse(ietf.ietfauth.views.profile))
         self.assertEqual(r.status_code, 302)
-        self.assertEqual(urlsplit(r["Location"])[2], urlreverse(django.contrib.auth.views.login))
+        self.assertEqual(urlsplit(r["Location"])[2], urlreverse(ietf.ietfauth.views.login))
 
         # try logging in with a next
-        r = self.client.post(urlreverse(django.contrib.auth.views.login) + "?next=/foobar", {"username":"plain", "password":"plain+password"})
+        r = self.client.post(urlreverse(ietf.ietfauth.views.login) + "?next=/foobar", {"username":"plain", "password":"plain+password"})
         self.assertEqual(r.status_code, 302)
         self.assertEqual(urlsplit(r["Location"])[2], "/foobar")
 
@@ -125,7 +126,7 @@ class IetfAuthTests(TestCase):
         empty_outbox()
         r = self.client.post(url, { 'email': email })
         self.assertEqual(r.status_code, 200)
-        self.assertIn("Account created", unicontent(r))
+        self.assertIn("Account request received", unicontent(r))
         self.assertEqual(len(outbox), 1)
 
         # go to confirm page
@@ -139,7 +140,7 @@ class IetfAuthTests(TestCase):
         self.assertEqual(User.objects.filter(username=email).count(), 0)
 
         # confirm
-        r = self.client.post(confirm_url, { 'password': 'secret', 'password_confirmation': 'secret' })
+        r = self.client.post(confirm_url, { 'name': 'User Name', 'ascii': 'User Name', 'password': 'secret', 'password_confirmation': 'secret' })
         self.assertEqual(r.status_code, 200)
         self.assertEqual(User.objects.filter(username=email).count(), 1)
         self.assertEqual(Person.objects.filter(user__username=email).count(), 1)
@@ -151,7 +152,7 @@ class IetfAuthTests(TestCase):
         email = "new-account@example.com"
 
         # add whitelist entry
-        r = self.client.post(urlreverse(django.contrib.auth.views.login), {"username":"secretary", "password":"secretary+password"})
+        r = self.client.post(urlreverse(ietf.ietfauth.views.login), {"username":"secretary", "password":"secretary+password"})
         self.assertEqual(r.status_code, 302)
         self.assertEqual(urlsplit(r["Location"])[2], urlreverse(ietf.ietfauth.views.profile))
 
@@ -399,3 +400,98 @@ class IetfAuthTests(TestCase):
         update_htpasswd_file("foo", "passwd")
         self.assertTrue(self.username_in_htpasswd_file("foo"))
         
+
+    def test_change_password(self):
+
+        chpw_url = urlreverse(ietf.ietfauth.views.change_password)
+        prof_url = urlreverse(ietf.ietfauth.views.profile)
+        login_url = urlreverse(ietf.ietfauth.views.login)
+        redir_url = '%s?next=%s' % (login_url, chpw_url)
+
+        # get without logging in
+        r = self.client.get(chpw_url)
+        self.assertRedirects(r, redir_url)
+
+        user = User.objects.create(username="someone@example.com", email="someone@example.com")
+        user.set_password("password")
+        user.save()
+        p = Person.objects.create(name="Some One", ascii="Some One", user=user)
+        Email.objects.create(address=user.username, person=p)
+
+        # log in
+        r = self.client.post(redir_url, {"username":user.username, "password":"password"})
+        self.assertRedirects(r, chpw_url)
+
+        # wrong current password
+        r = self.client.post(chpw_url, {"current_password": "fiddlesticks",
+                                        "new_password": "foobar",
+                                        "new_password_confirmation": "foobar",
+                                       })
+        self.assertEqual(r.status_code, 200)
+        self.assertFormError(r, 'form', 'current_password', 'Invalid password')
+
+        # mismatching new passwords
+        r = self.client.post(chpw_url, {"current_password": "password",
+                                        "new_password": "foobar",
+                                        "new_password_confirmation": "barfoo",
+                                       })
+        self.assertEqual(r.status_code, 200)
+        self.assertFormError(r, 'form', None, "The password confirmation is different than the new password")
+
+        # correct password change
+        r = self.client.post(chpw_url, {"current_password": "password",
+                                        "new_password": "foobar",
+                                        "new_password_confirmation": "foobar",
+                                       })
+        self.assertRedirects(r, prof_url)
+        # refresh user object
+        user = User.objects.get(username="someone@example.com")
+        self.assertTrue(user.check_password(u'foobar'))
+
+    def test_change_username(self):
+
+        chun_url = urlreverse(ietf.ietfauth.views.change_username)
+        prof_url = urlreverse(ietf.ietfauth.views.profile)
+        login_url = urlreverse(ietf.ietfauth.views.login)
+        redir_url = '%s?next=%s' % (login_url, chun_url)
+
+        # get without logging in
+        r = self.client.get(chun_url)
+        self.assertRedirects(r, redir_url)
+
+        user = User.objects.create(username="someone@example.com", email="someone@example.com")
+        user.set_password("password")
+        user.save()
+        p = Person.objects.create(name="Some One", ascii="Some One", user=user)
+        Email.objects.create(address=user.username, person=p)
+        Email.objects.create(address="othername@example.org", person=p)        
+
+        # log in
+        r = self.client.post(redir_url, {"username":user.username, "password":"password"})
+        self.assertRedirects(r, chun_url)
+
+        # wrong username
+        r = self.client.post(chun_url, {"username": "fiddlesticks",
+                                        "password": "password",
+                                       })
+        self.assertEqual(r.status_code, 200)
+        self.assertFormError(r, 'form', 'username',
+            "Select a valid choice. fiddlesticks is not one of the available choices.")
+
+        # wrong password
+        r = self.client.post(chun_url, {"username": "othername@example.org",
+                                        "password": "foobar",
+                                       })
+        self.assertEqual(r.status_code, 200)
+        self.assertFormError(r, 'form', 'password', 'Invalid password')
+
+        # correct username change
+        r = self.client.post(chun_url, {"username": "othername@example.org",
+                                        "password": "password",
+                                       })
+        self.assertRedirects(r, prof_url)
+        # refresh user object
+        prev = user
+        user = User.objects.get(username="othername@example.org")
+        self.assertEqual(prev, user)
+        self.assertTrue(user.check_password(u'password'))

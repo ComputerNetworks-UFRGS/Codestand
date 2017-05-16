@@ -1,5 +1,9 @@
+# Copyright The IETF Trust 2011, All Rights Reserved
+
 import os
 import datetime
+import six
+from unidecode import unidecode
 
 from django.conf import settings
 
@@ -19,8 +23,9 @@ from ietf.person.models import Person, Email
 from ietf.community.utils import update_name_contains_indexes_with_new_doc
 from ietf.submit.mail import announce_to_lists, announce_new_version, announce_to_authors
 from ietf.submit.models import Submission, SubmissionEvent, Preapproval, DraftSubmissionStateName
+from ietf.utils import log
 from ietf.utils import unaccent
-from ietf.utils.log import log
+from ietf.utils.mail import is_valid_email
 
 
 def validate_submission(submission):
@@ -103,7 +108,7 @@ def validate_submission_document_date(submission_date, document_date):
 
 def create_submission_event(request, submission, desc):
     by = None
-    if request and request.user.is_authenticated():
+    if request and request.user.is_authenticated:
         try:
             by = request.user.person
         except Person.DoesNotExist:
@@ -255,7 +260,7 @@ def post_submission(request, submission, approvedDesc):
 
     trouble = rebuild_reference_relations(draft, filename=os.path.join(settings.IDSUBMIT_STAGING_PATH, '%s-%s.txt' % (submission.name, submission.rev)))
     if trouble:
-        log('Rebuild_reference_relations trouble: %s'%trouble)
+        log.log('Rebuild_reference_relations trouble: %s'%trouble)
     
     if draft.stream_id == "ietf" and draft.group.type_id == "wg" and draft.rev == "00":
         # automatically set state "WG Document"
@@ -276,7 +281,7 @@ def post_submission(request, submission, approvedDesc):
         draft.tags.remove("need-rev")
         draft.tags.add("ad-f-up")
 
-        e = DocEvent(type="changed_document", doc=draft)
+        e = DocEvent(type="changed_document", doc=draft, rev=draft.rev)
         e.desc = "Sub state has been changed to <b>AD Followup</b> from <b>Revised ID Needed</b>"
         e.by = system
         e.save()
@@ -319,7 +324,7 @@ def update_replaces_from_submission(request, submission, draft):
 
     is_secretariat = has_role(request.user, "Secretariat")
     is_chair_of = []
-    if request.user.is_authenticated():
+    if request.user.is_authenticated:
         is_chair_of = list(Group.objects.filter(role__person__user=request.user, role__name="chair"))
 
     replaces = DocAlias.objects.filter(name__in=submission.replaces.split(",")).select_related("document", "document__group")
@@ -350,7 +355,7 @@ def update_replaces_from_submission(request, submission, draft):
 
 
     try:
-        by = request.user.person if request.user.is_authenticated() else Person.objects.get(name="(System)")
+        by = request.user.person if request.user.is_authenticated else Person.objects.get(name="(System)")
     except Person.DoesNotExist:
         by = Person.objects.get(name="(System)")
     set_replaces_for_document(request, draft, existing_replaces + approved, by,
@@ -362,48 +367,53 @@ def update_replaces_from_submission(request, submission, draft):
         for r in suggested:
             RelatedDocument.objects.create(source=draft, target=r, relationship=possibly_replaces)
 
-        DocEvent.objects.create(doc=draft, by=by, type="added_suggested_replaces",
+        DocEvent.objects.create(doc=draft, rev=draft.rev, by=by, type="added_suggested_replaces",
                                 desc="Added suggested replacement relationships: %s" % ", ".join(d.name for d in suggested))
 
     return approved, suggested
 
 def get_person_from_name_email(name, email):
     # try email
-    if email:
+    if email and (email.startswith('unknown-email-') or is_valid_email(email)):
         persons = Person.objects.filter(email__address=email).distinct()
         if len(persons) == 1:
             return persons[0]
     else:
         persons = Person.objects.none()
 
-    if not persons:
+    if not persons.exists():
         persons = Person.objects.all()
 
     # try full name
     p = persons.filter(alias__name=name).distinct()
-    if p:
-        return p[0]
+    if p.exists():
+        return p.first()
 
     return None
 
 def ensure_person_email_info_exists(name, email):
-    person = get_person_from_name_email(name, email)
+    addr = email
+    email = None
+    person = get_person_from_name_email(name, addr)
 
     # make sure we have a person
     if not person:
         person = Person()
         person.name = name
-        person.ascii = unaccent.asciify(person.name)
+        if isinstance(person.name, six.text_type):
+            person.ascii = unidecode(person.name).decode('ascii')
+        else:
+            person.ascii = unaccent.asciify(person.name).decode('ascii')
         person.save()
 
     # make sure we have an email address
-    if email:
+    if addr and (addr.startswith('unknown-email-') or is_valid_email(addr)):
         active = True
-        addr = email.lower()
+        addr = addr.lower()
     else:
         # we're in trouble, use a fake one
         active = False
-        addr = u"unknown-email-%s" % person.plain_name().replace(" ", "-")
+        addr = u"unknown-email-%s" % person.plain_ascii().replace(" ", "-")
 
     try:
         email = person.email_set.get(address=addr)
@@ -420,6 +430,8 @@ def ensure_person_email_info_exists(name, email):
             email.active = active
 
         email.person = person
+        if email.time is None:
+            email.time = datetime.datetime.now()
         email.save()
 
     return email
@@ -435,6 +447,7 @@ def update_authors(draft, submission):
 
         a.order = order
         a.save()
+        log.assertion('a.author_id != "none"')
 
         authors.append(email)
 
@@ -463,7 +476,7 @@ def move_files_to_repository(submission):
             os.rename(source, dest)
         else:
             if os.path.exists(dest):
-                log("Intended to move '%s' to '%s', but found source missing while destination exists.")
+                log.log("Intended to move '%s' to '%s', but found source missing while destination exists.")
             elif ext in submission.file_types.split(','):
                 raise ValueError("Intended to move '%s' to '%s', but found source and destination missing.")
 
@@ -474,7 +487,7 @@ def remove_submission_files(submission):
             os.unlink(source)
 
 def approvable_submissions_for_user(user):
-    if not user.is_authenticated():
+    if not user.is_authenticated:
         return []
 
     res = Submission.objects.filter(state="grp-appr").order_by('-submission_date')
@@ -485,7 +498,7 @@ def approvable_submissions_for_user(user):
     return res.filter(group__role__name="chair", group__role__person__user=user)
 
 def preapprovals_for_user(user):
-    if not user.is_authenticated():
+    if not user.is_authenticated:
         return []
 
     posted = Submission.objects.distinct().filter(state="posted").values_list('name', flat=True)
@@ -500,7 +513,7 @@ def preapprovals_for_user(user):
     return res
 
 def recently_approved_by_user(user, since):
-    if not user.is_authenticated():
+    if not user.is_authenticated:
         return []
 
     res = Submission.objects.distinct().filter(state="posted", submission_date__gte=since, rev="00").order_by('-submission_date')

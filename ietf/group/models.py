@@ -1,15 +1,20 @@
 # Copyright The IETF Trust 2007, All Rights Reserved
 
 import datetime
+import email.utils
+import os
+import re
 from urlparse import urljoin
 
 from django.db import models
 
+import debug                            # pyflakes:ignore
+
 from ietf.group.colors import fg_group_colors, bg_group_colors
 from ietf.name.models import GroupStateName, GroupTypeName, DocTagName, GroupMilestoneStateName, RoleName
 from ietf.person.models import Email, Person
+from ietf.utils.mail import formataddr
 
-import debug                            # pyflakes:ignore
 
 class GroupInfo(models.Model):
     time = models.DateTimeField(default=datetime.datetime.now)
@@ -47,7 +52,7 @@ class GroupInfo(models.Model):
 
     def about_url(self):
         # bridge gap between group-type prefixed URLs and /group/ ones
-        from django.core.urlresolvers import reverse as urlreverse
+        from django.urls import reverse as urlreverse
         kwargs = { 'acronym': self.acronym }
         if self.type_id in ("wg", "rg"):
             kwargs["group_type"] = self.type_id
@@ -84,7 +89,7 @@ class Group(GroupInfo):
     def has_role(self, user, role_names):
         if isinstance(role_names, str) or isinstance(role_names, unicode):
             role_names = [role_names]
-        return user.is_authenticated() and self.role_set.filter(name__in=role_names, person__user=user).exists()
+        return user.is_authenticated and self.role_set.filter(name__in=role_names, person__user=user).exists()
 
     def is_decendant_of(self, sought_parent):
         p = self.parent
@@ -164,6 +169,24 @@ class Group(GroupInfo):
         if previous_meeting:
             status_events = status_events.filter(time__gte=previous_meeting.end_date()+datetime.timedelta(days=1))
         return status_events.first()
+
+    def get_description(self):
+        """
+        Return self.description if set, otherwise the first paragraph of the
+        charter if any, else a short error message.  Used to provide a
+        fallback for self.description in group.resources.GroupResource.
+        """
+        desc = 'No description available'
+        if self.description:
+            desc = self.description
+        elif self.charter:
+            path = self.charter.get_file_name()
+            if os.path.exists(path):
+                text = self.charter.text()
+                # split into paragraphs and grab the first non-empty one
+                if text:
+                    desc = [ p for p in re.split('\r?\n\s*\r?\n\s*', text) if p.strip() ][0]
+        return desc
 
 class GroupHistory(GroupInfo):
     group = models.ForeignKey(Group, related_name='history_set')
@@ -254,8 +277,21 @@ class Role(models.Model):
     def __unicode__(self):
         return u"%s is %s in %s" % (self.person.plain_name(), self.name.name, self.group.acronym or self.group.name)
 
+    def name_and_email(self):
+        "Returns name and email, e.g.: u'Ano Nymous <ano@nymous.org>' "
+        if self.person:
+            return u"%s <%s>" % (self.person.plain_name(), self.email.address)
+        else:
+            return u"<%s>" % self.address
+
+    def formatted_ascii_email(self):
+        return email.utils.formataddr((self.person.plain_ascii(), self.email.address))
+
     def formatted_email(self):
-        return u'"%s" <%s>' % (self.person.plain_name(), self.email.address)
+        return formataddr((self.person.plain_name(), self.email.address))
+
+    class Meta:
+        ordering = ['name_id', ]
 
 class RoleHistory(models.Model):
     # RoleHistory doesn't have a time field as it's not supposed to be

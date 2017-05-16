@@ -4,6 +4,7 @@ version=0.10
 program=${0##*/}
 progdir=${0%/*}
 if [ "$progdir" = "$program" ]; then progdir="."; fi
+PATH="$PATH:$progdir"
 
 # ----------------------------------------------------------------------
 function usage() {
@@ -78,14 +79,15 @@ trap 'echo "$program($LINENO): Command failed with error code $? ([$$] $0 $*)"; 
 # Option parsing
 
 # Options
-shortopts=hnvV
-longopts=help,dry-run,verbose,version
+shortopts=hmnpvV
+longopts=help,message,dry-run,permit-migr-mix,verbose,version
 
 # Default values
 MSG=""
 PROJ=ietfdb
 VERFILE=ietf/__init__.py
 SETTINGS=ietf/settings.py
+PERMIT_MIGR_MIX=""
 do=""
 
 if   [ "$(uname)" = "Linux" ]; then
@@ -106,6 +108,7 @@ while true ; do
 	-h| --help)		usage; exit;;	#	 Show this help, then exit
 	-m| --message)		MSG=$2; shift;;		# Specify a commit message
 	-n| --dry-run)		do="echo ==>";;	#	 Show what would be done	
+	-p| --permit-migr-mix)	PERMIT_MIGR_MIX=1;; # Permit mixed schema and data migrations
 	-v| --verbose)		VERBOSE=1;;	#	 Be more talkative
 	-V| --version)		version; exit;;	#	 Show program version, then exit
 	--)			shift; break;;
@@ -170,8 +173,44 @@ DEV="$(printf %d.%d.%d.dev0 $MAJOR $MINOR $NEXT)"
 
 #cd $DIR ??
 
+note "Checking that changelog information is available ..."
+changes=$( sed -n "/^$PROJ ($VER.*)/,/^ -- /p" changelog )
+[ "$changes" ] || die "No changelog information for $VER found"
+#note "$changes"
+
+if [ -z "$PERMIT_MIGR_MIX" ]; then
+    note "Checking that we don't have both schema and data migrations ..."
+    cur=$(svn info | awk '/^Revision:/ { print $2 }')
+    migrations=$(svn log $PWD -v -r HEAD:$((cur-100)) | sed -n -e '1,/^Set version info and settings back to development mode/p' | grep '^...A /.*/migrations/0.*.py' | cut -c6- | awk '{ print $1 }' | sed -re 's|/trunk/||')
+    if [ -n "$migrations" ]; then
+	datamigr=$(for m in "$migrations"; do egrep -sl 'migrations\.RunPython' $m; done || true)
+	schemamigr=$(for m in "$migrations"; do egrep -sl 'migrations\.(Add|Alter|Create|Delete|Remove|Rename)(Field|Model|UniqueTogether)' $m; done || true)
+	if [ -n "$datamigr" -a -n "$schemamigr" ]; then
+	    echo -e "\n   Schema migrations:"
+	    for m in $schemamigr; do
+		echo "        $m"
+	    done
+	    echo -e "\n   Data migrations:"
+	    for m in $datamigr; do
+		echo "        $m"
+	    done
+	    die "\n   Found both data migrations and schema migrations in this release.\n   This is likely to cause delay between schema changes and deployment,\n   which means the old code will run on the new schema longer than necessary."
+	fi
+    fi
+fi
+
+note "Updating bower assets ..."
+$do ietf/manage.py bower_install > .mkrelease-bower-install.log
+$do rm .mkrelease-bower-install.log	# This happens at once unless the previous command returns error
+$do svn st ietf/externals/static | grep -v '^\?' || true
+$do svn commit ietf/externals/static -m "Updated bower-managed static web assets"
+# Get rid of bower-installed files which we don't use:
+$do rm -rf ietf/externals/static/datatracker/
+$do rm $(svn st ietf/externals/ | grep '^\?' | awk '{print $2}')
+
+
 note "Collecting static files ..."
-$do ietf/manage.py collectstatic --noinput --ignore=bower.json --ignore='README.*'
+$do ietf/manage.py collectstatic --noinput --ignore=bower.json --ignore='README.*' --ignore=rev | grep -v "Found another file with the destination path"
 $do svn commit static/lib/ -m "Updated static files under static/lib/"
 
 # note "Checking that there's a recent test-crawler log"
@@ -179,16 +218,18 @@ $do svn commit static/lib/ -m "Updated static files under static/lib/"
 # TCLOG=$(ls -t ../test-crawl-*.log | head -n 1)
 # [ $TCLOG -nt .svn/.latest-commit ] || die "Looked for ../test-crawl-*.log, but didn't find one newer than the latest repository commit ($RDATE)"
 
-note "Checking that changelog information is available ..."
-changes=$( sed -n "/^$PROJ ($VER.*)/,/^ -- /p" changelog )
-[ "$changes" ] || die "No changelog information for $VER found"
-#note "$changes"
-
 note "Upgrading the python library modules before checking migrations and running tests ..."
-pip install --upgrade -r requirements.txt
+$do pip install --upgrade -r requirements.txt
 
 note "Checking that all model changes have been captured in migrations ..."
-ietf/manage.py makemigrations | tee /dev/stderr | grep -q "^No changes detected$" || die "Model changes without migrations found."
+$do ietf/manage.py makemigrations | tee /dev/stderr | grep -q "^No changes detected$" || die "Model changes without migrations found."
+
+note "Making sure all migrations have been run ..."
+$do ietf/manage.py migrate
+
+note "Saving the current list of tables (for later use)"
+$do ietf/manage.py dbshell <<< "show tables;" | tail -n +2 | jq -R -s "split(\"\n\") | {\"$VER\":.}" | jq -s 'add' - table-list.json | $do update table-list.json
+$do svn commit table-list.json -m "List of tables at the time of release $VER"
 
 note "Running the tests suite and writing release coverage data ..."
 $do ietf/manage.py test --settings=ietf.settings_releasetest --save-version-coverage=$VER
@@ -274,7 +315,7 @@ Regards,
 	(via the mkrelease script)
 " > ~/src/db/mail/release-mail-v$VER.txt
 
-cat ~/src/db/mail/release-mail-v$VER.txt | $do mail -s "New datatracker release: v$VER" housley@vigilsec.com rjs@nostrum.com henrik@levkowetz.com -c glen@amsl.com -c fenner@fenron.net -c cmorgan@amsl.com -c avezza@amsl.com -c amorris@amsl.com -c smccammon@amsl.com -c kmoreland@amsl.com -c olau@iola.dk -c mlarson@amsl.com $contributors
+cat ~/src/db/mail/release-mail-v$VER.txt | $do mail -s "New datatracker release: v$VER" housley@vigilsec.com rjs@nostrum.com henrik@levkowetz.com -c glen@amsl.com -c fenner@fenron.net -c cmorgan@amsl.com -c avezza@amsl.com -c amorris@amsl.com -c smccammon@amsl.com -c kmoreland@amsl.com -c olau@iola.dk -c mlarson@amsl.com -c sbirkholz@amsl.com $contributors
 
 cat ~/src/db/mail/release-mail-v$VER.txt | $do mail -s "New datatracker release: v$VER" iesg@ietf.org wgchairs@ietf.org codesprints@ietf.org -b henrik@levkowetz.com
 

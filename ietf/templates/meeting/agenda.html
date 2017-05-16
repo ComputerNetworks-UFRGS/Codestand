@@ -4,6 +4,7 @@
 {% load staticfiles %}
 {% load ietf_filters %}
 {% load textfilters %}
+{% load htmlfilters %}
 
 {% block title %}
   IETF {{ schedule.meeting.number }} meeting agenda
@@ -203,6 +204,11 @@
 	          </td>
                   <td>
 	            {{item.timeslot.name}}
+
+                   {% if item.session.status.slug == 'canceled' %}
+                        <span class="label label-danger pull-right">CANCELLED</span>
+                   {% endif %}
+
 	          </td>
 		  <td class="col-md-2">
 		    <span class="hidden-xs">
@@ -217,7 +223,7 @@
                 </tr>
             {% endif %}
 
-            {% if item.timeslot.type.slug = 'session' or item.timeslot.type.slug == 'plenary' %}
+            {% if item.timeslot.type.slug == 'session' or item.timeslot.type.slug == 'plenary' %}
               {% if item.session.historic_group %}
                 <tr id="row-{{item.slug}}" data-ske="row-{{ item.slug }}" {% if item.timeslot.type.slug == 'plenary' %}class="{{item.timeslot.type.slug}}danger"{% endif %}>
 		  {% if item.timeslot.type.slug == 'plenary' %}
@@ -255,7 +261,7 @@
 
                     <td>
                       {% if item.session.historic_group.charter %}
-                        <a href="{% url 'group_charter' acronym=item.session.historic_group.acronym %}">{{item.session.historic_group.acronym}}</a>
+                        <a href="{% url 'ietf.group.views.group_about' acronym=item.session.historic_group.acronym %}">{{item.session.historic_group.acronym}}</a>
                       {% else %}
                         {{item.session.historic_group.acronym}}
                       {% endif %}

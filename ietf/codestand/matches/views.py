@@ -131,7 +131,7 @@ def show_list(request, is_my_list="False", att=constants.ATT_CREATION_DATE, stat
         'attribute': att,
         'mylist': is_my_list,
         'state': state,
-        'template': 'ietf.codestand.matches.views.show_list'  # TODO fix this
+        'template': "ietf.codestand.matches.views.show_list"  # TODO fix this
     })
 
 
@@ -281,7 +281,7 @@ def search(request, is_my_list="False"):
         })
 
 
-def save_code(request, template, pk, ck="", coding=None):
+def save_code(request, is_edit, pk, ck="", coding=None):
     """ Used to create or update a CodeRequest.
         When project container is null then a new
         instance is created in the database
@@ -289,7 +289,7 @@ def save_code(request, template, pk, ck="", coding=None):
         :param coding: CodingProject
         :param ck: int - Indicates which coding must be loaded
         :param pk: int - Indicates which project must be loaded
-        :param template: string
+        :param is_edit: boolean
     """
 
     # User must have permission to add new CodeRequest
@@ -478,8 +478,9 @@ def save_code(request, template, pk, ck="", coding=None):
         request.session[constants.CODE_INSTANCE] = new_code
         code_form = new_code
 
-    return render_page(request, template, {
+    return render_page(request, constants.TEMPLATE_MATCHES_NEW, {
         'projectcontainer': project_container,
+        'isedit': is_edit,
         'projform': proj_form,
         'codeform': code_form,
         'linkform': link_form,
@@ -570,7 +571,7 @@ def edit(request, pk, ck):
     request.session[constants.ACTUAL_PROJECT] = project_container
     request.session[constants.CODE_INSTANCE] = CodingProjectForm(instance=coding)
 
-    return save_code(request, constants.TEMPLATE_MATCHES_EDIT, pk, ck, coding)
+    return save_code(request, True, pk, ck, coding)
 
 
 @login_required(login_url=settings.CODESTAND_PREFIX + constants.TEMPLATE_LOGIN)
@@ -602,7 +603,7 @@ def new(request, pk=""):
     if not is_user_allowed(request.user, "canaddmatch"):
         raise Http404
 
-    return save_code(request, constants.TEMPLATE_MATCHES_NEW, pk)
+    return save_code(request, False, pk)
 
 
 @login_required(login_url=settings.CODESTAND_PREFIX + constants.TEMPLATE_LOGIN)

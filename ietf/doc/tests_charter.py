@@ -6,7 +6,7 @@ from StringIO import StringIO
 from pyquery import PyQuery
 
 from django.conf import settings
-from django.core.urlresolvers import reverse as urlreverse
+from django.urls import reverse as urlreverse
 
 import debug                            # pyflakes:ignore
 
@@ -25,8 +25,7 @@ from ietf.utils.test_utils import login_testing_unauthorized
 
 class EditCharterTests(TestCase):
     def setUp(self):
-        self.charter_dir = os.path.abspath("tmp-charter-dir")
-        os.mkdir(self.charter_dir)
+        self.charter_dir = self.tempdir('charter')
         self.saved_charter_path = settings.CHARTER_PATH
         settings.CHARTER_PATH = self.charter_dir
 
@@ -46,7 +45,7 @@ class EditCharterTests(TestCase):
 
         for option in ("recharter", "abandon"):
             self.client.logout()
-            url = urlreverse('charter_startstop_process', kwargs=dict(name=charter.name, option=option))
+            url = urlreverse('ietf.doc.views_charter.change_state', kwargs=dict(name=charter.name, option=option))
             login_testing_unauthorized(self, "secretary", url)
 
             # normal get
@@ -69,7 +68,7 @@ class EditCharterTests(TestCase):
         group = Group.objects.get(acronym="ames")
         charter = group.charter
 
-        url = urlreverse('charter_change_state', kwargs=dict(name=charter.name))
+        url = urlreverse('ietf.doc.views_charter.change_state', kwargs=dict(name=charter.name))
         login_testing_unauthorized(self, "secretary", url)
 
         first_state = charter.get_state()
@@ -134,7 +133,7 @@ class EditCharterTests(TestCase):
             self.assertIn("State Update Notice", outbox[-1]['Subject'])
             self.assertIn("ames-chairs@", outbox[-1]['To'])
             body = outbox[-1].get_payload()
-            for word in ["State changed", "ID Tracker URL", ]:
+            for word in ["State changed", "Datatracker URL", ]:
                 self.assertIn(word, body)
 
         by = Person.objects.get(user__username="secretary")
@@ -149,7 +148,7 @@ class EditCharterTests(TestCase):
         # Exercise internal review of a recharter
         group = Group.objects.get(acronym="mars")
         charter = group.charter
-        url = urlreverse('charter_change_state', kwargs=dict(name=charter.name))
+        url = urlreverse('ietf.doc.views_charter.change_state', kwargs=dict(name=charter.name))
         empty_outbox()
         r = self.client.post(url, dict(charter_state=str(State.objects.get(used=True,type="charter",slug="intrev").pk), message="test"))
         self.assertEqual(r.status_code, 302)
@@ -161,7 +160,7 @@ class EditCharterTests(TestCase):
         group = Group.objects.get(acronym="mars")
         charter = group.charter
 
-        url = urlreverse('charter_telechat_date', kwargs=dict(name=charter.name))
+        url = urlreverse('ietf.doc.views_doc.telechat_date;charter', kwargs=dict(name=charter.name))
         login_testing_unauthorized(self, "secretary", url)
 
         # get
@@ -199,19 +198,19 @@ class EditCharterTests(TestCase):
 
         group = Group.objects.get(acronym="ames")
         charter = group.charter
-        url = urlreverse('charter_telechat_date', kwargs=dict(name=charter.name))
+        url = urlreverse('ietf.doc.views_doc.telechat_date;charter', kwargs=dict(name=charter.name))
         login_testing_unauthorized(self, "secretary", url)
         login = Person.objects.get(user__username="secretary")
 
         # Make it so that the charter has been through internal review, and passed its external review
         # ballot on a previous telechat 
         last_week = datetime.date.today()-datetime.timedelta(days=7)
-        BallotDocEvent.objects.create(type='created_ballot',by=login,doc=charter,
+        BallotDocEvent.objects.create(type='created_ballot',by=login,doc=charter, rev=charter.rev,
                                       ballot_type=BallotType.objects.get(doc_type=charter.type,slug='r-extrev'),
                                       time=last_week)
-        TelechatDocEvent.objects.create(type='scheduled_for_telechat',doc=charter,by=login,telechat_date=last_week,returning_item=False)
-        BallotDocEvent.objects.create(type='created_ballot',by=login,doc=charter,
-                                      ballot_type=BallotType.objects.get(doc_type=charter.type,slug='approve'))
+        TelechatDocEvent.objects.create(type='scheduled_for_telechat', doc=charter, rev=charter.rev, by=login, telechat_date=last_week, returning_item=False)
+        BallotDocEvent.objects.create(type='created_ballot', by=login, doc=charter, rev=charter.rev,
+                                      ballot_type=BallotType.objects.get(doc_type=charter.type, slug='approve'))
         
         # Put the charter onto a future telechat and verify returning item is not set
         telechat_date = TelechatDate.objects.active()[1].date
@@ -228,7 +227,7 @@ class EditCharterTests(TestCase):
 
         charter = Group.objects.get(acronym="mars").charter
 
-        url = urlreverse('charter_edit_notify', kwargs=dict(name=charter.name))
+        url = urlreverse('ietf.doc.views_doc.edit_notify;charter', kwargs=dict(name=charter.name))
         login_testing_unauthorized(self, "secretary", url)
 
         # get
@@ -259,7 +258,7 @@ class EditCharterTests(TestCase):
 
         charter = Group.objects.get(acronym="mars").charter
 
-        url = urlreverse('charter_edit_ad', kwargs=dict(name=charter.name))
+        url = urlreverse('ietf.doc.views_charter.edit_ad', kwargs=dict(name=charter.name))
         login_testing_unauthorized(self, "secretary", url)
 
         # normal get
@@ -283,7 +282,7 @@ class EditCharterTests(TestCase):
         group = Group.objects.get(acronym="mars")
         charter = group.charter
 
-        url = urlreverse('charter_submit', kwargs=dict(name=charter.name))
+        url = urlreverse('ietf.doc.views_charter.submit', kwargs=dict(name=charter.name))
         login_testing_unauthorized(self, "secretary", url)
 
         # normal get
@@ -330,7 +329,7 @@ class EditCharterTests(TestCase):
         charter.delete()
         charter = None
 
-        url = urlreverse('charter_submit', kwargs=dict(name=charter_name_for_group(group)))
+        url = urlreverse('ietf.doc.views_charter.submit', kwargs=dict(name=charter_name_for_group(group)))
         login_testing_unauthorized(self, "secretary", url)
 
         # normal get
@@ -459,6 +458,7 @@ class EditCharterTests(TestCase):
             ballot_type=BallotType.objects.get(doc_type="charter", slug="approve"),
             by=by,
             doc=charter,
+            rev=charter.rev,
             desc="Created ballot",
             )
 
@@ -495,7 +495,7 @@ class EditCharterTests(TestCase):
         group = Group.objects.get(acronym="ames")
         charter = group.charter
 
-        url = urlreverse('charter_approve', kwargs=dict(name=charter.name))
+        url = urlreverse('ietf.doc.views_charter.approve', kwargs=dict(name=charter.name))
         login_testing_unauthorized(self, "secretary", url)
 
         self.write_charter_file(charter)
@@ -507,6 +507,7 @@ class EditCharterTests(TestCase):
             ballot_type=BallotType.objects.get(doc_type="charter", slug="approve"),
             by=p,
             doc=charter,
+            rev=charter.rev,
             desc="Created ballot",
             )
 
@@ -559,7 +560,7 @@ class EditCharterTests(TestCase):
         self.assertTrue("approved" in outbox[0]['Subject'].lower())
         self.assertTrue("iesg-secretary" in outbox[0]['To'])
         body = outbox[0].get_payload()
-        for word in ["WG",   "/wg/ames/charter/",
+        for word in ["WG",   "/wg/ames/about/",
             "Charter", "/doc/charter-ietf-ames/", ]:
             self.assertIn(word, body)
         #
@@ -594,7 +595,7 @@ class EditCharterTests(TestCase):
                                           due=datetime.date.today(),
                                           resolved="")
 
-        url = urlreverse('charter_with_milestones_txt', kwargs=dict(name=charter.name, rev=charter.rev))
+        url = urlreverse('ietf.doc.views_charter.charter_with_milestones_txt', kwargs=dict(name=charter.name, rev=charter.rev))
         r = self.client.get(url)
         self.assertEqual(r.status_code, 200)
         self.assertTrue(m.desc in unicontent(r))

@@ -46,7 +46,7 @@ from django.shortcuts import render, redirect, get_object_or_404
 from django.template.loader import render_to_string
 from django.http import HttpResponse, Http404, HttpResponseRedirect
 from django.conf import settings
-from django.core.urlresolvers import reverse as urlreverse
+from django.urls import reverse as urlreverse
 from django.views.decorators.cache import cache_page
 from django.db.models import Q
 
@@ -57,10 +57,11 @@ from ietf.doc.utils_search import prepare_document_table
 from ietf.doc.utils_charter import charter_name_for_group
 from ietf.group.models import Group, Role, ChangeStateGroupEvent
 from ietf.name.models import GroupTypeName
-from ietf.group.utils import (get_charter_text, can_manage_group_type, can_manage_group,
+from ietf.group.utils import (get_charter_text, can_manage_group_type, 
                               milestone_reviewer_for_group_type, can_provide_status_update,
                               can_manage_materials, get_group_or_404,
                               construct_group_menu_context, get_group_materials)
+from ietf.group.views_edit import roles_for_group_type
 from ietf.community.utils import docs_tracked_by_community_list
 from ietf.community.models import CommunityList, EmailSubscription
 from ietf.utils.pipe import pipe
@@ -79,7 +80,7 @@ def fill_in_charter_info(group, include_drafts=False):
     group.areadirector = getattr(group.ad_role(),'email',None)
 
     personnel = {}
-    for r in Role.objects.filter(group=group).select_related("email", "person", "name"):
+    for r in Role.objects.filter(group=group).order_by('person__name').select_related("email", "person", "name"):
         if r.name_id not in personnel:
             personnel[r.name_id] = []
         personnel[r.name_id].append(r)
@@ -219,11 +220,13 @@ def active_groups(request, group_type=None):
         return active_teams(request)
     elif group_type == "dir":
         return active_dirs(request)
+    elif group_type == "program":
+        return active_programs(request)
     else:
         raise Http404
 
 def active_group_types(request):
-    grouptypes = GroupTypeName.objects.filter(slug__in=['wg','rg','ag','team','dir','area'])
+    grouptypes = GroupTypeName.objects.filter(slug__in=['wg','rg','ag','team','dir','area','program'])
     return render(request, 'group/active_groups.html', {'grouptypes':grouptypes})
 
 def active_dirs(request):
@@ -239,6 +242,12 @@ def active_teams(request):
     for group in teams:
         group.chairs = sorted(roles(group, "chair"), key=extract_last_name)
     return render(request, 'group/active_teams.html', {'teams' : teams })
+
+def active_programs(request):
+    programs = Group.objects.filter(type="program", state="active").order_by("name")
+    for group in programs:
+        group.leads = sorted(roles(group, "lead"), key=extract_last_name)
+    return render(request, 'group/active_programs.html', {'programs' : programs })
 
 def active_areas(request):
 	areas = Group.objects.filter(type="area", state="active").order_by("name")  
@@ -296,7 +305,10 @@ def chartering_groups(request):
 
     for t in group_types:
         t.chartering_groups = Group.objects.filter(type=t, charter__states__in=charter_states).select_related("state", "charter").order_by("acronym")
-        t.can_manage = can_manage_group_type(request.user, t.slug)
+        if t.chartering_groups.exists():
+            t.can_manage = can_manage_group_type(request.user, t.chartering_groups.first())
+        else:
+            t.can_manage = False
 
         for g in t.chartering_groups:
             g.chartering_type = get_chartering_type(g.charter)
@@ -365,7 +377,7 @@ def group_documents(request, acronym, group_type=None):
 
     docs, meta, docs_related, meta_related = prepare_group_documents(request, group, clist)
 
-    subscribed = request.user.is_authenticated() and EmailSubscription.objects.filter(community_list=clist, email__person__user=request.user)
+    subscribed = request.user.is_authenticated and EmailSubscription.objects.filter(community_list=clist, email__person__user=request.user)
 
     context = construct_group_menu_context(request, group, "documents", group_type, {
                 'docs': docs,
@@ -414,17 +426,17 @@ def group_about(request, acronym, group_type=None):
     e = group.latest_event(type__in=("changed_state", "requested_close",))
     requested_close = group.state_id != "conclude" and e and e.type == "requested_close"
 
-    can_manage = can_manage_group(request.user, group)
+    can_manage = can_manage_group_type(request.user, group)
     charter_submit_url = "" 
     if group.features.has_chartering_process: 
-        charter_submit_url = urlreverse("charter_submit", kwargs={ "name": charter_name_for_group(group) }) 
+        charter_submit_url = urlreverse('ietf.doc.views_charter.submit', kwargs={ "name": charter_name_for_group(group) }) 
 
     can_provide_update = can_provide_status_update(request.user, group)
     status_update = group.latest_event(type="status_update")
 
 
     return render(request, 'group/group_about.html',
-                  construct_group_menu_context(request, group, "charter" if group.features.has_chartering_process else "about", group_type, {
+                  construct_group_menu_context(request, group, "about", group_type, {
                       "milestones_in_review": group.groupmilestone_set.filter(state="review"),
                       "milestone_reviewer": milestone_reviewer_for_group_type(group_type),
                       "requested_close": requested_close,
@@ -432,6 +444,7 @@ def group_about(request, acronym, group_type=None):
                       "can_provide_status_update": can_provide_update,
                       "status_update": status_update,
                       "charter_submit_url": charter_submit_url,
+                      "editable_roles": roles_for_group_type(group_type),
                   }))
 
 def all_status(request):
@@ -481,7 +494,7 @@ def group_about_status_meeting(request, acronym, num, group_type=None):
                  )
 
 class StatusUpdateForm(forms.Form):
-    content = forms.CharField(widget=forms.Textarea, label='Status update', help_text = 'Edit the status update', required=False)
+    content = forms.CharField(widget=forms.Textarea, label='Status update', help_text = 'Edit the status update', required=False, strip=False)
     txt = forms.FileField(label='.txt format', help_text='Or upload a .txt file', required=False)
 
     def clean_content(self):
@@ -761,7 +774,7 @@ def email_aliases(request, acronym=None, group_type=None):
     if not acronym:
         # require login for the overview page, but not for the group-specific
         # pages 
-        if not request.user.is_authenticated():
+        if not request.user.is_authenticated:
                 return redirect('%s?next=%s' % (settings.LOGIN_URL, request.path))
 
     aliases = get_group_email_aliases(acronym, group_type)

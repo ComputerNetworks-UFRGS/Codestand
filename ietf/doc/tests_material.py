@@ -9,7 +9,7 @@ from pyquery import PyQuery
 import debug              # pyflakes:ignore
 
 from django.conf import settings
-from django.core.urlresolvers import reverse as urlreverse
+from django.urls import reverse as urlreverse
 
 from ietf.doc.models import Document, State, DocAlias, NewRevisionDocEvent
 from ietf.group.models import Group
@@ -22,15 +22,17 @@ from ietf.utils.test_data import make_test_data
 
 class GroupMaterialTests(TestCase):
     def setUp(self):
-        self.materials_dir = os.path.abspath("tmp-document-dir")
-        if not os.path.exists(self.materials_dir):
-            os.makedirs(os.path.join(self.materials_dir, "slides"))
+        self.materials_dir = self.tempdir("materials")
+        self.slides_dir = os.path.join(self.materials_dir, "slides")
+        if not os.path.exists(self.slides_dir):
+            os.mkdir(self.slides_dir)
         self.saved_document_path_pattern = settings.DOCUMENT_PATH_PATTERN
         settings.DOCUMENT_PATH_PATTERN = self.materials_dir + "/{doc.type_id}/"
 
-        self.agenda_dir = os.path.abspath("tmp-agenda-dir")
-        if not os.path.exists(self.agenda_dir):
-            os.makedirs(os.path.join(self.agenda_dir, "42", "slides"))
+        self.agenda_dir = self.tempdir("agenda")
+        self.meeting_slides_dir = os.path.join(self.agenda_dir, "42", "slides")
+        if not os.path.exists(self.meeting_slides_dir):
+            os.makedirs(self.meeting_slides_dir)
         self.saved_agenda_path = settings.AGENDA_PATH
         settings.AGENDA_PATH = self.agenda_dir
 
@@ -72,7 +74,7 @@ class GroupMaterialTests(TestCase):
     def test_upload_slides(self):
         group = Group.objects.create(type_id="team", acronym="testteam", name="Test Team", state_id="active")
 
-        url = urlreverse('group_new_material', kwargs=dict(acronym=group.acronym, doc_type="slides"))
+        url = urlreverse('ietf.doc.views_material.edit_material', kwargs=dict(acronym=group.acronym, doc_type="slides"))
         login_testing_unauthorized(self, "secretary", url)
 
         # normal get
@@ -121,7 +123,7 @@ class GroupMaterialTests(TestCase):
     def test_change_state(self):
         doc = self.create_slides()
 
-        url = urlreverse('material_edit', kwargs=dict(name=doc.name, action="state"))
+        url = urlreverse('ietf.doc.views_material.edit_material', kwargs=dict(name=doc.name, action="state"))
         login_testing_unauthorized(self, "secretary", url)
 
         # post
@@ -133,7 +135,7 @@ class GroupMaterialTests(TestCase):
     def test_edit_title(self):
         doc = self.create_slides()
 
-        url = urlreverse('material_edit', kwargs=dict(name=doc.name, action="title"))
+        url = urlreverse('ietf.doc.views_material.edit_material', kwargs=dict(name=doc.name, action="title"))
         login_testing_unauthorized(self, "secretary", url)
 
         # post
@@ -156,7 +158,7 @@ class GroupMaterialTests(TestCase):
             )
         SessionPresentation.objects.create(session=session, document=doc, rev=doc.rev)
 
-        url = urlreverse('material_edit', kwargs=dict(name=doc.name, action="revise"))
+        url = urlreverse('ietf.doc.views_material.edit_material', kwargs=dict(name=doc.name, action="revise"))
         login_testing_unauthorized(self, "secretary", url)
 
         content = "some text"

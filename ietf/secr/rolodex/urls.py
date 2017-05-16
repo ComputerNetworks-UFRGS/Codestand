@@ -1,10 +1,12 @@
-from django.conf.urls import patterns, url
 
-urlpatterns = patterns('ietf.secr.rolodex.views',
-    url(r'^$', 'search', name='rolodex'),
-    url(r'^add/$', 'add', name='rolodex_add'),
-    url(r'^add-proceed/$', 'add_proceed', name='rolodex_add_proceed'),
-    url(r'^(?P<id>\d{1,6})/edit/$', 'edit', name='rolodex_edit'),
-    #url(r'^(?P<id>\d{1,6})/delete/$', 'delete', name='rolodex_delete'),
-    url(r'^(?P<id>\d{1,6})/$', 'view', name='rolodex_view'),
-)
+from ietf.secr.rolodex import views
+from ietf.utils.urls import url
+
+urlpatterns = [
+    url(r'^$', views.search),
+    url(r'^add/$', views.add),
+    url(r'^add-proceed/$', views.add_proceed),
+    url(r'^(?P<id>\d{1,6})/edit/$', views.edit),
+    #url(r'^(?P<id>\d{1,6})/delete/$', views.delete),
+    url(r'^(?P<id>\d{1,6})/$', views.view),
+]

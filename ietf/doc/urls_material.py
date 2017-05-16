@@ -1,6 +1,8 @@
-from django.conf.urls import patterns, url
 
-urlpatterns = patterns('ietf.doc.views_material',
-    url(r'^(?P<action>state|title|abstract|revise)/$', "edit_material", name="material_edit"),
-)
+from ietf.doc import views_material
+from ietf.utils.urls import url
+
+urlpatterns = [
+    url(r'^(?P<action>state|title|abstract|revise)/$', views_material.edit_material),
+]
 

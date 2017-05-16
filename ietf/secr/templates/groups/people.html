@@ -30,11 +30,11 @@
       </thead>
       <tbody>
         {% for role in group.role_set.all %}
-          <tr class="{% cycle row1,row2 %}">
+          <tr class="{% cycle 'row1' 'row2' %}">
             <td>{{ role.name }}</td>
             <td>{{ role.person }}</td>
             <td>{{ role.email }}</td>
-            <td><a href="{% url "groups_delete_role" acronym=group.acronym id=role.id %}">Delete</a></td>
+            <td><a href="{% url 'ietf.secr.groups.views.delete_role' acronym=group.acronym id=role.id %}">Delete</a></td>
           </tr>
         {% endfor %}
       </tbody>
@@ -45,6 +45,7 @@
       <h3>Add Role</h3>
       <form id="groups-people" action="" method="post">{% csrf_token %}
         {{ form.non_field_errors }}
+        {{ form.group_acronym }}
         <table class="full-width">
           <tr>
             <td>{{ form.name.errors }}{{ form.name }}</td>

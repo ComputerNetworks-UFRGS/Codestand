@@ -32,7 +32,7 @@
       <br>
       <b>{{ doc.title }}</b>
       {% if doc.has_errata %}
-        <a class="label label-danger" href="https://www.rfc-editor.org/errata_search.php?rfc={{ doc.rfc_number }}">Errata</a>
+        <a class="label label-danger pull-right" href="https://www.rfc-editor.org/errata_search.php?rfc={{ doc.rfc_number }}">Errata</a>
       {% endif %}
     </div>
 
@@ -84,7 +84,7 @@
 
   <td class="ipr text-center">
     {% if doc.related_ipr %}
-      <a href="{% url "ipr_search" %}?submit=draft&amp;id={{ doc.name }}">
+      <a href="{% url "ietf.ipr.views.search" %}?submit=draft&amp;id={{ doc.name }}">
         <span class="label label-default">{{ doc.related_ipr|length }}</span>
       </a>
     {% endif %}

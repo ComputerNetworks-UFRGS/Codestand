@@ -56,7 +56,7 @@ from django.template import TemplateDoesNotExist
 from django.template.loaders.base import Loader as BaseLoader
 from django.test.runner import DiscoverRunner
 from django.core.management import call_command
-from django.core.urlresolvers import RegexURLResolver
+from django.urls import RegexURLResolver
 
 import debug                            # pyflakes:ignore
 debug.debug = True
@@ -65,6 +65,7 @@ import ietf
 import ietf.utils.mail
 from ietf.utils.test_smtpserver import SMTPTestServerDriver
 from ietf.utils.test_utils import TestCase
+from ietf.checks import maybe_create_svn_symlinks
 
 loaded_templates = set()
 visited_urls = set()
@@ -76,13 +77,16 @@ template_coverage_collection = None
 url_coverage_collection = None
 
 
-def safe_create_1(self, verbosity, *args, **kwargs):
+def safe_create_test_db(self, verbosity, *args, **kwargs):
     global test_database_name, old_create
-    print "     Creating test database..."
-    if settings.DATABASES["default"]["ENGINE"] == 'django.db.backends.mysql':
-        settings.DATABASES["default"]["OPTIONS"] = settings.DATABASE_TEST_OPTIONS
-        print "     Using OPTIONS: %s" % settings.DATABASES["default"]["OPTIONS"]
+    keepdb = kwargs.get('keepdb', False)
+    if not keepdb:
+        print "     Creating test database..."
+        if settings.DATABASES["default"]["ENGINE"] == 'django.db.backends.mysql':
+            settings.DATABASES["default"]["OPTIONS"] = settings.DATABASE_TEST_OPTIONS
+            print "     Using OPTIONS: %s" % settings.DATABASES["default"]["OPTIONS"]
     test_database_name = old_create(self, 0, *args, **kwargs)
+
     if settings.GLOBAL_TEST_FIXTURES:
         print "     Loading global test fixtures: %s" % ", ".join(settings.GLOBAL_TEST_FIXTURES)
         loadable = [f for f in settings.GLOBAL_TEST_FIXTURES if "." not in f]
@@ -92,18 +96,20 @@ def safe_create_1(self, verbosity, *args, **kwargs):
             if f not in loadable:
                 # try to execute the fixture
                 components = f.split(".")
-                module = importlib.import_module(".".join(components[:-1]))
+                module_name = ".".join(components[:-1])
+                module = importlib.import_module(module_name)
                 fn = getattr(module, components[-1])
                 fn()
 
     return test_database_name
 
-def safe_destroy_0_1(*args, **kwargs):
+def safe_destroy_test_db(*args, **kwargs):
     global test_database_name, old_destroy
-    print "     Checking that it's safe to destroy test database..."
-    if settings.DATABASES["default"]["NAME"] != test_database_name:
-        print '     NOT SAFE; Changing settings.DATABASES["default"]["NAME"] from %s to %s' % (settings.DATABASES["default"]["NAME"], test_database_name)
-        settings.DATABASES["default"]["NAME"] = test_database_name
+    keepdb = kwargs.get('keepdb', False)
+    if not keepdb:
+        if settings.DATABASES["default"]["NAME"] != test_database_name:
+            print '     NOT SAFE; Changing settings.DATABASES["default"]["NAME"] from %s to %s' % (settings.DATABASES["default"]["NAME"], test_database_name)
+            settings.DATABASES["default"]["NAME"] = test_database_name
     return old_destroy(*args, **kwargs)
 
 class TemplateCoverageLoader(BaseLoader):
@@ -113,14 +119,16 @@ class TemplateCoverageLoader(BaseLoader):
         global template_coverage_collection, loaded_templates
         if template_coverage_collection == True:
             loaded_templates.add(str(template_name))
-        raise TemplateDoesNotExist
+        raise TemplateDoesNotExist(template_name)
     load_template_source.is_usable = True
 
-class RecordUrlsMiddleware(object):
-    def process_request(self, request):
+def record_urls_middleware(get_response):
+    def record_urls(request):
         global url_coverage_collection, visited_urls
         if url_coverage_collection == True:
             visited_urls.add(request.path)
+        return get_response(request)
+    return record_urls
 
 def get_url_patterns(module, apps=None):
     def include(name):
@@ -256,7 +264,7 @@ class CoverageTest(TestCase):
             # only running some tests, then of course the coverage is going to be low.
             if self.runner.run_full_test_suite:
                 # Permit 0.02% variation in results -- otherwise small code changes become a pain
-                fudge_factor = 0.00005   # 0.005% -- a small change, less than the last digit we show
+                fudge_factor = 0.0002
                 self.assertGreaterEqual(test_coverage, master_coverage - fudge_factor,
                     msg = "The %s coverage percentage is now lower (%.2f%%) than for version %s (%.2f%%)" %
                         ( test, test_coverage*100, latest_coverage_version, master_coverage*100, ))
@@ -294,7 +302,7 @@ class CoverageTest(TestCase):
                         or getattr(pattern.callback, "__name__", "") == "TemplateView"
                         or pattern.callback == django.views.static.serve)
 
-            patterns = [(regex, re.compile(regex)) for regex, pattern in url_patterns
+            patterns = [(regex, re.compile(regex, re.U)) for regex, pattern in url_patterns
                         if not ignore_pattern(regex, pattern)]
             all = [ regex for regex, compiled in patterns ]
 
@@ -338,6 +346,7 @@ class IetfTestRunner(DiscoverRunner):
 
     @classmethod
     def add_arguments(cls, parser):
+        super(IetfTestRunner, cls).add_arguments(parser)
         parser.add_argument('--skip-coverage',
             action='store_true', dest='skip_coverage', default=False,
             help='Skip test coverage measurements for code, templates, and URLs. ' )
@@ -356,6 +365,8 @@ class IetfTestRunner(DiscoverRunner):
         self.root_dir = os.path.dirname(settings.BASE_DIR)
         self.coverage_file = os.path.join(self.root_dir, settings.TEST_COVERAGE_MASTER_FILE)
         super(IetfTestRunner, self).__init__(**kwargs)
+        if self.parallel > 1:
+            self.check_coverage = False
 
     def setup_test_environment(self, **kwargs):
         global template_coverage_collection
@@ -396,7 +407,7 @@ class IetfTestRunner(DiscoverRunner):
 
             settings.TEMPLATES[0]['OPTIONS']['loaders'] = ('ietf.utils.test_runner.TemplateCoverageLoader',) + settings.TEMPLATES[0]['OPTIONS']['loaders']
 
-            settings.MIDDLEWARE_CLASSES = ('ietf.utils.test_runner.RecordUrlsMiddleware',) + settings.MIDDLEWARE_CLASSES
+            settings.MIDDLEWARE = ('ietf.utils.test_runner.record_urls_middleware',) + tuple(settings.MIDDLEWARE)
             url_coverage_collection = True
 
             self.code_coverage_checker = settings.TEST_CODE_COVERAGE_CHECKER
@@ -414,6 +425,10 @@ class IetfTestRunner(DiscoverRunner):
             print("     Changing TEMPLATES[0]['OPTIONS']['string_if_invalid'] to '' during testing")
             settings.TEMPLATES[0]['OPTIONS']['string_if_invalid'] = ''
 
+        if settings.INTERNAL_IPS:
+            print "     Changing INTERNAL_IPS to '[]' during testing."
+            settings.INTERNAL_IPS = []
+
         assert not settings.IDTRACKER_BASE_URL.endswith('/')
 
         # Try to set up an SMTP test server.  In case other test runs are
@@ -430,6 +445,7 @@ class IetfTestRunner(DiscoverRunner):
             except socket.error:
                 pass
 
+        maybe_create_svn_symlinks(settings)
 
         super(IetfTestRunner, self).setup_test_environment(**kwargs)
 
@@ -497,9 +513,9 @@ class IetfTestRunner(DiscoverRunner):
             raise EnvironmentError("Refusing to run tests on production server")
 
         old_create = connection.creation.__class__.create_test_db
-        connection.creation.__class__.create_test_db = safe_create_1
+        connection.creation.__class__.create_test_db = safe_create_test_db
         old_destroy = connection.creation.__class__.destroy_test_db
-        connection.creation.__class__.destroy_test_db = safe_destroy_0_1
+        connection.creation.__class__.destroy_test_db = safe_destroy_test_db
 
         self.run_full_test_suite = not test_labels
 
