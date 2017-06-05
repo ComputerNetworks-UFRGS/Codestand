@@ -254,8 +254,10 @@
 
                                             <div class="padd">
                                                 <p>(*) Denotes a required field.</p>
-                                                <div class="clearfix"/> <div class="widget-foot">
-                                            </div>	                                <p class="buttonlist">
+                                                <div class="clearfix"></div>
+                                            <div class="widget-foot">
+                                            </div>	                                
+                                            <p class="buttonlist">
                                                 <div class="col-xs-offset-1" style="margin-left: 0px">
                                                     {% if isedit %}
                                                         <input type="submit" name="button_save" class="btn btn-primary" value="Submit" />
@@ -264,7 +266,7 @@
                                                     {% endif %}
                                                     <a class="btn btn-default" href="{% url 'ietf.codestand.views.back' %}">Cancel</a>
                                                 </div>
-                                                </p>
+                                            </p>
                                             </div>
                                     </div>
                                 </form>

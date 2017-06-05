@@ -73,7 +73,7 @@
                 <div class="col-sm-6 pull-right" style="width: 50%; float:right">
                     
                     {% if projects %}
-                        <h3>Projects ({{ projects|length }})</h3>
+                        <h3>Code Requests ({{ projects|length }})</h3>
                         
                         {% for proj in projects %}
                         <div>
@@ -85,12 +85,12 @@
                     {% endif %}
                     
                     {% if codings %}
-                        <h3>Code Requests ({{ codings|length }})</h3>
+                        <h3>Projects ({{ codings|length }})</h3>
     
                         {% for proj, coding in codings %}
                         <div>
                             <ul>
-                                <li><a href="{% url 'show' proj.id coding.id %}">{{ coding.title }}</a> </li>
+                                <li><a href="{% url 'ietf.codestand.matches.views.show' proj.id coding.id %}">{{ coding.title }}</a> </li>
                             </ul>
                         </div>
                         {% endfor %}
