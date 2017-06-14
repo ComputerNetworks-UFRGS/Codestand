@@ -99,12 +99,14 @@
                             <div class="form-group">
                                 <label class="control-label col-xs-2">Protocol:</label>
                                 <div class="col-xs-4" style="margin-top: 5px">
+                                    <input type="hidden" name="protocol" value="{{ projectcontainer.protocol }}" />
                                     {{ projectcontainer.protocol}}
                                 </div>
                             </div>
                             <div class="form-group">
                                 <label class="control-label col-xs-2">Description:</label>
                                 <div class="col-xs-4" style="margin-top: 5px">
+                                    <input type="hidden" name="description" value="{{ projectcontainer.description }}" />
                                     {{ projectcontainer.description }}
                                 </div>
                             </div>
@@ -260,9 +262,9 @@
                                             <p class="buttonlist">
                                                 <div class="col-xs-offset-1" style="margin-left: 0px">
                                                     {% if isedit %}
-                                                        <input type="submit" name="button_save" class="btn btn-primary" value="Submit" />
-                                                    {% else %}
                                                         <input type="submit" name="button_save" class="btn btn-primary" value="Update" />
+                                                    {% else %}
+                                                        <input type="submit" name="button_save" class="btn btn-primary" value="Submit" />
                                                     {% endif %}
                                                     <a class="btn btn-default" href="{% url 'ietf.codestand.views.back' %}">Cancel</a>
                                                 </div>

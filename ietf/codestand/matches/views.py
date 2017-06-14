@@ -354,7 +354,7 @@ def save_code(request, is_edit, pk, ck="", coding=None):
             post[constants.STRING_TITLE] = post.getlist(constants.STRING_TITLE)[0]
             new_project = ProjectContainerForm(post, instance=project_container)
             if request.POST.get(constants.STRING_SAVE) and new_project.is_valid():
-                project = new_project.save()  # Create new
+                project = new_project.save(commit=False)  # Create new
         else:
             project = project_container  # Update only
 
@@ -548,7 +548,7 @@ def edit(request, pk, ck):
         request.session[constants.ADD_TAGS] = list(tags)
         
     if constants.ADD_CONTACTS not in request.session:
-        contacts = project_container.contacts.all()
+        contacts = coding.contacts.all()
         request.session[constants.ADD_CONTACTS] = list(contacts)
 
     if constants.ADD_DOCS not in request.session:

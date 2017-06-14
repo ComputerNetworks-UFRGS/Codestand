@@ -220,7 +220,11 @@ Create a new CodeRequest
                                             <div class="widget-foot">
                                                 <p class="buttonlist">
                                                 <div class="col-xs-offset-1" style="margin-left: 0px">
+                                                {% if isedit %}
+                                                    <input type="submit" name="button_save" class="btn btn-primary" value="Update" />
+                                                {% else %}
                                                     <input type="submit" name="button_save" class="btn btn-primary" value="Submit" />
+                                                {% endif %}
                                                     <a class="btn btn-default" href="{% url 'ietf.codestand.views.back' %}">Cancel</a>
                                                 </div>
                                                 </p>
