@@ -354,7 +354,8 @@ def save_code(request, is_edit, pk, ck="", coding=None):
             post[constants.STRING_TITLE] = post.getlist(constants.STRING_TITLE)[0]
             new_project = ProjectContainerForm(post, instance=project_container)
             if request.POST.get(constants.STRING_SAVE) and new_project.is_valid():
-                project = new_project.save(commit=False)  # Create new
+                 #project = new_project.save(commit=False)  # Create new
+                project = new_project.save(commit=True)  # Create new #25/09/2017 - Neimar Braga - Error may to many relation
         else:
             project = project_container  # Update only
 

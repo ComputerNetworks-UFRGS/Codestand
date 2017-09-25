@@ -182,9 +182,8 @@
                                             {% for implementation in links %}
                                                 <a href="{{ implementation }}">{{ implementation }}</a>
                                                 {% if isedit %}
-                                                    <a class="label label-info" href="{% url 'ietf.codestand.matches.views.remove_link' ck implementation.link %}" onclick="return confirm('Are you sure you want to delete this link?');">delete</a>
-                                                {% else %}
-                                                    <a class="label label-info" href="{% url 'ietf.codestand.matches.views.remove_link' 0 implementation.link %}" onclick="return confirm('Are you sure you want to delete this link?');">delete</a>
+                                                    <a class="label label-info" href="{% url 'ietf.codestand.matches.views.remove_link' ck implementation.link %}" onclick="return confirm('Are you sure you want to delete this link?');">delete</a>                                               
+                                                
                                                 {% endif %}
                                                 <br />
                                             {% endfor %}
