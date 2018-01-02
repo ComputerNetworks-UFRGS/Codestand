@@ -2,6 +2,8 @@ from django.conf.urls import url
 from ietf.codestand.requests import views
 
 urlpatterns = [
+    url(r'^show_list//(?P<att>.*)/(?P<state>.*)/(?P<page>.*)$', views.show_list,
+        name="ietf.codestand.requests.views.show_list"),
     url(r'^show_list/$', views.show_list, name="ietf.codestand.requests.views.show_list"),
     url(r'^show_list/(?P<type_list>.*)/(?P<att>.*)/(?P<state>.*)/(?P<page>.*)$', views.show_list,
         name="ietf.codestand.requests.views.show_list"),
