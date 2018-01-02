@@ -25,10 +25,6 @@ def show_list(request, type_list="all", att=constants.ATT_CREATION_DATE, state="
         :param request: HttpResponse
     """
     
-    #Neimar 28/12/2017 - erro em prod (e apenas em prod): codestand/requests/show_list//-creation_date/False/2
-    if type_list == "":
-        type_list = "all"
-    
     user = get_user(request)
     user_id = None
     if user:
