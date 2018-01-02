@@ -162,12 +162,12 @@
                                 class="active"
                                 {% endif %}
                                 {% if page == i %} style="color: #A0A0A0"
-                                {% else %} href="{% url template mylist attribute state i %}"
+                                {% else %} href="{% url template 'all' attribute state i %}"
                                 {%endif%}>{{i}}</a></li>
                         {% endfor %}
                          <li><a
                             {% if page == numpages %} style="color: #A0A0A0"
-                            {% else %} href="{% url template mylist attribute state numpages %}"
+                            {% else %} href="{% url template 'all' attribute state numpages %}"
                             {% endif %}>&raquo;</a>
                         </li>
                      </ul>
