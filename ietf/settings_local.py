@@ -54,7 +54,7 @@ CACHES = {
 # }
 
 SERVER_MODE = 'development'
-DEBUG = True
+DEBUG = False
 
 # If you need to debug email, you can start a debugging server that just
 # outputs whatever it receives with:
@@ -113,7 +113,7 @@ import os
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 STATIC_ROOT = os.path.abspath(BASE_DIR + "/../static/")
 
-CODESTAND_DEBUG = True
+CODESTAND_DEBUG = False
 
 IS_CODESTAND_APP = True
 
