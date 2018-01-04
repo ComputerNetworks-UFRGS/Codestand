@@ -229,13 +229,14 @@ def search(request, is_my_list="False"):
         if request.GET.get(constants.STRING_PROTOCOL):
             proj_ids += ProjectContainer.objects.filter(protocol__icontains=query).values_list('id', flat=True)
 
+        #Neimar 04/01/2018- didnt work if user = Person.objects.using != 1
         if search_in_all or request.GET.get(constants.STRING_CODER):
             for pr in ProjectContainer.objects.all():
                 for cd in pr.codings.all():
-                    user = Person.objects.using('datatracker').get(id=cd.coder)
-                    if query.lower() in user.name.lower():
-                        proj_ids.append(pr.id)
-                        break
+                    for user in list(Person.objects.using('datatracker').filter(id=cd.coder)):
+                        if query.lower() in user.name.lower():
+                            proj_ids.append(pr.id)
+                            break
 
         if search_in_all or request.GET.get(constants.STRING_AREA):
             for project_container in ProjectContainer.objects.all():
