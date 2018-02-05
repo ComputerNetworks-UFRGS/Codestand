@@ -315,8 +315,8 @@ def statistics(request):
         "chart": {
             "caption": "Coders Location",
             "subCaption": "",
-            "xAxisName": "Coders",
-            "yAxisName": "Coutry",
+            "xAxisName": "Coutry",
+            "yAxisName": "Coders",
             "numberPrefix": "",
             "theme": "zune"
         },
