@@ -10,4 +10,5 @@ urlpatterns = [
     url(r'^profile/$', views.profile, name='ietf.codestand.accounts.views.profile'),
     url(r'^profile/(?P<user>[0-9]+)/$', views.profile, name='ietf.codestand.accounts.views.profile'),
     url(r'^top_coders/$', views.top_coders, name='ietf.codestand.accounts.views.top_coders'),
+    url(r'^statistics/$', views.statistics, name='ietf.codestand.accounts.views.statistics'),
 ]

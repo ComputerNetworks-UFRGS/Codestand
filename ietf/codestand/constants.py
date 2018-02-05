@@ -55,6 +55,7 @@ TEMPLATE_MATCHES_SHOW = "codestand/matches/show.html"
 TEMPLATE_MATCHES_SEARCH = "codestand/matches/search.html"
 # ACCOUNTS
 TEMPLATE_TOPCODERS = "codestand/accounts/topcoders.html"
+TEMPLATE_STATISTICS = "codestand/accounts/statistics.html"
 # WIDGETS
 WIDGET_ALL_MATCHES = 'codestand/widgets/all_matches.html'
 WIDGET_MY_MATCHES = 'codestand/widgets/my_matches.html'

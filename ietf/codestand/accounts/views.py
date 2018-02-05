@@ -5,7 +5,8 @@ from ietf.codestand.matches.models import CodingProject, ProjectContainer
 from ietf.codestand.helpers.utils import (render_page, get_user)
 from ietf.person.models import Person, Email
 from django.conf import settings
-
+from ietf.fusioncharts import FusionCharts
+from ietf.codestand.helpers.models import Number
 
 def index(request):
     return render_page(request, 'codestand/index.html')
@@ -75,3 +76,262 @@ def top_coders(request):
     return render_page(request, constants.TEMPLATE_TOPCODERS, {
         'topcoders': topcoders,
     })
+
+
+
+
+def countryStatistics():
+    aCountryList = []
+    aCountryList.append('Afghanistan')
+    aCountryList.append('Albania')
+    aCountryList.append('Algeria')
+    aCountryList.append('Andorra')
+    aCountryList.append('Angola')
+    aCountryList.append('Antigua and Barbuda')
+    aCountryList.append('Argentina')
+    aCountryList.append('Armenia')
+    aCountryList.append('Australia')
+    aCountryList.append('Austria')
+    aCountryList.append('Azerbaijan')
+    aCountryList.append('Bahamas')
+    aCountryList.append('Bahrain')
+    aCountryList.append('Bangladesh')
+    aCountryList.append('Barbados')
+    aCountryList.append('Belarus')
+    aCountryList.append('Belgium')
+    aCountryList.append('Belize')
+    aCountryList.append('Benin')
+    aCountryList.append('Bhutan')
+    aCountryList.append('Bolivia')
+    aCountryList.append('Bosnia and Herzegovina')
+    aCountryList.append('Botswana')
+    aCountryList.append('Brazil')
+    aCountryList.append('Brunei')
+    aCountryList.append('Bulgaria')
+    aCountryList.append('Burkina Faso')
+    aCountryList.append('Burundi')
+    aCountryList.append('Cabo Verde')
+    aCountryList.append('Cambodia')
+    aCountryList.append('Cameroon')
+    aCountryList.append('Canada')
+    aCountryList.append('Central African Republic')
+    aCountryList.append('Chad')
+    aCountryList.append('Chile')
+    aCountryList.append('China')
+    aCountryList.append('Colombia')
+    aCountryList.append('Comoros')
+    aCountryList.append('Democratic Republic of the Congo')
+    aCountryList.append('Republic of the Congo')
+    aCountryList.append('Costa Rica')
+    aCountryList.append('Croatia')
+    aCountryList.append('Cuba')
+    aCountryList.append('Cyprus')
+    aCountryList.append('Czech Republic')
+    aCountryList.append('Denmark')
+    aCountryList.append('Djibouti')
+    aCountryList.append('Dominica')
+    aCountryList.append('Dominican Republic')
+    aCountryList.append('Ecuador')
+    aCountryList.append('Egypt')
+    aCountryList.append('El Salvador')
+    aCountryList.append('Equatorial Guinea')
+    aCountryList.append('Eritrea')
+    aCountryList.append('Estonia')
+    aCountryList.append('Ethiopia')
+    aCountryList.append('Fiji')
+    aCountryList.append('Finland')
+    aCountryList.append('France')
+    aCountryList.append('Gabon')
+    aCountryList.append('Gambia')
+    aCountryList.append('Georgia')
+    aCountryList.append('Germany')
+    aCountryList.append('Ghana')
+    aCountryList.append('Greece')
+    aCountryList.append('Grenada')
+    aCountryList.append('Guatemala')
+    aCountryList.append('Guinea')
+    aCountryList.append('Guinea-Bissau')
+    aCountryList.append('Guyana')
+    aCountryList.append('Haiti')
+    aCountryList.append('Honduras')
+    aCountryList.append('Hungary')
+    aCountryList.append('Iceland')
+    aCountryList.append('India')
+    aCountryList.append('Indonesia')
+    aCountryList.append('Iran')
+    aCountryList.append('Iraq')
+    aCountryList.append('Ireland')
+    aCountryList.append('Israel')
+    aCountryList.append('Italy')
+    aCountryList.append('Jamaica')
+    aCountryList.append('Japan')
+    aCountryList.append('Jordan')
+    aCountryList.append('Kazakhstan')
+    aCountryList.append('Kenya')
+    aCountryList.append('Kiribati')
+    aCountryList.append('Kosovo')
+    aCountryList.append('Kuwait')
+    aCountryList.append('Kyrgyzstan')
+    aCountryList.append('Laos')
+    aCountryList.append('Latvia')
+    aCountryList.append('Lebanon')
+    aCountryList.append('Lesotho')
+    aCountryList.append('Liberia')
+    aCountryList.append('Libya')
+    aCountryList.append('Liechtenstein')
+    aCountryList.append('Lithuania')
+    aCountryList.append('Luxembourg')
+    aCountryList.append('Macedonia')
+    aCountryList.append('Madagascar')
+    aCountryList.append('Malawi')
+    aCountryList.append('Malaysia')
+    aCountryList.append('Maldives')
+    aCountryList.append('Mali')
+    aCountryList.append('Malta')
+    aCountryList.append('Marshall Islands')
+    aCountryList.append('Mauritania')
+    aCountryList.append('Mauritius')
+    aCountryList.append('Mexico')
+    aCountryList.append('Micronesia')
+    aCountryList.append('Moldova')
+    aCountryList.append('Monaco')
+    aCountryList.append('Mongolia')
+    aCountryList.append('Montenegro')
+    aCountryList.append('Morocco')
+    aCountryList.append('Mozambique')
+    aCountryList.append('Myanmar')
+    aCountryList.append('Namibia')
+    aCountryList.append('Nauru')
+    aCountryList.append('Nepal')
+    aCountryList.append('Netherlands')
+    aCountryList.append('New Zealand')
+    aCountryList.append('Nicaragua')
+    aCountryList.append('Niger')
+    aCountryList.append('Nigeria')
+    aCountryList.append('North Korea')
+    aCountryList.append('Norway')
+    aCountryList.append('Oman')
+    aCountryList.append('Pakistan')
+    aCountryList.append('Palau')
+    aCountryList.append('Palestine')
+    aCountryList.append('Panama')
+    aCountryList.append('Papua New Guinea')
+    aCountryList.append('Paraguay')
+    aCountryList.append('Peru')
+    aCountryList.append('Philippines')
+    aCountryList.append('Poland')
+    aCountryList.append('Portugal')
+    aCountryList.append('Qatar')
+    aCountryList.append('Romania')
+    aCountryList.append('Russia')
+    aCountryList.append('Rwanda')
+    aCountryList.append('Saint Kitts and Nevis')
+    aCountryList.append('Saint Lucia')
+    aCountryList.append('Saint Vincent and the Grenadines')
+    aCountryList.append('Samoa')
+    aCountryList.append('San Marino')
+    aCountryList.append('Sao Tome and Principe')
+    aCountryList.append('Saudi Arabia')
+    aCountryList.append('Senegal')
+    aCountryList.append('Serbia')
+    aCountryList.append('Seychelles')
+    aCountryList.append('Sierra Leone')
+    aCountryList.append('Singapore')
+    aCountryList.append('Slovakia')
+    aCountryList.append('Slovenia')
+    aCountryList.append('Solomon Islands')
+    aCountryList.append('Somalia')
+    aCountryList.append('South Africa')
+    aCountryList.append('South Korea')
+    aCountryList.append('South Sudan')
+    aCountryList.append('Spain')
+    aCountryList.append('Sri Lanka')
+    aCountryList.append('Sudan')
+    aCountryList.append('Suriname')
+    aCountryList.append('Swaziland')
+    aCountryList.append('Sweden')
+    aCountryList.append('Switzerland')
+    aCountryList.append('Syria')
+    aCountryList.append('Taiwan')
+    aCountryList.append('Tajikistan')
+    aCountryList.append('Tanzania')
+    aCountryList.append('Thailand')
+    aCountryList.append('Timor-Leste')
+    aCountryList.append('Togo')
+    aCountryList.append('Tonga')
+    aCountryList.append('Trinidad and Tobago')
+    aCountryList.append('Tunisia')
+    aCountryList.append('Turkey')
+    aCountryList.append('Turkmenistan')
+    aCountryList.append('Tuvalu')
+    aCountryList.append('Uganda')
+    aCountryList.append('Ukraine')
+    aCountryList.append('United Arab Emirates')
+    aCountryList.append('United Kingdom')
+    aCountryList.append('United States of America')
+    aCountryList.append('United States')
+    aCountryList.append('USA')
+    aCountryList.append('Uruguay')
+    aCountryList.append('Uzbekistan')
+    aCountryList.append('Vanuatu')
+    aCountryList.append('Vatican City')
+    aCountryList.append('Venezuela')
+    aCountryList.append('Vietnam')
+    aCountryList.append('Yemen')
+    aCountryList.append('Zambia')
+    aCountryList.append('Zimbabwe')
+
+
+    aCountryXcoders = []
+    nCoderAdressknown = 0
+
+    for oneCountry in aCountryList:
+        for n in Number.objects.using('datatracker').raw('''select 1 as id, count(distinct(p.id)) as number
+            from person_person p,
+            matches_codingproject mc
+            where mc.coder=p.id
+            and lower(address) like lower(%s) ''', ['%'+oneCountry+'%']):
+            if n.number > 0:
+                nCoderAdressknown = nCoderAdressknown+n.number
+                aCountryXcoders.append([oneCountry, str(n.number)])
+
+    #unknow           
+    for n in Number.objects.using('datatracker').raw('''select 1 as id, count(distinct(p.id)) as number
+            from person_person p,
+            matches_codingproject mc
+            where mc.coder=p.id '''):
+           
+            aCountryXcoders.append(['Unknow', str(n.number-nCoderAdressknown)])              
+
+
+    return aCountryXcoders
+
+
+def statistics(request):
+
+    aCountrStat = countryStatistics()
+    
+    chart=  '''{  
+        "chart": {
+            "caption": "Coders Location",
+            "subCaption": "",
+            "xAxisName": "Coders",
+            "yAxisName": "Coutry",
+            "numberPrefix": "",
+            "theme": "zune"
+        },
+        "data": ['''
+    i = 0
+    for aCS in aCountrStat:
+        i = i+1
+        chart=chart+''' {"label": "'''+aCS[0]+'''","value": "'''+aCS[1]+'''"}'''
+
+        if i < len(aCountrStat):
+            chart=chart+''','''
+        
+    chart=chart+''']}'''
+    print(chart)
+    column2d = FusionCharts("column2d", "ex1", "600", "400", "chart-1", "json", chart)
+    
+
+    return render_page(request, constants.TEMPLATE_STATISTICS, {'output': column2d.render()})

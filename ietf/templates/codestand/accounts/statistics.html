@@ -1,0 +1,71 @@
+{% extends "base_codestand.html" %}
+{% load staticfiles %}
+{% load ietf_filters %}
+
+{% block title %}CodeStand Statistics{% endblock %}
+
+
+{% block bodyAttrs %}data-spy="scroll" data-target="#affix"{% endblock %}
+
+
+
+{% block content %}
+
+
+
+<!-- Main content starts -->
+
+<div class="content" style="padding:0">
+
+    <!-- Main bar -->
+    <div class="mainbar">
+        
+        <!-- Page heading -->
+        <div class="page-head">
+            <h2 class="pull-left"><i style="font-size: 20px;"></i> Statistics</h2>
+
+            <!-- Breadcrumb -->
+            <div class="bread-crumb pull-right">
+                <a href="{% url "ietf.codestand.views.index" %}"><i class="fa fa-home"></i> Home</a>
+                <!-- Divider -->
+                <span class="divider">/</span>
+                <a class="bread-current">Statistics</a>
+            </div>
+
+            <div class="clearfix"></div>
+
+        </div>
+        <!-- Page heading ends -->
+
+        <!-- Matter -->
+
+        <div class="matter">
+            <div class="container">
+
+                <div>
+		            <h4>Some statistics from our community: </h4>
+		            <div class="clearfix"></div>
+		        </div>
+
+                {% block extrahead %}{{ block.super }}
+                  <script type="text/javascript" src="{% static 'fusioncharts/fusioncharts.js' %}"></script>
+                  <script type="text/javascript" src="{% static 'fusioncharts/themes/fusioncharts.theme.fint.js' %}"></script>
+                {% endblock %}
+
+            <div id="chart-1">{{ output|safe }}</div>
+
+            </div>
+        </div>
+
+        
+
+    </div>
+
+    <!-- Mainbar ends -->
+    <div class="clearfix"></div>
+
+</div>
+<!-- Content ends -->
+
+{% endblock %}
+
