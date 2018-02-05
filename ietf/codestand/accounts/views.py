@@ -286,7 +286,7 @@ def countryStatistics():
     nCoderAdressknown = 0
 
     for oneCountry in aCountryList:
-        for n in Number.objects.using('datatracker').raw('''select 1 as id, count(distinct(p.id)) as number
+        for n in Number.objects.using('default').raw('''select 1 as id, count(distinct(p.id)) as number
             from person_person p,
             matches_codingproject mc
             where mc.coder=p.id
@@ -296,7 +296,7 @@ def countryStatistics():
                 aCountryXcoders.append([oneCountry, str(n.number)])
 
     #unknow           
-    for n in Number.objects.using('datatracker').raw('''select 1 as id, count(distinct(p.id)) as number
+    for n in Number.objects.using('default').raw('''select 1 as id, count(distinct(p.id)) as number
             from person_person p,
             matches_codingproject mc
             where mc.coder=p.id '''):
