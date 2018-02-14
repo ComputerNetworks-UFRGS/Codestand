@@ -307,15 +307,52 @@ def countryStatistics():
     return aCountryXcoders
 
 
-def statistics(request):
 
+def reposStatistics():
+    aRepo = []
+    aRepo.append('Dropbox')
+    aRepo.append('Github')
+  
+    aReposXcoders = []
+    nCoderReposknown = 0
+
+    for oneRepo in aRepo:
+        for n in Number.objects.using('default').raw('''select 1 as id, count(1) as number
+            from matches_codingproject_links mcl,
+            matches_implementation mi
+            where mcl.implementation_id=mi.id
+            and lower(mi.link) like lower(%s) ''', ['%'+oneRepo+'%']):
+
+            if n.number > 0:
+                nCoderReposknown = nCoderReposknown+n.number
+                aReposXcoders.append([oneRepo, str(n.number)])
+
+    #unknow           
+    for n in Number.objects.using('default').raw('''select 1 as id, count(1) as number
+            from matches_codingproject_links mcl,
+            matches_implementation mi
+            where mcl.implementation_id=mi.id '''):
+           
+            aReposXcoders.append(['Unknow', str(n.number-nCoderReposknown)])              
+
+
+    return aReposXcoders
+
+
+def statistics(request, number):
+  if number == '1':
+    return statistics1(request)
+  elif number == '2':
+    return statistics2(request) 
+
+def statistics1(request):
     aCountrStat = countryStatistics()
     
     chart=  '''{  
         "chart": {
             "caption": "Coders Location",
             "subCaption": "",
-            "xAxisName": "Coutry",
+            "xAxisName": "Country",
             "yAxisName": "Coders",
             "numberPrefix": "",
             "theme": "zune"
@@ -330,7 +367,34 @@ def statistics(request):
             chart=chart+''','''
         
     chart=chart+''']}'''
-    print(chart)
+    column2d = FusionCharts("column2d", "ex1", "600", "400", "chart-1", "json", chart)
+    
+
+    return render_page(request, constants.TEMPLATE_STATISTICS, {'output': column2d.render()})
+
+
+def statistics2(request):
+    aRS = reposStatistics()
+    
+    chart=  '''{  
+        "chart": {
+            "caption": "Repositories",
+            "subCaption": "",
+            "xAxisName": "",
+            "yAxisName": "",
+            "numberPrefix": "",
+            "theme": "zune"
+        },
+        "data": ['''
+    i = 0
+    for a in aRS:
+        i = i+1
+        chart=chart+''' {"label": "'''+a[0]+'''","value": "'''+a[1]+'''"}'''
+
+        if i < len(aRS):
+            chart=chart+''','''
+        
+    chart=chart+''']}'''
     column2d = FusionCharts("column2d", "ex1", "600", "400", "chart-1", "json", chart)
     
 
