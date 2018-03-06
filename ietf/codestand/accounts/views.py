@@ -6,7 +6,8 @@ from ietf.codestand.helpers.utils import (render_page, get_user)
 from ietf.person.models import Person, Email
 from django.conf import settings
 from ietf.fusioncharts import FusionCharts
-from ietf.codestand.helpers.models import Number
+from ietf.codestand.helpers.models import Number, StringValue
+from ietf.doc.models import DocAlias
 
 def index(request):
     return render_page(request, 'codestand/index.html')
@@ -307,6 +308,122 @@ def countryStatistics():
     return aCountryXcoders
 
 
+def areaProjects():
+  
+    all_projects = ProjectContainer.objects.all()
+   
+    keys = []
+    for project_container in all_projects:
+        if project_container.docs:
+            keys += filter(None, project_container.docs.split(';'))
+    keys = list(set(keys))
+    all_documents = list(
+        DocAlias.objects.using('datatracker').filter(name__in=keys).values_list('name', 'document__group__name',
+                                                                                'document__group__parent__name'))
+    docs = []
+    areas_list = []
+    working_groups_list = []
+    for project_container in all_projects:
+        areas = []
+        working_groups = []
+        # According to model areas and working groups should come from documents
+        keys = []
+        documents = []
+        if project_container.docs:
+            keys = filter(None, project_container.docs.split(';'))
+        for key in keys:
+            for name, gname, gparentname in all_documents:
+                if name == key:
+                    documents.append((gname, gparentname))
+        for gname, gparentname in documents:
+            if gname not in working_groups:
+                working_groups.append(gname)
+            if gparentname:
+                if gparentname not in areas:
+                    areas.append(gparentname)
+            else:
+                if gname not in areas:
+                    areas.append(gname)
+        #if not areas:
+            #areas = [constants.STRING_NONE]
+        #if not working_groups:
+            #working_groups = [constants.STRING_NONE]
+        areas_list.append(areas)
+        working_groups_list.append(working_groups)
+
+    areaResult = []
+    areaResultXTimes = []
+    for oneArea in areas_list:
+        if oneArea != []: 
+            #print(oneArea[0])
+            if oneArea[0] not in areaResult:
+                areaResult.append(oneArea[0])
+                areaResultXTimes.append([oneArea[0], 1])
+            else:
+                i = areaResult.index(oneArea[0])                
+                areaResultXTimes[i][1] = areaResultXTimes[i][1]+1
+
+    return areaResultXTimes  
+
+
+def workingGroupProjects():
+  
+    all_projects = ProjectContainer.objects.all()
+
+   
+    keys = []
+    for project_container in all_projects:
+        if project_container.docs:
+            keys += filter(None, project_container.docs.split(';'))
+    keys = list(set(keys))
+    all_documents = list(
+        DocAlias.objects.using('datatracker').filter(name__in=keys).values_list('name', 'document__group__name',
+                                                                                'document__group__parent__name'))
+    docs = []
+    areas_list = []
+    working_groups_list = []
+    for project_container in all_projects:
+        areas = []
+        working_groups = []
+        # According to model areas and working groups should come from documents
+        keys = []
+        documents = []
+        if project_container.docs:
+            keys = filter(None, project_container.docs.split(';'))
+        for key in keys:
+            for name, gname, gparentname in all_documents:
+                if name == key:
+                    documents.append((gname, gparentname))
+        for gname, gparentname in documents:
+            if gname not in working_groups:
+                working_groups.append(gname)
+            if gparentname:
+                if gparentname not in areas:
+                    areas.append(gparentname)
+            else:
+                if gname not in areas:
+                    areas.append(gname)
+        #if not areas:
+            #areas = [constants.STRING_NONE]
+        #if not working_groups:
+            #working_groups = [constants.STRING_NONE]
+        areas_list.append(areas)
+        working_groups_list.append(working_groups)
+
+    wgResult = []
+    wgResultXTimes = []
+    for oneWG in working_groups_list:
+        if oneWG != []: 
+            print(oneWG[0])
+            if oneWG[0] not in wgResult:
+                wgResult.append(oneWG[0])
+                wgResultXTimes.append([oneWG[0], 1])
+            else:
+                i = wgResult.index(oneWG[0])                
+                wgResultXTimes[i][1] = wgResultXTimes[i][1]+1
+
+    return wgResultXTimes  
+
 
 def reposStatistics():
     aRepo = []
@@ -340,10 +457,15 @@ def reposStatistics():
 
 
 def statistics(request, number):
+  
   if number == '1':
     return statistics1(request)
   elif number == '2':
-    return statistics2(request) 
+    return statistics2(request)
+  elif number == '3':
+    return statistics3(request)
+  elif number == '4':
+    return statistics4(request)    
 
 def statistics1(request):
     aCountrStat = countryStatistics()
@@ -392,6 +514,60 @@ def statistics2(request):
         chart=chart+''' {"label": "'''+a[0]+'''","value": "'''+a[1]+'''"}'''
 
         if i < len(aRS):
+            chart=chart+''','''
+        
+    chart=chart+''']}'''
+    column2d = FusionCharts("column2d", "ex1", "600", "400", "chart-1", "json", chart)
+    
+
+    return render_page(request, constants.TEMPLATE_STATISTICS, {'output': column2d.render()})
+
+def statistics3(request):
+    area = areaProjects()
+    
+    chart=  '''{  
+        "chart": {
+            "caption": "Project Areas",
+            "subCaption": "",
+            "xAxisName": "",
+            "yAxisName": "",
+            "numberPrefix": "",
+            "theme": "zune"
+        },
+        "data": ['''
+    i = 0
+    for a in area:
+        i = i+1
+        chart=chart+''' {"label": "'''+a[0]+'''","value": "'''+str(a[1])+'''"}'''
+
+        if i < len(area):
+            chart=chart+''','''
+        
+    chart=chart+''']}'''
+    column2d = FusionCharts("column2d", "ex1", "600", "400", "chart-1", "json", chart)
+    
+
+    return render_page(request, constants.TEMPLATE_STATISTICS, {'output': column2d.render()})
+
+def statistics4(request):
+    wg = workingGroupProjects()
+    
+    chart=  '''{  
+        "chart": {
+            "caption": "Project Working Groups",
+            "subCaption": "",
+            "xAxisName": "",
+            "yAxisName": "",
+            "numberPrefix": "",
+            "theme": "zune"
+        },
+        "data": ['''
+    i = 0
+    for w in wg:
+        i = i+1
+        chart=chart+''' {"label": "'''+w[0]+'''","value": "'''+str(w[1])+'''"}'''
+
+        if i < len(wg):
             chart=chart+''','''
         
     chart=chart+''']}'''
