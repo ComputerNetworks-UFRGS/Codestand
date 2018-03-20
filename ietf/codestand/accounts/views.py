@@ -298,7 +298,7 @@ def countryStatistics():
     #unknow           
     for n in Number.objects.using('default').raw('''select 1 as id, count(p.id) as number
             from person_person p
-            where p.id in (select mc.coder from matches_codingproject mc and mc.coder ) '''):
+            where p.id in (select mc.coder from matches_codingproject mc ) '''):
            
             aCountryXcoders.append(['Unknow', str(n.number-nCoderAdressknown)])              
 
