@@ -319,9 +319,8 @@ def personAffiliation():
     for oneAffiliation in aAffiliationList:    
 
         for n in Number.objects.using('default').raw('''select 1 as id, count(affiliation) as number
-            from person_person p,
-            matches_codingproject mc
-            where mc.coder=p.id
+            from person_person p
+            where p.id in (select mc.coder from matches_codingproject mc )
             and lower(affiliation) like lower(%s) ''', [oneAffiliation]):
             if n.number > 0 and oneAffiliation.strip() != '':
                 nCoderAffknown = nCoderAffknown+n.number 
@@ -329,9 +328,8 @@ def personAffiliation():
 
     #unknow           
     for n in Number.objects.using('default').raw('''select 1 as id, count(affiliation) as number
-            from person_person p,
-            matches_codingproject mc
-            where mc.coder=p.id '''):
+            from person_person p
+            where p.id in (select mc.coder from matches_codingproject mc )  '''):
            
             aAffiliationXcoders.append(['Unknow', str(n.number-nCoderAffknown)])                     
 
@@ -624,7 +622,7 @@ def statistics5(request):
     
     chart=  '''{  
         "chart": {
-            "caption": "Affiliation",
+            "caption": "Coders Affiliation",
             "subCaption": "",
             "xAxisName": "",
             "yAxisName": "",
