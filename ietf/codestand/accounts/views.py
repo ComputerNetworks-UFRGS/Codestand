@@ -287,25 +287,56 @@ def countryStatistics():
     nCoderAdressknown = 0
 
     for oneCountry in aCountryList:
-        for n in Number.objects.using('default').raw('''select 1 as id, count(distinct(p.id)) as number
-            from person_person p,
-            matches_codingproject mc
-            where mc.coder=p.id
+        for n in Number.objects.using('default').raw('''select 1 as id, count(p.id) as number
+            from person_person p           
+            where p.id in (select mc.coder from matches_codingproject mc  )
             and lower(address) like lower(%s) ''', ['%'+oneCountry+'%']):
             if n.number > 0:
                 nCoderAdressknown = nCoderAdressknown+n.number
                 aCountryXcoders.append([oneCountry, str(n.number)])
 
     #unknow           
-    for n in Number.objects.using('default').raw('''select 1 as id, count(distinct(p.id)) as number
-            from person_person p,
-            matches_codingproject mc
-            where mc.coder=p.id '''):
+    for n in Number.objects.using('default').raw('''select 1 as id, count(p.id) as number
+            from person_person p
+            where p.id in (select mc.coder from matches_codingproject mc and mc.coder ) '''):
            
             aCountryXcoders.append(['Unknow', str(n.number-nCoderAdressknown)])              
 
 
     return aCountryXcoders
+
+def personAffiliation():
+    aAffiliationList = []
+    aAffiliationXcoders = []
+    nCoderAffknown = 0
+
+    for s in StringValue.objects.using('default').raw('''select distinct 1 as id, affiliation as stringValue
+            from person_person
+            '''):            
+                aAffiliationList.append(s.stringValue)
+
+
+    for oneAffiliation in aAffiliationList:    
+
+        for n in Number.objects.using('default').raw('''select 1 as id, count(affiliation) as number
+            from person_person p,
+            matches_codingproject mc
+            where mc.coder=p.id
+            and lower(affiliation) like lower(%s) ''', [oneAffiliation]):
+            if n.number > 0 and oneAffiliation.strip() != '':
+                nCoderAffknown = nCoderAffknown+n.number 
+                aAffiliationXcoders.append([oneAffiliation[0:25], str(n.number)])
+
+    #unknow           
+    for n in Number.objects.using('default').raw('''select 1 as id, count(affiliation) as number
+            from person_person p,
+            matches_codingproject mc
+            where mc.coder=p.id '''):
+           
+            aAffiliationXcoders.append(['Unknow', str(n.number-nCoderAffknown)])                     
+
+
+    return aAffiliationXcoders
 
 
 def areaProjects():
@@ -414,7 +445,7 @@ def workingGroupProjects():
     wgResultXTimes = []
     for oneWG in working_groups_list:
         if oneWG != []: 
-            print(oneWG[0])
+            #print(oneWG[0])
             if oneWG[0] not in wgResult:
                 wgResult.append(oneWG[0])
                 wgResultXTimes.append([oneWG[0], 1])
@@ -436,8 +467,12 @@ def reposStatistics():
     for oneRepo in aRepo:
         for n in Number.objects.using('default').raw('''select 1 as id, count(1) as number
             from matches_codingproject_links mcl,
-            matches_implementation mi
+            matches_implementation mi,
+            matches_codingproject mc,
+            person_person p
             where mcl.implementation_id=mi.id
+            and mc.id = mi.id
+            and  mc.coder=p.id
             and lower(mi.link) like lower(%s) ''', ['%'+oneRepo+'%']):
 
             if n.number > 0:
@@ -458,14 +493,16 @@ def reposStatistics():
 
 def statistics(request, number):
   
-  if number == '1':
-    return statistics1(request)
-  elif number == '2':
-    return statistics2(request)
-  elif number == '3':
-    return statistics3(request)
-  elif number == '4':
-    return statistics4(request)    
+    if number == '1':
+        return statistics1(request)
+    elif number == '2':
+        return statistics2(request)
+    elif number == '3':
+        return statistics3(request)
+    elif number == '4':
+        return statistics4(request)
+    elif number == '5':
+        return statistics5(request)        
 
 def statistics1(request):
     aCountrStat = countryStatistics()
@@ -568,6 +605,35 @@ def statistics4(request):
         chart=chart+''' {"label": "'''+w[0]+'''","value": "'''+str(w[1])+'''"}'''
 
         if i < len(wg):
+            chart=chart+''','''
+        
+    chart=chart+''']}'''
+    column2d = FusionCharts("column2d", "ex1", "600", "400", "chart-1", "json", chart)
+    
+
+    return render_page(request, constants.TEMPLATE_STATISTICS, {'output': column2d.render()})
+
+
+def statistics5(request):
+    
+    aPersonAffiliation = personAffiliation()
+    
+    chart=  '''{  
+        "chart": {
+            "caption": "Affiliation",
+            "subCaption": "",
+            "xAxisName": "",
+            "yAxisName": "",
+            "numberPrefix": "",
+            "theme": "zune"
+        },
+        "data": ['''
+    i = 0
+    for affiliation in aPersonAffiliation:
+        i = i+1
+        chart=chart+''' {"label": "'''+affiliation[0]+'''","value": "'''+affiliation[1]+'''"}'''
+
+        if i < len(aPersonAffiliation):
             chart=chart+''','''
         
     chart=chart+''']}'''
