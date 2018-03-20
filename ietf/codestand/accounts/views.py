@@ -287,9 +287,10 @@ def countryStatistics():
     nCoderAdressknown = 0
 
     for oneCountry in aCountryList:
-        for n in Number.objects.using('default').raw('''select 1 as id, count(p.id) as number
-            from person_person p           
-            where p.id in (select mc.coder from matches_codingproject mc  )
+        for n in Number.objects.using('default').raw('''select 1 as id, count( distinct p.id) as number
+            from person_person p,
+            matches_codingproject mc           
+            where p.id = mc.coder 
             and lower(address) like lower(%s) ''', ['%'+oneCountry+'%']):
             if n.number > 0:
                 nCoderAdressknown = nCoderAdressknown+n.number
@@ -318,9 +319,10 @@ def personAffiliation():
 
     for oneAffiliation in aAffiliationList:    
 
-        for n in Number.objects.using('default').raw('''select 1 as id, count(affiliation) as number
-            from person_person p
-            where p.id in (select mc.coder from matches_codingproject mc )
+        for n in Number.objects.using('default').raw('''select 1 as id, count(distinct p.id) as number
+            from person_person p,
+            matches_codingproject mc
+            where p.id = mc.coder 
             and lower(affiliation) like lower(%s) ''', [oneAffiliation]):
             if n.number > 0 and oneAffiliation.strip() != '':
                 nCoderAffknown = nCoderAffknown+n.number 
