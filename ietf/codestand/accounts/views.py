@@ -482,8 +482,12 @@ def reposStatistics():
     #unknow           
     for n in Number.objects.using('default').raw('''select 1 as id, count(1) as number
             from matches_codingproject_links mcl,
-            matches_implementation mi
-            where mcl.implementation_id=mi.id '''):
+            matches_implementation mi,
+            matches_codingproject mc,
+            person_person p
+            where mcl.implementation_id=mi.id
+            and mc.id = mi.id
+            and  mc.coder=p.id '''):
            
             aReposXcoders.append(['Unknow', str(n.number-nCoderReposknown)])              
 
@@ -511,8 +515,8 @@ def statistics1(request):
         "chart": {
             "caption": "Coders Location",
             "subCaption": "",
-            "xAxisName": "Country",
-            "yAxisName": "Coders",
+            "xAxisName": "",
+            "yAxisName": "",
             "numberPrefix": "",
             "theme": "zune"
         },
