@@ -8,6 +8,7 @@ from django.conf import settings
 from ietf.fusioncharts import FusionCharts
 from ietf.codestand.helpers.models import Number, StringValue
 from ietf.doc.models import DocAlias
+from json2html import *
 
 def index(request):
     return render_page(request, 'codestand/index.html')
@@ -353,7 +354,10 @@ def areaProjects():
                                                                                 'document__group__parent__name'))
     docs = []
     areas_list = []
-    working_groups_list = []
+    areas_list_all = []
+    areas_list_requests = []
+    areas_list_projects = []
+
     for project_container in all_projects:
         areas = []
         working_groups = []
@@ -379,22 +383,32 @@ def areaProjects():
             #areas = [constants.STRING_NONE]
         #if not working_groups:
             #working_groups = [constants.STRING_NONE]
-        areas_list.append(areas)
-        working_groups_list.append(working_groups)
+        if areas:
+            areas_list_all.append(areas[0])
 
-    areaResult = []
-    areaResultXTimes = []
-    for oneArea in areas_list:
-        if oneArea != []: 
-            #print(oneArea[0])
-            if oneArea[0] not in areaResult:
-                areaResult.append(oneArea[0])
-                areaResultXTimes.append([oneArea[0], 1])
-            else:
-                i = areaResult.index(oneArea[0])                
-                areaResultXTimes[i][1] = areaResultXTimes[i][1]+1
+            if project_container.code_request != None:
+                areas_list_requests.append(areas[0])
+        
+            pc_codings = project_container.codings.all()
+            for pc_c in pc_codings:
+                if pc_c != None:
+                    areas_list_projects.append(areas[0])
+                    
+    aResult = []
+    aResultXTimes = []
+    for oneA in areas_list_all:        
+        if oneA not in aResult:
+            aResult.append(oneA)
+            xTimesRequests = areas_list_requests.count(oneA)
+            xTimesProjects = areas_list_projects.count(oneA)
+            aResultXTimes.append([oneA, xTimesProjects, xTimesRequests ])
+            print (oneA, xTimesProjects, xTimesRequests )
 
-    return areaResultXTimes  
+    return aResultXTimes  
+
+
+
+
 
 
 def workingGroupProjects():
@@ -411,14 +425,16 @@ def workingGroupProjects():
         DocAlias.objects.using('datatracker').filter(name__in=keys).values_list('name', 'document__group__name',
                                                                                 'document__group__parent__name'))
     docs = []
-    areas_list = []
-    working_groups_list = []
+    working_groups_list_requests = []
+    working_groups_list_projects = []
+    working_groups_list_all = []
     for project_container in all_projects:
         areas = []
         working_groups = []
         # According to model areas and working groups should come from documents
         keys = []
         documents = []
+
         if project_container.docs:
             keys = filter(None, project_container.docs.split(';'))
         for key in keys:
@@ -438,20 +454,27 @@ def workingGroupProjects():
             #areas = [constants.STRING_NONE]
         #if not working_groups:
             #working_groups = [constants.STRING_NONE]
-        areas_list.append(areas)
-        working_groups_list.append(working_groups)
+        #areas_list.append(areas)
+        if working_groups:
+            working_groups_list_all.append(working_groups[0])
+
+            if project_container.code_request != None:
+                working_groups_list_requests.append(working_groups[0])
+        
+            pc_codings = project_container.codings.all()
+            for pc_c in pc_codings:
+                if pc_c != None:
+                    working_groups_list_projects.append(working_groups[0])
 
     wgResult = []
     wgResultXTimes = []
-    for oneWG in working_groups_list:
-        if oneWG != []: 
-            #print(oneWG[0])
-            if oneWG[0] not in wgResult:
-                wgResult.append(oneWG[0])
-                wgResultXTimes.append([oneWG[0], 1])
-            else:
-                i = wgResult.index(oneWG[0])                
-                wgResultXTimes[i][1] = wgResultXTimes[i][1]+1
+    for oneWG in working_groups_list_all:        
+        if oneWG not in wgResult:
+            wgResult.append(oneWG)
+            xTimesRequests = working_groups_list_requests.count(oneWG)
+            xTimesProjects = working_groups_list_projects.count(oneWG)
+            wgResultXTimes.append([oneWG, xTimesProjects, xTimesRequests ])
+            #print (oneWG, xTimesProjects, xTimesRequests )
 
     return wgResultXTimes  
 
@@ -496,7 +519,6 @@ def reposStatistics():
 
 
 def statistics(request, number):
-  
     if number == '1':
         return statistics1(request)
     elif number == '2':
@@ -530,7 +552,7 @@ def statistics1(request):
             chart=chart+''','''
         
     chart=chart+''']}'''
-    column2d = FusionCharts("column2d", "ex1", "600", "400", "chart-1", "json", chart)
+    column2d = FusionCharts("column2d", "ex1", "1000", "600", "chart-1", "json", chart)
     
 
     return render_page(request, constants.TEMPLATE_STATISTICS, {'output': column2d.render()})
@@ -558,65 +580,85 @@ def statistics2(request):
             chart=chart+''','''
         
     chart=chart+''']}'''
-    column2d = FusionCharts("column2d", "ex1", "600", "400", "chart-1", "json", chart)
+    column2d = FusionCharts("column2d", "ex1", "1000", "600", "chart-1", "json", chart)
     
 
     return render_page(request, constants.TEMPLATE_STATISTICS, {'output': column2d.render()})
 
-def statistics3(request):
+def statistics3(request):    
     area = areaProjects()
-    
-    chart=  '''{  
-        "chart": {
-            "caption": "Project Areas",
-            "subCaption": "",
-            "xAxisName": "",
-            "yAxisName": "",
-            "numberPrefix": "",
-            "theme": "zune"
-        },
-        "data": ['''
-    i = 0
+    #return render_page(request, constants.TEMPLATE_STATISTICS, {'output': column2d.render()})
+    dataSource = {}
+
+    # Chart data is passed to the `dataSource` parameter, as hashes, in the form of
+    # key-value pairs.
+    dataSource['chart'] = { 
+        "caption": "Areas",
+        "subCaption": "",
+        "xAxisName": "",
+        "yAxisName": "",
+        "numberPrefix": "",
+        "theme": "zune"
+        }
+
+    # The `category` dict is defined inside the `categories` array with four key-value pairs
+    # that represent the x-axis labels for the four quarters.
+    dataSource["categories"] = [{"category": [] }]
     for a in area:
-        i = i+1
-        chart=chart+''' {"label": "'''+a[0]+'''","value": "'''+str(a[1])+'''"}'''
+        dataSource["categories"][0]["category"].append({ "label": a[0] })     
 
-        if i < len(area):
-            chart=chart+''','''
-        
-    chart=chart+''']}'''
-    column2d = FusionCharts("column2d", "ex1", "600", "400", "chart-1", "json", chart)
-    
+    # The `data` hash contains four key-value pairs that are the values for the revenue
+    # generated in the previous year.
 
-    return render_page(request, constants.TEMPLATE_STATISTICS, {'output': column2d.render()})
+    dataSource["dataset"] = [{"seriesname": "Project","data": []}, 
+                             {"seriesname": "CodeRequest", "data": []}]
+    for a in area:
+        dataSource["dataset"][0]["data"].append({ "value": str(a[1]) })
+        dataSource["dataset"][1]["data"].append({ "value": str(a[2]) })
+   
+   
+    # Create an object for the Multiseries column 2D charts using the FusionCharts class constructor
+    mscol2D = FusionCharts("mscolumn2d", "ex1" , "1000", "600", "chart-1", "json", dataSource)
+    return render_page(request, constants.TEMPLATE_STATISTICS, {'output': mscol2D.render()})
 
 def statistics4(request):
     wg = workingGroupProjects()
     
-    chart=  '''{  
-        "chart": {
-            "caption": "Project Working Groups",
-            "subCaption": "",
-            "xAxisName": "",
-            "yAxisName": "",
-            "numberPrefix": "",
-            "theme": "zune"
-        },
-        "data": ['''
-    i = 0
+    dataSource = {}
+
+    # Chart data is passed to the `dataSource` parameter, as hashes, in the form of
+    # key-value pairs.
+    dataSource['chart'] = { 
+        "caption": "Working Groups",
+        "subCaption": "",
+        "xAxisName": "",
+        "yAxisName": "",
+        "numberPrefix": "",
+        "theme": "zune"
+        }
+
+    # The `category` dict is defined inside the `categories` array with four key-value pairs
+    # that represent the x-axis labels for the four quarters.
+    dataSource["categories"] = [{"category": [] }]
     for w in wg:
-        i = i+1
-        chart=chart+''' {"label": "'''+w[0]+'''","value": "'''+str(w[1])+'''"}'''
+        dataSource["categories"][0]["category"].append({ "label": w[0] })   
 
-        if i < len(wg):
-            chart=chart+''','''
-        
-    chart=chart+''']}'''
-    column2d = FusionCharts("column2d", "ex1", "600", "400", "chart-1", "json", chart)
+
+    # The `data` hash contains four key-value pairs that are the values for the revenue
+    # generated in the previous year.
+
+    dataSource["dataset"] = [{"seriesname": "Project","data": []}, 
+                             {"seriesname": "CodeRequest", "data": []}]
+                           
+    for w in wg:
+        dataSource["dataset"][0]["data"].append({ "value": str(w[1]) })
+        dataSource["dataset"][1]["data"].append({ "value": str(w[2]) })
     
+    # Create an object for the Multiseries column 2D charts using the FusionCharts class constructor
+    mscol2D = FusionCharts("mscolumn2d", "ex1" , "1000", "600", "chart-1", "json", dataSource)
 
-    return render_page(request, constants.TEMPLATE_STATISTICS, {'output': column2d.render()})
 
+    return render_page(request, constants.TEMPLATE_STATISTICS, {'output': mscol2D.render()})
 
 def statistics5(request):
     
@@ -633,15 +675,22 @@ def statistics5(request):
         },
         "data": ['''
     i = 0
+    tableData = []
     for affiliation in aPersonAffiliation:
         i = i+1
         chart=chart+''' {"label": "'''+affiliation[0]+'''","value": "'''+affiliation[1]+'''"}'''
-
+        
         if i < len(aPersonAffiliation):
             chart=chart+''','''
         
+        tableData.append({affiliation[0]: affiliation[1]})
     chart=chart+''']}'''
-    column2d = FusionCharts("column2d", "ex1", "600", "400", "chart-1", "json", chart)
+    column2d = FusionCharts("column2d", "ex1", "1000", "600", "chart-1", "json", chart)
     
 
-    return render_page(request, constants.TEMPLATE_STATISTICS, {'output': column2d.render()})
+    return render_page(request, constants.TEMPLATE_STATISTICS, {'output': column2d.render() })
+
+
+
+
+     
