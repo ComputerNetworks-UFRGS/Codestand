@@ -8,7 +8,6 @@ from django.conf import settings
 from ietf.fusioncharts import FusionCharts
 from ietf.codestand.helpers.models import Number, StringValue
 from ietf.doc.models import DocAlias
-from json2html import *
 
 def index(request):
     return render_page(request, 'codestand/index.html')
