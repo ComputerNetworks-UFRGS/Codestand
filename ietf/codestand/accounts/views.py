@@ -9,6 +9,7 @@ from ietf.fusioncharts import FusionCharts
 from ietf.codestand.helpers.models import Number, StringValue
 from ietf.doc.models import DocAlias
 
+
 def index(request):
     return render_page(request, 'codestand/index.html')
 
@@ -585,9 +586,10 @@ def statistics2(request):
     return render_page(request, constants.TEMPLATE_STATISTICS, {'output': column2d.render()})
 
 def statistics3(request):    
-    area = areaProjects()
-    #return render_page(request, constants.TEMPLATE_STATISTICS, {'output': column2d.render()})
+    area = areaProjects()   
     dataSource = {}
+    tableCol = []
+    tableData = []
 
     # Chart data is passed to the `dataSource` parameter, as hashes, in the form of
     # key-value pairs.
@@ -604,26 +606,33 @@ def statistics3(request):
     # that represent the x-axis labels for the four quarters.
     dataSource["categories"] = [{"category": [] }]
     for a in area:
-        dataSource["categories"][0]["category"].append({ "label": a[0] })     
+        dataSource["categories"][0]["category"].append({ "label": str(a[0]) })     
 
     # The `data` hash contains four key-value pairs that are the values for the revenue
     # generated in the previous year.
 
     dataSource["dataset"] = [{"seriesname": "Project","data": []}, 
                              {"seriesname": "CodeRequest", "data": []}]
+
     for a in area:
         dataSource["dataset"][0]["data"].append({ "value": str(a[1]) })
         dataSource["dataset"][1]["data"].append({ "value": str(a[2]) })
+        tableData.append({'Area':str(a[0]), 'Project':str(a[1]),  'CodeRequest':str(a[2]) })
    
+    tableCol.append({'title':'Area', 'field':'Area', 'sorter':"string", 'width':150, 'headerFilter':"input"})
+    tableCol.append({'title':'Project', 'field':'Project', 'sorter':"number", 'align':"center", 'headerFilter':"input"})
+    tableCol.append({'title':'CodeRequest', 'field':'CodeRequest', 'sorter':"number", 'align':"center", 'headerFilter':"input"})
    
     # Create an object for the Multiseries column 2D charts using the FusionCharts class constructor
     mscol2D = FusionCharts("mscolumn2d", "ex1" , "1000", "600", "chart-1", "json", dataSource)
-    return render_page(request, constants.TEMPLATE_STATISTICS, {'output': mscol2D.render()})
+    return render_page(request, constants.TEMPLATE_STATISTICS, {'output': mscol2D.render(), 'tableData': tableData, 'tableCol':tableCol})
 
 def statistics4(request):
     wg = workingGroupProjects()
     
     dataSource = {}
+    tableData = []
+    tableCol = []
 
     # Chart data is passed to the `dataSource` parameter, as hashes, in the form of
     # key-value pairs.
@@ -640,7 +649,7 @@ def statistics4(request):
     # that represent the x-axis labels for the four quarters.
     dataSource["categories"] = [{"category": [] }]
     for w in wg:
-        dataSource["categories"][0]["category"].append({ "label": w[0] })   
+        dataSource["categories"][0]["category"].append({ "label": str(w[0]) })   
 
 
     # The `data` hash contains four key-value pairs that are the values for the revenue
@@ -648,16 +657,20 @@ def statistics4(request):
 
     dataSource["dataset"] = [{"seriesname": "Project","data": []}, 
                              {"seriesname": "CodeRequest", "data": []}]
-                           
+                          
     for w in wg:
         dataSource["dataset"][0]["data"].append({ "value": str(w[1]) })
         dataSource["dataset"][1]["data"].append({ "value": str(w[2]) })
+        tableData.append({'Working Group':str(w[0]), 'Project':str(w[1]),  'CodeRequest':str(w[2]) })
     
     # Create an object for the Multiseries column 2D charts using the FusionCharts class constructor
     mscol2D = FusionCharts("mscolumn2d", "ex1" , "1000", "600", "chart-1", "json", dataSource)
-
-
-    return render_page(request, constants.TEMPLATE_STATISTICS, {'output': mscol2D.render()})
+    
+    tableCol.append({'title':'Working Group', 'field':'Working Group', 'sorter':"string", 'width':150, 'headerFilter':"input"})
+    tableCol.append({'title':'Project', 'field':'Project', 'sorter':"number", 'align':"center", 'headerFilter':"input"})
+    tableCol.append({'title':'CodeRequest', 'field':'CodeRequest', 'sorter':"number", 'align':"center", 'headerFilter':"input"})
+    
+    return render_page(request, constants.TEMPLATE_STATISTICS, {'output': mscol2D.render(), 'tableData': tableData, 'tableCol':tableCol})
 
 def statistics5(request):
     
