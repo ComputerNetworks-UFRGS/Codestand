@@ -297,12 +297,12 @@ def countryStatistics():
                 nCoderAdressknown = nCoderAdressknown+n.number
                 aCountryXcoders.append([oneCountry, str(n.number)])
 
-    #unknow           
+    #Undefined           
     for n in Number.objects.using('default').raw('''select 1 as id, count(p.id) as number
             from person_person p
             where p.id in (select mc.coder from matches_codingproject mc ) '''):
            
-            aCountryXcoders.append(['Unknow', str(n.number-nCoderAdressknown)])              
+            aCountryXcoders.append(['Undefined', str(n.number-nCoderAdressknown)])              
 
 
     return aCountryXcoders
@@ -329,12 +329,12 @@ def personAffiliation():
                 nCoderAffknown = nCoderAffknown+n.number 
                 aAffiliationXcoders.append([oneAffiliation[0:25], str(n.number)])
 
-    #unknow           
+    #Undefined           
     for n in Number.objects.using('default').raw('''select 1 as id, count(affiliation) as number
             from person_person p
             where p.id in (select mc.coder from matches_codingproject mc )  '''):
            
-            aAffiliationXcoders.append(['Unknow', str(n.number-nCoderAffknown)])                     
+            aAffiliationXcoders.append(['Undefined', str(n.number-nCoderAffknown)])                     
 
 
     return aAffiliationXcoders
@@ -502,7 +502,7 @@ def reposStatistics():
                 nCoderReposknown = nCoderReposknown+n.number
                 aReposXcoders.append([oneRepo, str(n.number)])
 
-    #unknow           
+    #Undefined           
     for n in Number.objects.using('default').raw('''select 1 as id, count(1) as number
             from matches_codingproject_links mcl,
             matches_implementation mi,
@@ -512,7 +512,7 @@ def reposStatistics():
             and mc.id = mi.id
             and  mc.coder=p.id '''):
            
-            aReposXcoders.append(['Unknow', str(n.number-nCoderReposknown)])              
+            aReposXcoders.append(['Undefined', str(n.number-nCoderReposknown)])              
 
 
     return aReposXcoders
@@ -537,8 +537,8 @@ def statistics1(request):
         "chart": {
             "caption": "Coders Location",
             "subCaption": "",
-            "xAxisName": "",
-            "yAxisName": "",
+            "xAxisName": "Country",
+            "yAxisName": "Coders",
             "numberPrefix": "",
             "theme": "zune"
         },
@@ -565,8 +565,8 @@ def statistics2(request):
         "chart": {
             "caption": "Repositories",
             "subCaption": "",
-            "xAxisName": "",
-            "yAxisName": "",
+            "xAxisName": "Repository",
+            "yAxisName": "Projects",
             "numberPrefix": "",
             "theme": "zune"
         },
@@ -680,8 +680,8 @@ def statistics5(request):
         "chart": {
             "caption": "Coders Affiliation",
             "subCaption": "",
-            "xAxisName": "",
-            "yAxisName": "",
+            "xAxisName": "Affiliation",
+            "yAxisName": "Coders",
             "numberPrefix": "",
             "theme": "zune"
         },
