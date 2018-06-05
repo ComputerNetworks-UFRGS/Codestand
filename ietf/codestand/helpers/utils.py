@@ -3,6 +3,9 @@ from django.shortcuts import render
 from ietf.person.models import Person, Alias
 from ietf.codestand.matches.models import ProjectContainer, CodingProject
 from django.conf import settings
+import pprint
+import json
+import requests
 
 
 # ----------------------------------------------------------------
@@ -102,3 +105,28 @@ def render_page(request, template, keys=None):
     request.session[constants.ACTUAL_TEMPLATE] = request.path
 
     return render(request, template, get_menu_arguments(request, keys))
+
+
+
+def googleSearchApi(term):
+    searchResult = []
+    try:      
+        api_key='AIzaSyCAsmtGQqlw4fnAU1J9MVvmJTe0XMiDeco'
+
+        result = requests.get('https://content.googleapis.com/customsearch/v1', 
+            params={ 'cx': '004640575567140933121:sqsoy1bwcq8', 'q': term, 'key': api_key} )
+        
+        resultJson = result.json()
+        #pprint.pprint(resultJson)
+        
+        searchResult = []
+        for item in resultJson['items']:
+            title = item['title']
+            snippet = item['snippet']
+            link = item['link']
+            
+            searchResult.append((title, snippet, link))
+        return searchResult
+    except:
+        searchResult.append(('No results', '', ''))
+        return searchResult

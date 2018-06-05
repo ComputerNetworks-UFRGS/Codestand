@@ -1,12 +1,14 @@
+
 from django.http import HttpResponseRedirect
 from django.contrib.auth.models import User
-from ietf.codestand.helpers.utils import (render_page, get_user)
+from ietf.codestand.helpers.utils import *
 from ietf.codestand import constants
 from ietf.codestand.matches.models import DashboardConfig
 from ietf.codestand.dashboard import (get_my_matches, get_my_requests, get_all_matches)
 from django.conf import settings
 from django.contrib.auth.decorators import login_required
-
+import pprint
+import json
 
 def index(request):
     sync(request)
@@ -16,6 +18,15 @@ def index(request):
 def about(request):
     return render_page(request, constants.TEMPLATE_ABOUT)
 
+def search(request): 
+    search = []
+    search = googleSearchApi(request.GET.get('search_box'))
+
+    return render_page(request, constants.TEMPLATE_SEARCH, {
+        'search': search,
+    })
+
+    
 
 def back(request):
     template = "/codestand/"

@@ -3,7 +3,8 @@ from ietf.codestand import views
 
 urlpatterns = [
     url(r'^$', views.index, name='ietf.codestand.views.index'),
-    url(r'^about/$', views.about, name="ietf.codestand.views.about"),
+    url(r'^search/$', views.search, name="ietf.codestand.views.search"),
+    url(r'^about/$', views.about, name="ietf.codestand.views.about"),  
     url(r'^back/$', views.back, name="ietf.codestand.views.back"),
     url(r'^sync/$', views.sync, name="ietf.codestand.views.sync"),
     # url(r'^dashboard/$', views.dashboard, name="dashboard"),
@@ -15,5 +16,5 @@ urlpatterns = [
 
     # Requests
     url(r'^requests/', include('ietf.codestand.requests.urls')),
-
+ 
 ]
