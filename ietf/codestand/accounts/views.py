@@ -494,7 +494,12 @@ def reposStatistics():
             where mcl.implementation_id=mi.id
             and mc.id = mi.id
             and is_archived = 0
-            and lower(mi.link) like lower(%s) ''', ['%'+oneRepo+'%']):
+            and (SELECT GROUP_CONCAT(DISTINCT link SEPARATOR ', ')
+            FROM matches_implementation mi2,
+            matches_codingproject_links mcl2
+            Where mcl2.implementation_id=mi2.id
+            and mcl.implementation_id = mcl2.implementation_id
+            GROUP BY implementation_id) like lower(%s) ''', ['%'+oneRepo+'%']):
 
             if n.number > 0:
                 nCoderReposknown = nCoderReposknown+n.number
