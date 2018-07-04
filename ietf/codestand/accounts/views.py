@@ -9,7 +9,6 @@ from ietf.fusioncharts import FusionCharts
 from ietf.codestand.helpers.models import Number, StringValue
 from ietf.doc.models import DocAlias
 
-
 def index(request):
     return render_page(request, 'codestand/index.html')
 
@@ -386,13 +385,13 @@ def areaProjects():
         if areas:
             areas_list_all.append(areas[0])
 
-            if project_container.code_request != None:
-                areas_list_requests.append(areas[0])
+            #if project_container.code_request != None:
+            areas_list_requests.append(areas[0])
         
             pc_codings = project_container.codings.all()
             for pc_c in pc_codings:
-                if pc_c != None:
-                    areas_list_projects.append(areas[0])
+                #if pc_c != None:
+                areas_list_projects.append(areas[0])
                     
     aResult = []
     aResultXTimes = []
@@ -458,13 +457,13 @@ def workingGroupProjects():
         if working_groups:
             working_groups_list_all.append(working_groups[0])
 
-            if project_container.code_request != None:
-                working_groups_list_requests.append(working_groups[0])
+            #if project_container.code_request != None:
+            working_groups_list_requests.append(working_groups[0])
         
             pc_codings = project_container.codings.all()
             for pc_c in pc_codings:
-                if pc_c != None:
-                    working_groups_list_projects.append(working_groups[0])
+                #if pc_c != None:
+                working_groups_list_projects.append(working_groups[0])
 
     wgResult = []
     wgResultXTimes = []
@@ -518,7 +517,9 @@ def reposStatistics():
     return aReposXcoders
 
 
+
 def statistics(request, number):
+  
     if number == '1':
         return statistics1(request)
     elif number == '2':
@@ -625,6 +626,8 @@ def statistics3(request):
    
     # Create an object for the Multiseries column 2D charts using the FusionCharts class constructor
     mscol2D = FusionCharts("mscolumn2d", "ex1" , "1000", "600", "chart-1", "json", dataSource)
+    print mscol2D.render()
+
     return render_page(request, constants.TEMPLATE_STATISTICS, {'output': mscol2D.render(), 'tableData': tableData, 'tableCol':tableCol})
 
 def statistics4(request):
