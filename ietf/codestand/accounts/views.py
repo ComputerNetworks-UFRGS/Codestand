@@ -401,7 +401,7 @@ def areaProjects():
             xTimesRequests = areas_list_requests.count(oneA)
             xTimesProjects = areas_list_projects.count(oneA)
             aResultXTimes.append([oneA, xTimesProjects, xTimesRequests ])
-            print (oneA, xTimesProjects, xTimesRequests )
+            #print (oneA, xTimesProjects, xTimesRequests )
 
     return aResultXTimes  
 
@@ -490,11 +490,10 @@ def reposStatistics():
         for n in Number.objects.using('default').raw('''select 1 as id, count(1) as number
             from matches_codingproject_links mcl,
             matches_implementation mi,
-            matches_codingproject mc,
-            person_person p
+            matches_codingproject mc
             where mcl.implementation_id=mi.id
             and mc.id = mi.id
-            and  mc.coder=p.id
+            and is_archived = 0
             and lower(mi.link) like lower(%s) ''', ['%'+oneRepo+'%']):
 
             if n.number > 0:
@@ -505,11 +504,10 @@ def reposStatistics():
     for n in Number.objects.using('default').raw('''select 1 as id, count(1) as number
             from matches_codingproject_links mcl,
             matches_implementation mi,
-            matches_codingproject mc,
-            person_person p
+            matches_codingproject mc
             where mcl.implementation_id=mi.id
             and mc.id = mi.id
-            and  mc.coder=p.id '''):
+            and is_archived = 0  '''):
            
             aReposXcoders.append(['Undefined', str(n.number-nCoderReposknown)])              
 
@@ -626,7 +624,6 @@ def statistics3(request):
    
     # Create an object for the Multiseries column 2D charts using the FusionCharts class constructor
     mscol2D = FusionCharts("mscolumn2d", "ex1" , "1000", "600", "chart-1", "json", dataSource)
-    print mscol2D.render()
 
     return render_page(request, constants.TEMPLATE_STATISTICS, {'output': mscol2D.render(), 'tableData': tableData, 'tableCol':tableCol})
 
