@@ -385,13 +385,13 @@ def areaProjects():
         if areas:
             areas_list_all.append(areas[0])
 
-            #if project_container.code_request != None:
-            areas_list_requests.append(areas[0])
+            if project_container.code_request != None:
+                areas_list_requests.append(areas[0])
         
             pc_codings = project_container.codings.all()
             for pc_c in pc_codings:
-                #if pc_c != None:
-                areas_list_projects.append(areas[0])
+                if pc_c != None:
+                    areas_list_projects.append(areas[0])
                     
     aResult = []
     aResultXTimes = []
@@ -404,9 +404,6 @@ def areaProjects():
             #print (oneA, xTimesProjects, xTimesRequests )
 
     return aResultXTimes  
-
-
-
 
 
 
@@ -457,14 +454,14 @@ def workingGroupProjects():
         if working_groups:
             working_groups_list_all.append(working_groups[0])
 
-            #if project_container.code_request != None:
-            working_groups_list_requests.append(working_groups[0])
+            if project_container.code_request != None:
+                working_groups_list_requests.append(working_groups[0])
         
             pc_codings = project_container.codings.all()
             for pc_c in pc_codings:
-                #if pc_c != None:
-                working_groups_list_projects.append(working_groups[0])
-
+                if pc_c != None:
+                    working_groups_list_projects.append(working_groups[0])
+    
     wgResult = []
     wgResultXTimes = []
     for oneWG in working_groups_list_all:        
